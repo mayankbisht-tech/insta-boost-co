@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Trophy, Eye, DollarSign } from 'lucide-react';
+import { api } from '@/lib/api';
 
 interface LeaderboardEntry {
   rank: number;
@@ -24,35 +24,9 @@ const Leaderboard = () => {
     if (!id) return;
 
     const fetchData = async () => {
-      const { data: campaign } = await supabase.from('campaigns').select('title').eq('id', id).single();
-      if (campaign) setCampaignTitle(campaign.title);
-
-      const { data: subs } = await supabase
-        .from('submissions')
-        .select('views, earnings, user_id')
-        .eq('campaign_id', id)
-        .order('views', { ascending: false });
-
-      if (subs && subs.length > 0) {
-        const userIds = [...new Set(subs.map(s => s.user_id))];
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('user_id, instagram_username, name')
-          .in('user_id', userIds);
-
-        const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-
-        const leaderboard: LeaderboardEntry[] = subs.map((s, i) => {
-          const prof = profileMap.get(s.user_id);
-          return {
-            rank: i + 1,
-            username: prof?.instagram_username || prof?.name || 'Anonymous',
-            views: s.views || 0,
-            earnings: Number(s.earnings) || 0,
-          };
-        });
-        setEntries(leaderboard);
-      }
+      const data = await api.get<{ campaign_title: string; entries: LeaderboardEntry[] }>(`/api/campaigns/${id}/leaderboard`);
+      setCampaignTitle(data.campaign_title);
+      setEntries(data.entries);
       setLoading(false);
     };
     fetchData();

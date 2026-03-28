@@ -1,9 +1,11 @@
 # Dependencies
 node_modules/
+backend/node_modules/
 
 # Build output
 dist/
 dist-ssr/
+backend/dist/
 coverage/
 playwright-report/
 test-results/
@@ -22,22 +24,26 @@ lerna-debug.log*
 .env.*
 !.env.example
 *.local
+backend/.env
+backend/.env.*
+!backend/.env.example
 
 # Tool caches
 .vite/
 .vitest/
 .cache/
-
-# Supabase local state
-supabase/.branches/
-supabase/.temp/
+backend/.turbo/
 
 # Editor directories and files
 .vscode/*
-!.vscode/extensions.json
 .idea/
 .DS_Store
 Thumbs.db
+
+# Prisma
+backend/generated/
+backend/prisma/*.db
+backend/prisma/*.db-journal
 *.suo
 *.ntvs*
 *.njsproj

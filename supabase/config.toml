@@ -1,4 +1,0 @@
-project_id = "ambagtotlhwintcmhbat"
-
-[functions.signup-otp]
-verify_jwt = false

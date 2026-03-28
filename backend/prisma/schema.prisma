@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountStatus {
+  active
+  suspended
+  banned
+}
+
+enum InstagramConnectionStatus {
+  not_connected
+  approval_pending
+  approved
+  rejected
+}
+
+enum AppRole {
+  admin
+  user
+}
+
+model User {
+  id                        String                    @id @default(cuid())
+  email                     String                    @unique
+  name                      String
+  passwordHash              String
+  accountStatus             AccountStatus             @default(active)
+  instagramConnectionStatus InstagramConnectionStatus @default(not_connected)
+  instagramUsername         String?
+  instagramUserId           String?                   @unique
+  instagramVerified         Boolean                   @default(false)
+  verificationCode          String?
+  followersCount            Int                       @default(0)
+  createdAt                 DateTime                  @default(now())
+  updatedAt                 DateTime                  @updatedAt
+  roles                     UserRole[]
+  sessions                  Session[]
+  notifications             Notification[]
+  submissions               Submission[]
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  role      AppRole  @default(user)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+}
+
+model SignupOtp {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  otpHash    String
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  attempts   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  tokenHash    String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime @default(now())
+  userAgent    String?
+  ipAddress    String?
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Campaign {
+  id                    String       @id @default(cuid())
+  title                 String
+  description           String
+  category              String
+  rewardPerMillionViews Int          @default(100)
+  rules                 String[]
+  status                String       @default("Active")
+  imageUrl              String?
+  createdByAdminId      String?
+  createdAt             DateTime     @default(now())
+  submissions           Submission[]
+}
+
+model Submission {
+  id              String    @id @default(cuid())
+  userId          String
+  campaignId      String
+  reelUrl         String
+  status          String    @default("Pending")
+  views           Int       @default(0)
+  earnings        Decimal   @default(0)
+  reviewedAt      DateTime?
+  reviewedByAdmin String?
+  submittedAt     DateTime  @default(now())
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign        Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

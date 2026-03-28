@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import AdminLayout from '@/components/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { api } from '@/lib/api';
 
 interface Campaign {
   id: string;
@@ -31,18 +30,16 @@ const emptyForm = {
 };
 
 const AdminCampaigns = () => {
-  const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
 
   const fetchCampaigns = async () => {
-    const { data } = await supabase.from('campaigns').select('*').order('created_at', { ascending: false });
-    if (data) setCampaigns(data as Campaign[]);
+    const data = await api.get<Campaign[]>('/api/admin/campaigns');
+    setCampaigns(data);
     setLoading(false);
   };
 
@@ -68,22 +65,6 @@ const AdminCampaigns = () => {
     setDialogOpen(true);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    const fileName = `${Date.now()}-${file.name}`;
-    const { error } = await supabase.storage.from('campaign-images').upload(fileName, file);
-    if (error) {
-      toast.error('Image upload failed.');
-    } else {
-      const { data: urlData } = supabase.storage.from('campaign-images').getPublicUrl(fileName);
-      setForm(f => ({ ...f, image_url: urlData.publicUrl }));
-      toast.success('Image uploaded!');
-    }
-    setUploading(false);
-  };
-
   const handleSave = async () => {
     if (!form.title.trim()) { toast.error('Title is required.'); return; }
     setSaving(true);
@@ -96,17 +77,18 @@ const AdminCampaigns = () => {
       rules: form.rules.split('\n').map(r => r.trim()).filter(Boolean),
       status: form.status,
       image_url: form.image_url || null,
-      created_by_admin: user?.id || null,
     };
 
-    if (editingId) {
-      const { error } = await supabase.from('campaigns').update(payload).eq('id', editingId);
-      if (error) toast.error('Failed to update.');
-      else toast.success('Campaign updated!');
-    } else {
-      const { error } = await supabase.from('campaigns').insert(payload);
-      if (error) toast.error('Failed to create.');
-      else toast.success('Campaign created!');
+    try {
+      if (editingId) {
+        await api.put(`/api/admin/campaigns/${editingId}`, payload);
+        toast.success('Campaign updated!');
+      } else {
+        await api.post('/api/admin/campaigns', payload);
+        toast.success('Campaign created!');
+      }
+    } catch {
+      toast.error(editingId ? 'Failed to update.' : 'Failed to create.');
     }
 
     setSaving(false);
@@ -116,9 +98,13 @@ const AdminCampaigns = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this campaign?')) return;
-    const { error } = await supabase.from('campaigns').delete().eq('id', id);
-    if (error) toast.error('Failed to delete.');
-    else { toast.success('Campaign deleted.'); fetchCampaigns(); }
+    try {
+      await api.delete(`/api/admin/campaigns/${id}`);
+      toast.success('Campaign deleted.');
+      fetchCampaigns();
+    } catch {
+      toast.error('Failed to delete.');
+    }
   };
 
   return (
@@ -235,13 +221,12 @@ const AdminCampaigns = () => {
               {form.image_url && (
                 <img src={form.image_url} alt="" className="h-24 w-full object-cover rounded-lg mt-1 mb-2" />
               )}
-              <div className="mt-1">
-                <label className="flex items-center gap-2 px-3 py-2 border border-border rounded-lg cursor-pointer hover:bg-muted transition-colors text-sm">
-                  <Upload className="h-4 w-4" />
-                  {uploading ? 'Uploading...' : 'Upload Image'}
-                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploading} />
-                </label>
-              </div>
+              <Input
+                value={form.image_url}
+                onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))}
+                className="mt-1"
+                placeholder="https://example.com/image.jpg"
+              />
             </div>
             <div className="flex gap-2 pt-2">
               <Button onClick={handleSave} disabled={saving} className="flex-1">

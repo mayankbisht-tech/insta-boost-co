@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/AdminLayout';
 import { motion } from 'framer-motion';
 import { Users, Megaphone, FileVideo, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { api } from '@/lib/api';
 
 const AdminOverview = () => {
   const [stats, setStats] = useState({
@@ -13,21 +13,8 @@ const AdminOverview = () => {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const [profiles, campaigns, submissions] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('campaigns').select('id', { count: 'exact', head: true }),
-        supabase.from('submissions').select('status'),
-      ]);
-
-      const subs = submissions.data || [];
-      setStats({
-        totalUsers: profiles.count || 0,
-        totalCampaigns: campaigns.count || 0,
-        totalSubmissions: subs.length,
-        approved: subs.filter(s => s.status === 'Approved').length,
-        rejected: subs.filter(s => s.status === 'Rejected').length,
-        pending: subs.filter(s => s.status === 'Pending').length,
-      });
+      const data = await api.get<typeof stats>('/api/admin/overview');
+      setStats(data);
       setLoading(false);
     };
     fetchStats();

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
+import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion } from 'framer-motion';
@@ -38,15 +38,12 @@ const Submissions = () => {
     if (!user) return;
 
     const fetchData = async () => {
-      const { data } = await supabase
-        .from('submissions')
-        .select('*, campaigns(title)')
-        .eq('user_id', user.id)
-        .order('submitted_at', { ascending: false });
-      if (data) setSubmissions(data as Submission[]);
-
-      const { data: campData } = await supabase.from('campaigns').select('id, title');
-      if (campData) setCampaigns(campData);
+      const [data, campData] = await Promise.all([
+        api.get<Submission[]>('/api/submissions'),
+        api.get<{ id: string; title: string }[]>('/api/campaigns'),
+      ]);
+      setSubmissions(data);
+      setCampaigns(campData.map(({ id, title }) => ({ id, title })));
       setLoading(false);
     };
     fetchData();

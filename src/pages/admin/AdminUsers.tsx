@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/AdminLayout';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
-import { Users, Instagram, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
+import { api } from '@/lib/api';
 
 interface UserProfile {
   id: string;
@@ -21,7 +21,7 @@ const AdminUsers = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.from('profiles').select('*').order('created_at', { ascending: false }).then(({ data }) => {
+    api.get<UserProfile[]>('/api/admin/users').then(data => {
       if (data) setUsers(data as UserProfile[]);
       setLoading(false);
     });

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,8 +33,10 @@ const CampaignDetail = () => {
 
   useEffect(() => {
     if (id) {
-      supabase.from('campaigns').select('*').eq('id', id).single().then(({ data }) => {
-        setCampaign(data as Campaign | null);
+      api.get<Campaign>(`/api/campaigns/${id}`).then(data => {
+        setCampaign(data);
+      }).catch(() => {
+        setCampaign(null);
       });
     }
   }, [id]);
@@ -63,18 +65,16 @@ const CampaignDetail = () => {
     }
 
     setSubmitting(true);
-    const { error } = await supabase.from('submissions').insert({
-      user_id: user.id,
-      campaign_id: campaign.id,
-      reel_url: reelUrl.trim(),
-    });
-
-    if (error) {
-      toast.error('Failed to submit reel.');
-    } else {
+    try {
+      await api.post('/api/submissions', {
+        campaign_id: campaign.id,
+        reel_url: reelUrl.trim(),
+      });
       toast.success('Reel submitted successfully!');
       setReelUrl('');
       setShowSubmit(false);
+    } catch {
+      toast.error('Failed to submit reel.');
     }
     setSubmitting(false);
   };

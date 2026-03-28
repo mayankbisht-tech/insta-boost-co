@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
+import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,24 +42,18 @@ const InstagramConnect = () => {
     const code = generateCode();
     setVerificationCode(code);
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
+    try {
+      await api.patch('/api/profile/instagram', {
         instagram_connected: true,
-        instagram_connection_status: 'approval_pending',
         instagram_user_id: trimmedUsername.toLowerCase(),
         instagram_username: trimmedUsername,
         followers_count: count,
         verification_code: code,
-        instagram_verified: false,
-      })
-      .eq('user_id', user.id);
-
-    if (error) {
-      toast.error(error.message.includes('duplicate') ? 'This Instagram account is already linked.' : 'Failed to save.');
-    } else {
+      });
       setStep('verify');
       await refreshProfile();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save.');
     }
     setSaving(false);
   };
@@ -71,19 +65,12 @@ const InstagramConnect = () => {
     // Manual approval flow: submission is stored and waits for admin review.
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        instagram_connected: true,
-        instagram_connection_status: 'approval_pending',
-      })
-      .eq('user_id', user.id);
-
-    if (error) {
-      toast.error('Failed to submit your account for review.');
-    } else {
+    try {
+      await api.post('/api/profile/instagram/submit');
       toast.success('Instagram account submitted for manual approval.');
       await refreshProfile();
+    } catch {
+      toast.error('Failed to submit your account for review.');
     }
     setVerifying(false);
   };
@@ -91,18 +78,7 @@ const InstagramConnect = () => {
   const handleDisconnect = async () => {
     if (!user) return;
     setSaving(true);
-    await supabase
-      .from('profiles')
-      .update({
-        instagram_connected: false,
-        instagram_connection_status: 'not_connected',
-        instagram_user_id: null,
-        instagram_username: null,
-        followers_count: 0,
-        verification_code: null,
-        instagram_verified: false,
-      })
-      .eq('user_id', user.id);
+    await api.delete('/api/profile/instagram');
     toast.success('Instagram disconnected.');
     await refreshProfile();
     setUsername('');

@@ -77,13 +77,17 @@ const Auth = () => {
         return;
       }
 
-      const { error } = await sendSignUpOtp(email.trim());
+      const { error, data } = await sendSignUpOtp(email.trim(), name.trim());
 
       if (error) {
         toast.error(error.message);
       } else {
         setSignUpStep('otp');
-        toast.success('OTP sent to your email.');
+        if (data?.devOtp) {
+          toast.success(`Development OTP: ${data.devOtp}`);
+        } else {
+          toast.success('OTP sent to your email.');
+        }
       }
 
       setSubmitting(false);

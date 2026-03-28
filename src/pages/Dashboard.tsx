@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -41,29 +41,25 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: campData } = await supabase.from('campaigns').select('*').order('created_at', { ascending: false });
-      if (campData) setCampaigns(campData as Campaign[]);
+      const campData = await api.get<Campaign[]>('/api/campaigns');
+      setCampaigns(campData);
 
-      if (user) {
-        const { data: subData } = await supabase.from('submissions').select('status, views, earnings').eq('user_id', user.id);
-        if (subData) {
-          const subs = subData as Submission[];
-          setStats({
-            total: subs.length,
-            approved: subs.filter(s => s.status === 'Approved').length,
-            rejected: subs.filter(s => s.status === 'Rejected').length,
-            pending: subs.filter(s => s.status === 'Pending').length,
-          });
-          const totalEarnings = subs.reduce((sum, s) => sum + Number(s.earnings || 0), 0);
-          const estimatedEarnings = subs.reduce((sum, s) => {
-            if (s.status === 'Pending' || s.status === 'Approved') {
-              return sum + Number(s.earnings || 0);
-            }
-            return sum;
-          }, 0);
-          setEarnings({ total: totalEarnings, estimated: estimatedEarnings });
+      const subData = user ? await api.get<Submission[]>('/api/submissions') : [];
+      const subs = subData as Submission[];
+      setStats({
+        total: subs.length,
+        approved: subs.filter(s => s.status === 'Approved').length,
+        rejected: subs.filter(s => s.status === 'Rejected').length,
+        pending: subs.filter(s => s.status === 'Pending').length,
+      });
+      const totalEarnings = subs.reduce((sum, s) => sum + Number(s.earnings || 0), 0);
+      const estimatedEarnings = subs.reduce((sum, s) => {
+        if (s.status === 'Pending' || s.status === 'Approved') {
+          return sum + Number(s.earnings || 0);
         }
-      }
+        return sum;
+      }, 0);
+      setEarnings({ total: totalEarnings, estimated: estimatedEarnings });
       setLoading(false);
     };
     fetchData();

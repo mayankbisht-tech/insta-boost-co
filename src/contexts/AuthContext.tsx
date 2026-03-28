@@ -1,21 +1,39 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/integrations/supabase/types';
+import { api } from '@/lib/api';
 
-type Profile = Tables<'profiles'>;
-type AccountStatus = Profile['account_status'] | null;
+type AccountStatus = 'active' | 'banned' | 'suspended' | null;
+
+interface User {
+  id: string;
+  email: string;
+}
+
+interface Profile {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  account_status: Exclude<AccountStatus, null>;
+  instagram_connection_status: 'not_connected' | 'approval_pending' | 'approved' | 'rejected';
+  instagram_connected: boolean;
+  instagram_username: string | null;
+  instagram_user_id: string | null;
+  instagram_verified: boolean;
+  verification_code: string | null;
+  followers_count: number;
+  created_at: string;
+  roles: string[];
+}
 
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
   profile: Profile | null;
   loading: boolean;
   isAdmin: boolean;
   isInstagramConnected: boolean;
   accountStatus: AccountStatus;
 
-  sendSignUpOtp: (email: string) => Promise<{ error: Error | null }>;
+  sendSignUpOtp: (email: string, name: string) => Promise<{ error: Error | null; data: SignUpOtpResponse | null }>;
   verifySignUpOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
   completeSignUp: (email: string, name: string, password: string) => Promise<{ error: Error | null }>;
 
@@ -26,129 +44,87 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const BLOCKED_STATUS_MESSAGES: Record<string, string> = {
-  banned: 'This account has been banned.',
-  suspended: 'This account is suspended.',
-};
-
 interface SignUpOtpResponse {
   error?: string;
   message?: string;
+  devOtp?: string;
+}
+
+interface AuthPayload {
+  user: User | null;
+  profile: Profile | null;
+  isAdmin: boolean;
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
   // ================= PROFILE =================
 
-  const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+  const hydrateUserState = async (payload: AuthPayload | null) => {
+    setUser(payload?.user ?? null);
+    setProfile(payload?.profile ?? null);
+    setIsAdmin(payload?.isAdmin ?? false);
 
-    if (error) {
-      console.error(error.message);
-      setProfile(null);
-      return null;
-    }
-
-    setProfile(data);
-    return data;
-  };
-
-  const checkAdmin = async (userId: string) => {
-    const { data } = await supabase.rpc('has_role', {
-      _user_id: userId,
-      _role: 'admin',
-    });
-
-    setIsAdmin(data === true);
-  };
-
-  const hydrateUserState = async (session: Session | null) => {
-    setSession(session);
-    setUser(session?.user ?? null);
-
-    if (!session?.user) {
+    if (!payload?.user) {
       setProfile(null);
       setIsAdmin(false);
-      return;
     }
-
-    await Promise.all([
-      fetchProfile(session.user.id),
-      checkAdmin(session.user.id),
-    ]);
   };
 
   const refreshProfile = async () => {
-    if (!user) return;
-    await fetchProfile(user.id);
-    await checkAdmin(user.id);
+    try {
+      const data = await api.get<AuthPayload>('/api/auth/me');
+      await hydrateUserState(data);
+    } catch {
+      await hydrateUserState(null);
+    }
   };
 
   // ================= INIT =================
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      hydrateUserState(data.session);
+    refreshProfile().finally(() => {
       setLoading(false);
     });
-
-    const { data: { subscription } } =
-      supabase.auth.onAuthStateChange((_event, session) => {
-        hydrateUserState(session);
-        setLoading(false);
-      });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   // ================= OTP FLOW =================
 
-  const invokeSignUpOtp = async (payload: Record<string, unknown>) => {
-    const { data, error } = await supabase.functions.invoke<SignUpOtpResponse>('signup-otp', {
-      body: payload,
-    });
-
-    if (error) {
-      return { error: new Error(error.message) };
+  const invokeSignUpOtp = async (path: string, payload: Record<string, unknown>) => {
+    try {
+      const data = await api.post<SignUpOtpResponse>(path, payload);
+      return { error: null, data: data ?? null };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Request failed.';
+      return { error: new Error(message), data: null };
     }
-
-    if (data?.error) {
-      return { error: new Error(data.error) };
-    }
-
-    return { error: null };
   };
 
   // SEND OTP
-  const sendSignUpOtp = async (email: string) => {
-    return invokeSignUpOtp({
-      action: 'send',
+  const sendSignUpOtp = async (email: string, name: string) => {
+    return invokeSignUpOtp('/api/auth/signup/send-otp', {
       email: email.trim().toLowerCase(),
+      name: name.trim(),
     });
   };
 
   // VERIFY OTP
   const verifySignUpOtp = async (email: string, token: string) => {
-    return invokeSignUpOtp({
-      action: 'verify',
+    const result = await invokeSignUpOtp('/api/auth/signup/verify-otp', {
       email: email.trim().toLowerCase(),
       otp: token.trim().toUpperCase(),
     });
+
+    return { error: result.error };
   };
 
   // COMPLETE PROFILE
   const completeSignUp = async (email: string, name: string, password: string) => {
-    const signUpResult = await invokeSignUpOtp({
-      action: 'complete',
+    const signUpResult = await invokeSignUpOtp('/api/auth/signup/complete', {
       email: email.trim().toLowerCase(),
       name: name.trim(),
       password,
@@ -170,31 +146,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // ================= LOGIN =================
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
-
-    if (error) return { error };
-
-    const { data } = await supabase.auth.getSession();
-    const user = data.session?.user;
-
-    if (!user) return { error: new Error('Session not found') };
-
-    const profile = await fetchProfile(user.id);
-
-    if (!profile || profile.account_status !== 'active') {
-      await supabase.auth.signOut();
-      return { error: new Error('Account not active') };
+    try {
+      await api.post('/api/auth/login', {
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      await refreshProfile();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Login failed.';
+      return { error: new Error(message) };
     }
 
     return { error: null };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await api.post('/api/auth/logout');
     setProfile(null);
+    setUser(null);
     setIsAdmin(false);
   };
 
@@ -207,7 +176,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider
       value={{
         user,
-        session,
         profile,
         loading,
         isAdmin,

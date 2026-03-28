@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import { motion } from 'framer-motion';
 import { Bell } from 'lucide-react';
-import type { Tables } from '@/integrations/supabase/types';
+import { api } from '@/lib/api';
 
-type Notification = Tables<'notifications'>;
+type Notification = {
+  id: string;
+  user_id: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+};
 
 const Notifications = () => {
   const { user } = useAuth();
@@ -15,17 +20,14 @@ const Notifications = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
+    api
+      .get<Notification[]>('/api/notifications')
+      .then(data => {
         if (data) setNotifications(data);
         setLoading(false);
       });
 
-    supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false).then(() => {});
+    api.patch('/api/notifications/read-all').catch(() => undefined);
   }, [user]);
 
   return (

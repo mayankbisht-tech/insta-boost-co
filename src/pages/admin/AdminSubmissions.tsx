@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import AdminLayout from '@/components/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { CheckCircle, XCircle, AlertTriangle, ExternalLink, Eye } from 'lucide-react';
+import { api } from '@/lib/api';
 
 interface Submission {
   id: string;
@@ -31,7 +30,6 @@ const statusColors: Record<string, string> = {
 };
 
 const AdminSubmissions = () => {
-  const { user } = useAuth();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [campaigns, setCampaigns] = useState<{ id: string; title: string }[]>([]);
   const [filterCampaign, setFilterCampaign] = useState('all');
@@ -40,50 +38,25 @@ const AdminSubmissions = () => {
   const [editingViews, setEditingViews] = useState<Record<string, string>>({});
 
   const fetchSubmissions = async () => {
-    const { data } = await supabase
-      .from('submissions')
-      .select('*, campaigns(title, reward_per_million_views)')
-      .order('submitted_at', { ascending: false });
-
-    // profiles join via user_id - need manual join since FK name may differ
-    if (data) {
-      // Fetch profiles separately for the user_ids
-      const userIds = [...new Set(data.map(s => s.user_id))];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('user_id, instagram_username, name, email')
-        .in('user_id', userIds);
-
-      const profileMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
-
-      const enriched = data.map(s => ({
-        ...s,
-        profiles: profileMap.get(s.user_id) || null,
-      })) as Submission[];
-
-      setSubmissions(enriched);
-    }
+    const data = await api.get<Submission[]>('/api/admin/submissions');
+    setSubmissions(data);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchSubmissions();
-    supabase.from('campaigns').select('id, title').then(({ data }) => {
-      if (data) setCampaigns(data);
+    api.get<{ id: string; title: string }[]>('/api/admin/campaigns').then(data => {
+      setCampaigns(data.map(({ id, title }) => ({ id, title })));
     });
   }, []);
 
   const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from('submissions').update({
-      status,
-      reviewed_by_admin: user?.id,
-      reviewed_at: new Date().toISOString(),
-    }).eq('id', id);
-
-    if (error) toast.error('Failed to update.');
-    else {
+    try {
+      await api.patch(`/api/admin/submissions/${id}/status`, { status });
       toast.success(`Submission ${status.toLowerCase()}.`);
       fetchSubmissions();
+    } catch {
+      toast.error('Failed to update.');
     }
   };
 
@@ -92,16 +65,16 @@ const AdminSubmissions = () => {
     if (isNaN(views) || views < 0) { toast.error('Invalid views.'); return; }
     const earnings = (views / 1_000_000) * campaignReward;
 
-    const { error } = await supabase.from('submissions').update({
-      views,
-      earnings: parseFloat(earnings.toFixed(2)),
-    }).eq('id', id);
-
-    if (error) toast.error('Failed to update views.');
-    else {
+    try {
+      await api.patch(`/api/admin/submissions/${id}/views`, {
+        views,
+        earnings: parseFloat(earnings.toFixed(2)),
+      });
       toast.success('Views updated!');
       setEditingViews(ev => { const copy = { ...ev }; delete copy[id]; return copy; });
       fetchSubmissions();
+    } catch {
+      toast.error('Failed to update views.');
     }
   };
 
