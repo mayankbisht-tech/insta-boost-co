@@ -10,7 +10,7 @@ export const sendSignupOtpEmail = async (to: string, otp: string, ttlMinutes: nu
     throw new Error('Email provider is not configured');
   }
 
-  await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from: env.OTP_FROM_EMAIL,
     to,
     subject: 'Your signup OTP',
@@ -23,4 +23,12 @@ export const sendSignupOtpEmail = async (to: string, otp: string, ttlMinutes: nu
       </div>
     `,
   });
+
+  if (error) {
+    throw new Error(`Failed to send OTP email: ${error.message}`);
+  }
+
+  if (!data?.id) {
+    throw new Error('Failed to send OTP email: provider did not return a message id.');
+  }
 };

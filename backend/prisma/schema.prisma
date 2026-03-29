@@ -41,6 +41,7 @@ model User {
   updatedAt                 DateTime                  @updatedAt
   roles                     UserRole[]
   sessions                  Session[]
+  adminLoginActivities      AdminLoginActivity[]
   notifications             Notification[]
   submissions               Submission[]
 }
@@ -64,6 +65,28 @@ model SignupOtp {
   attempts   Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+model AdminSignupOtp {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  otpHash    String
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  attempts   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model AdminLoginActivity {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String
+  success   Boolean
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
 model Session {

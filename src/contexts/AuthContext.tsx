@@ -36,8 +36,12 @@ interface AuthContextType {
   sendSignUpOtp: (email: string, name: string) => Promise<{ error: Error | null; data: SignUpOtpResponse | null }>;
   verifySignUpOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
   completeSignUp: (email: string, name: string, password: string) => Promise<{ error: Error | null }>;
+  sendAdminSignUpOtp: (email: string, name: string) => Promise<{ error: Error | null; data: SignUpOtpResponse | null }>;
+  verifyAdminSignUpOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
+  completeAdminSignUp: (email: string, name: string, password: string) => Promise<{ error: Error | null }>;
 
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInAdmin: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -143,6 +147,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error: null };
   };
 
+  const sendAdminSignUpOtp = async (email: string, name: string) => {
+    return invokeSignUpOtp('/api/auth/admin/signup/send-otp', {
+      email: email.trim().toLowerCase(),
+      name: name.trim(),
+    });
+  };
+
+  const verifyAdminSignUpOtp = async (email: string, token: string) => {
+    const result = await invokeSignUpOtp('/api/auth/admin/signup/verify-otp', {
+      email: email.trim().toLowerCase(),
+      otp: token.trim().toUpperCase(),
+    });
+
+    return { error: result.error };
+  };
+
+  const completeAdminSignUp = async (email: string, name: string, password: string) => {
+    const signUpResult = await invokeSignUpOtp('/api/auth/admin/signup/complete', {
+      email: email.trim().toLowerCase(),
+      name: name.trim(),
+      password,
+    });
+
+    if (signUpResult.error) {
+      return signUpResult;
+    }
+
+    const signInResult = await signInAdmin(email, password);
+    if (signInResult.error) {
+      return signInResult;
+    }
+
+    await refreshProfile();
+    return { error: null };
+  };
+
   // ================= LOGIN =================
 
   const signIn = async (email: string, password: string) => {
@@ -154,6 +194,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await refreshProfile();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed.';
+      return { error: new Error(message) };
+    }
+
+    return { error: null };
+  };
+
+  const signInAdmin = async (email: string, password: string) => {
+    try {
+      await api.post('/api/auth/admin/login', {
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      await refreshProfile();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Admin login failed.';
       return { error: new Error(message) };
     }
 
@@ -184,7 +239,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         sendSignUpOtp,
         verifySignUpOtp,
         completeSignUp,
+        sendAdminSignUpOtp,
+        verifyAdminSignUpOtp,
+        completeAdminSignUp,
         signIn,
+        signInAdmin,
         signOut,
         refreshProfile,
       }}
