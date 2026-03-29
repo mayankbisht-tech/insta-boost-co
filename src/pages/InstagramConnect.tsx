@@ -9,8 +9,6 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Instagram, CheckCircle2, Users, Copy, ShieldCheck, Loader2 } from 'lucide-react';
 
-const generateCode = () => 'VK' + Math.random().toString(36).substring(2, 7).toUpperCase();
-
 const InstagramConnect = () => {
   const { user, profile, refreshProfile } = useAuth();
   const [username, setUsername] = useState('');
@@ -23,10 +21,13 @@ const InstagramConnect = () => {
   useEffect(() => {
     if (profile?.instagram_username) setUsername(profile.instagram_username);
     if (profile?.followers_count) setFollowers(String(profile.followers_count));
+    if (profile?.verification_code) setVerificationCode(profile.verification_code);
   }, [profile]);
 
   const isVerified = (profile as any)?.instagram_verified === true;
+  const isCodeGenerated = profile?.instagram_connection_status === 'code_generated';
   const isPendingApproval = profile?.instagram_connection_status === 'approval_pending';
+  const isRejected = profile?.instagram_connection_status === 'rejected';
 
   const handleGenerateCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,17 +40,13 @@ const InstagramConnect = () => {
     if (isNaN(count) || count < 0) { toast.error('Enter a valid follower count'); return; }
 
     setSaving(true);
-    const code = generateCode();
-    setVerificationCode(code);
 
     try {
-      await api.patch('/api/profile/instagram', {
-        instagram_connected: true,
-        instagram_user_id: trimmedUsername.toLowerCase(),
+      const response = await api.patch<{ verification_code: string }>('/api/profile/instagram', {
         instagram_username: trimmedUsername,
         followers_count: count,
-        verification_code: code,
       });
+      setVerificationCode(response.verification_code);
       setStep('verify');
       await refreshProfile();
     } catch (error) {
@@ -61,9 +58,6 @@ const InstagramConnect = () => {
   const handleVerify = async () => {
     if (!user) return;
     setVerifying(true);
-
-    // Manual approval flow: submission is stored and waits for admin review.
-    await new Promise(resolve => setTimeout(resolve, 2000));
 
     try {
       await api.post('/api/profile/instagram/submit');
@@ -126,19 +120,36 @@ const InstagramConnect = () => {
             <p className="text-sm text-muted-foreground mt-2">
               Your Instagram account has been submitted and is waiting for admin approval.
             </p>
+            {profile?.instagram_review_submitted_at && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Submitted on {new Date(profile.instagram_review_submitted_at).toLocaleString()}
+              </p>
+            )}
             <Button variant="outline" className="mt-6" onClick={handleDisconnect} disabled={saving}>
               Disconnect
             </Button>
           </div>
-        ) : profile?.instagram_connected && step === 'input' ? (
+        ) : isRejected ? (
+          <div className="glass-card p-6 text-center space-y-3">
+            <CheckCircle2 className="h-12 w-12 text-destructive mx-auto" />
+            <p className="font-semibold text-lg">Verification Rejected</p>
+            <p className="text-sm text-muted-foreground">
+              Update your Instagram bio details and submit again.
+            </p>
+            {profile?.instagram_review_notes && (
+              <p className="text-xs text-muted-foreground">Note: {profile.instagram_review_notes}</p>
+            )}
+            <Button onClick={() => setStep('input')}>Try Again</Button>
+          </div>
+        ) : (profile?.instagram_connected || isCodeGenerated) && step === 'input' ? (
           // Already connected but not verified, go to verify step
           <div className="glass-card p-6 text-center">
             <CheckCircle2 className="h-12 w-12 text-warning mx-auto mb-4" />
             <p className="font-semibold text-lg">Connected as @{profile.instagram_username}</p>
-            <p className="text-sm text-muted-foreground mt-2">Complete the review submission to request approval.</p>
+            <p className="text-sm text-muted-foreground mt-2">Complete the review submission to request manual approval.</p>
             <div className="flex gap-2 justify-center mt-4">
               <Button onClick={() => {
-                setVerificationCode(profile?.verification_code || generateCode());
+                setVerificationCode(profile?.verification_code || '');
                 setStep('verify');
               }}>
                 Continue
@@ -195,8 +206,8 @@ const InstagramConnect = () => {
               <ol className="list-decimal list-inside space-y-1">
                 <li>Copy the code above</li>
                 <li>Go to your Instagram profile</li>
-                <li>Add the code to your bio</li>
-                <li>Click "Verify" below</li>
+                <li>Add the code to your Instagram bio</li>
+                <li>Submit for review so the superadmin can manually compare your bio code, Instagram ID, and followers</li>
               </ol>
             </div>
 

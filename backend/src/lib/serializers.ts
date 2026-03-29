@@ -24,6 +24,9 @@ export const toFrontendProfile = (user: UserWithRoles) => ({
   instagram_verified: user.instagramVerified,
   verification_code: user.verificationCode,
   followers_count: user.followersCount,
+  instagram_review_submitted_at: user.instagramReviewSubmittedAt?.toISOString() ?? null,
+  instagram_review_reviewed_at: user.instagramReviewReviewedAt?.toISOString() ?? null,
+  instagram_review_notes: user.instagramReviewNotes ?? null,
   created_at: user.createdAt.toISOString(),
   roles: user.roles.map(role => role.role),
 });
@@ -34,6 +37,7 @@ export const toAuthPayload = (auth: AuthState | null) => {
       user: null,
       profile: null,
       isAdmin: false,
+      isSuperadmin: false,
     };
   }
 
@@ -43,7 +47,8 @@ export const toAuthPayload = (auth: AuthState | null) => {
       email: auth.user.email,
     },
     profile: toFrontendProfile(auth.user),
-    isAdmin: auth.user.roles.some(role => role.role === 'admin'),
+    isAdmin: auth.user.roles.some(role => role.role === 'admin' || role.role === 'superadmin'),
+    isSuperadmin: auth.user.roles.some(role => role.role === 'superadmin'),
   };
 };
 

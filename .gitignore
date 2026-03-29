@@ -27,12 +27,14 @@ lerna-debug.log*
 backend/.env
 backend/.env.*
 !backend/.env.example
-
+backend/scripts/seed.ts
 # Tool caches
 .vite/
 .vitest/
 .cache/
 backend/.turbo/
+
+
 
 # Editor directories and files
 .vscode/*

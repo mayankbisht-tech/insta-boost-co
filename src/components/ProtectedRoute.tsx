@@ -22,7 +22,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           <p className="text-sm text-muted-foreground">
             {profile.account_status === 'banned'
               ? 'Your account has been banned. Contact support if you think this is incorrect.'
-              : 'Your account is suspended and cannot access the dashboard right now.'}
+              : profile.account_status === 'paused'
+                ? 'Your account is paused right now. Please wait for the superadmin to reactivate it.'
+                : 'Your account is suspended and cannot access the dashboard right now.'}
           </p>
           <Button onClick={() => { void signOut(); }}>Log Out</Button>
         </div>

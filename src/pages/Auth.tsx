@@ -1,24 +1,36 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { motion } from 'framer-motion';
-import { toast } from 'sonner';
 
 type SignUpStep = 'email' | 'otp' | 'details';
+type AuthRole = 'user' | 'admin';
 
-const Auth = () => {
+type AuthProps = {
+  initialRole?: AuthRole;
+};
+
+const Auth = ({ initialRole = 'user' }: AuthProps) => {
   const {
     user,
+    isAdmin,
+    isSuperadmin,
     loading,
     signIn,
     sendSignUpOtp,
     verifySignUpOtp,
     completeSignUp,
+    signInAdmin,
+    sendAdminSignUpOtp,
+    verifyAdminSignUpOtp,
+    completeAdminSignUp,
   } = useAuth();
 
+  const [role, setRole] = useState<AuthRole>(initialRole);
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,9 +41,17 @@ const Auth = () => {
   const [submitting, setSubmitting] = useState(false);
 
   if (loading) return null;
+  if (user && isSuperadmin) return <Navigate to="/superadmin" replace />;
+  if (user && isAdmin) return <Navigate to="/admin" replace />;
   if (user) return <Navigate to="/dashboard" replace />;
 
-  const resetSignUpForm = () => {
+  const roleLabel = role === 'admin' ? 'Admin' : 'User';
+  const roleDescription =
+    role === 'admin'
+      ? 'Manage campaigns, submissions, creators, and admin workflows from the admin portal.'
+      : 'Earn money from your Instagram Reels and track your progress.';
+
+  const resetForm = () => {
     setEmail('');
     setPassword('');
     setConfirmPassword('');
@@ -40,11 +60,17 @@ const Auth = () => {
     setSignUpStep('email');
   };
 
-  const switchMode = async (nextIsLogin: boolean) => {
+  const switchMode = (nextIsLogin: boolean) => {
     if (nextIsLogin === isLogin) return;
-
     setIsLogin(nextIsLogin);
-    resetSignUpForm();
+    resetForm();
+  };
+
+  const switchRole = (nextRole: AuthRole) => {
+    if (nextRole === role) return;
+    setRole(nextRole);
+    setIsLogin(true);
+    resetForm();
   };
 
   const goBackOneStep = () => {
@@ -59,12 +85,36 @@ const Auth = () => {
     setSignUpStep('email');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const sendOtp = async () => {
+    return role === 'admin'
+      ? sendAdminSignUpOtp(email.trim(), name.trim())
+      : sendSignUpOtp(email.trim(), name.trim());
+  };
+
+  const verifyOtp = async () => {
+    return role === 'admin'
+      ? verifyAdminSignUpOtp(email.trim(), otp.trim())
+      : verifySignUpOtp(email.trim(), otp.trim());
+  };
+
+  const completeSignup = async () => {
+    return role === 'admin'
+      ? completeAdminSignUp(email.trim(), name.trim(), password)
+      : completeSignUp(email.trim(), name.trim(), password);
+  };
+
+  const signInForRole = async () => {
+    return role === 'admin'
+      ? signInAdmin(email.trim(), password)
+      : signIn(email.trim(), password);
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
     if (isLogin) {
-      const { error } = await signIn(email.trim(), password);
+      const { error } = await signInForRole();
       if (error) toast.error(error.message);
       setSubmitting(false);
       return;
@@ -77,7 +127,7 @@ const Auth = () => {
         return;
       }
 
-      const { error, data } = await sendSignUpOtp(email.trim(), name.trim());
+      const { error, data } = await sendOtp();
 
       if (error) {
         toast.error(error.message);
@@ -101,7 +151,7 @@ const Auth = () => {
         return;
       }
 
-      const { error } = await verifySignUpOtp(email.trim(), otp.trim());
+      const { error } = await verifyOtp();
 
       if (error) {
         toast.error(error.message);
@@ -126,39 +176,67 @@ const Auth = () => {
       return;
     }
 
-    const { error: profileError } = await completeSignUp(email.trim(), name, password);
+    const { error } = await completeSignup();
 
-    if (profileError) {
-      toast.error(profileError.message);
+    if (error) {
+      toast.error(error.message);
       setSubmitting(false);
       return;
     }
 
-    toast.success('Account created successfully.');
+    toast.success(`${roleLabel} account created successfully.`);
     setSubmitting(false);
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 bg-background">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
         className="w-full max-w-md"
       >
-        <div className="text-center mb-8">
-          <h1 className="font-display text-4xl font-bold gradient-text mb-2">Viralkaro</h1>
-          <p className="text-muted-foreground text-sm">Earn money from your Instagram Reels</p>
+        <div className="mb-4 text-center">
+          <h1 className="mb-2 font-display text-4xl font-bold gradient-text">Viralkaro</h1>
+          <p className="text-sm text-muted-foreground">{roleDescription}</p>
         </div>
 
         <div className="glass-card p-8">
-          <div className="flex mb-6 rounded-lg bg-muted p-1">
+          <div className="mb-6">
+            <Label className="mb-2 block text-xs uppercase tracking-[0.2em] text-muted-foreground">
+              Choose Role
+            </Label>
+            <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
+              <button
+                type="button"
+                onClick={() => switchRole('user')}
+                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                  role === 'user' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'
+                }`}
+              >
+                User
+              </button>
+              <button
+                type="button"
+                onClick={() => switchRole('admin')}
+                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                  role === 'admin' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'
+                }`}
+              >
+                Admin
+              </button>
+            </div>
+          </div>
+
+          <div className="mb-4 text-center">
+            <h2 className="font-display text-2xl font-bold gradient-text">{roleLabel} Portal</h2>
+          </div>
+
+          <div className="mb-6 flex rounded-lg bg-muted p-1">
             <button
               type="button"
-              onClick={() => {
-                void switchMode(true);
-              }}
-              className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+              onClick={() => switchMode(true)}
+              className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
                 isLogin ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'
               }`}
             >
@@ -166,10 +244,8 @@ const Auth = () => {
             </button>
             <button
               type="button"
-              onClick={() => {
-                void switchMode(false);
-              }}
-              className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+              onClick={() => switchMode(false)}
+              className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
                 !isLogin ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'
               }`}
             >
@@ -232,7 +308,7 @@ const Auth = () => {
                     required
                     className="mt-1"
                   />
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="mt-2 text-xs text-muted-foreground">
                     We will send a one-time OTP before password setup.
                   </p>
                 </div>
@@ -270,9 +346,9 @@ const Auth = () => {
                   <Input id="signup-verified-email" type="email" value={email} disabled className="mt-1" />
                 </div>
                 <div>
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="signup-password">Password</Label>
                   <Input
-                    id="password"
+                    id="signup-password"
                     type="password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
@@ -302,12 +378,12 @@ const Auth = () => {
               {submitting
                 ? 'Loading...'
                 : isLogin
-                  ? 'Log In'
+                  ? `Log In as ${roleLabel}`
                   : signUpStep === 'email'
                     ? 'Get OTP'
                     : signUpStep === 'otp'
                       ? 'Verify OTP'
-                      : 'Create Account'}
+                      : `Create ${roleLabel} Account`}
             </Button>
 
             {!isLogin && signUpStep !== 'email' && (

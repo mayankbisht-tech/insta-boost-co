@@ -1,5 +1,5 @@
 import { AppRole, Prisma } from '@prisma/client';
-import { Router, type NextFunction, type Request, type Response } from 'express';
+import { Router, type NextFunction, type Request, type RequestHandler, type Response } from 'express';
 import { z } from 'zod';
 import { env } from '../config/env.js';
 import { canSendEmail, sendSignupOtpEmail } from '../lib/email.js';
@@ -9,9 +9,11 @@ import { prisma } from '../lib/prisma.js';
 import { toAuthPayload } from '../lib/serializers.js';
 import { attachSessionCookie, clearSessionCookie, createSession, resolveSession, revokeSession } from '../lib/session.js';
 import { addMinutes } from '../utils/time.js';
-import { requireAuth } from '../middleware/auth.js';
 
 export const authRouter = Router();
+
+const asyncHandler = (handler: RequestHandler): RequestHandler => (req, res, next) =>
+  Promise.resolve(handler(req, res, next)).catch(next);
 
 const emailSchema = z.string().trim().email().transform(value => value.toLowerCase());
 const passwordSchema = z.string().min(6);
@@ -82,7 +84,10 @@ const publicUser = (user: {
   roles: user.roles.map(role => role.role),
 });
 
-authRouter.post('/signup/send-otp', async (req, res) => {
+const hasAdminAccess = (roles: { role: AppRole }[]) =>
+  roles.some(role => role.role === AppRole.admin || role.role === AppRole.superadmin);
+
+authRouter.post('/signup/send-otp', asyncHandler(async (req, res) => {
   const parsed = sendOtpSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid signup data.', details: parsed.error.flatten().fieldErrors });
@@ -133,9 +138,9 @@ authRouter.post('/signup/send-otp', async (req, res) => {
     message: 'OTP generated for local development.',
     devOtp: otp,
   });
-});
+}));
 
-authRouter.post('/signup/verify-otp', async (req, res) => {
+authRouter.post('/signup/verify-otp', asyncHandler(async (req, res) => {
   const parsed = verifyOtpSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid OTP data.', details: parsed.error.flatten().fieldErrors });
@@ -171,9 +176,9 @@ authRouter.post('/signup/verify-otp', async (req, res) => {
   });
 
   return res.json({ message: 'OTP verified successfully.' });
-});
+}));
 
-authRouter.post('/signup/complete', async (req, res) => {
+authRouter.post('/signup/complete', asyncHandler(async (req, res) => {
   const parsed = completeSignupSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid signup completion data.', details: parsed.error.flatten().fieldErrors });
@@ -238,9 +243,9 @@ authRouter.post('/signup/complete', async (req, res) => {
     message: 'Account created successfully.',
     user: publicUser(user),
   });
-});
+}));
 
-authRouter.post('/login', async (req, res) => {
+authRouter.post('/login', asyncHandler(async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid login data.', details: parsed.error.flatten().fieldErrors });
@@ -277,9 +282,9 @@ authRouter.post('/login', async (req, res) => {
     message: 'Logged in successfully.',
     user: publicUser(user),
   });
-});
+}));
 
-authRouter.post('/admin/signup/send-otp', async (req, res) => {
+authRouter.post('/admin/signup/send-otp', asyncHandler(async (req, res) => {
   const parsed = sendOtpSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid signup data.', details: parsed.error.flatten().fieldErrors });
@@ -335,9 +340,9 @@ authRouter.post('/admin/signup/send-otp', async (req, res) => {
     message: 'OTP generated for local development.',
     devOtp: otp,
   });
-});
+}));
 
-authRouter.post('/admin/signup/verify-otp', async (req, res) => {
+authRouter.post('/admin/signup/verify-otp', asyncHandler(async (req, res) => {
   const parsed = verifyOtpSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid OTP data.', details: parsed.error.flatten().fieldErrors });
@@ -373,9 +378,9 @@ authRouter.post('/admin/signup/verify-otp', async (req, res) => {
   });
 
   return res.json({ message: 'OTP verified successfully.' });
-});
+}));
 
-authRouter.post('/admin/signup/complete', async (req, res) => {
+authRouter.post('/admin/signup/complete', asyncHandler(async (req, res) => {
   const parsed = completeSignupSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid signup completion data.', details: parsed.error.flatten().fieldErrors });
@@ -448,9 +453,9 @@ authRouter.post('/admin/signup/complete', async (req, res) => {
     message: 'Admin account created successfully.',
     user: publicUser(user),
   });
-});
+}));
 
-authRouter.post('/admin/login', async (req, res) => {
+authRouter.post('/admin/login', asyncHandler(async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid login data.', details: parsed.error.flatten().fieldErrors });
@@ -474,7 +479,7 @@ authRouter.post('/admin/login', async (req, res) => {
   }
 
   const matches = await verifyPassword(user.passwordHash, password);
-  const isAdmin = user.roles.some(role => role.role === AppRole.admin);
+  const isAdmin = hasAdminAccess(user.roles);
 
   if (!matches || !isAdmin) {
     await logAdminLoginActivity({
@@ -510,15 +515,15 @@ authRouter.post('/admin/login', async (req, res) => {
     message: 'Admin logged in successfully.',
     user: publicUser(user),
   });
-});
+}));
 
-authRouter.post('/logout', async (req, res) => {
+authRouter.post('/logout', asyncHandler(async (req, res) => {
   await revokeSession(req.cookies?.[env.SESSION_COOKIE_NAME]);
   clearSessionCookie(res);
   return res.json({ message: 'Logged out successfully.' });
-});
+}));
 
-authRouter.get('/me', async (req, res) => {
+authRouter.get('/me', asyncHandler(async (req, res) => {
   const session = await resolveSession(req.cookies?.[env.SESSION_COOKIE_NAME]);
 
   if (!session) {
@@ -529,7 +534,7 @@ authRouter.get('/me', async (req, res) => {
     session,
     user: session.user,
   }));
-});
+}));
 
 authRouter.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

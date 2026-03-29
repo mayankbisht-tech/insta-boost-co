@@ -11,7 +11,7 @@ const adminNav = [
 ];
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
-  const { signOut } = useAuth();
+  const { signOut, isSuperadmin } = useAuth();
   const location = useLocation();
 
   return (
@@ -42,6 +42,15 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         </nav>
 
         <div className="p-3 border-t border-border space-y-1">
+          {isSuperadmin && (
+            <Link
+              to="/superadmin"
+              className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <Users className="h-4 w-4" />
+              Superadmin Panel
+            </Link>
+          )}
           <Link
             to="/dashboard"
             className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"

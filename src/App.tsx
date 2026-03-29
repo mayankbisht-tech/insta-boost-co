@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
+import SuperadminRoute from "@/components/SuperadminRoute";
 import Auth from "./pages/Auth";
 import AdminAuth from "./pages/AdminAuth";
 import Dashboard from "./pages/Dashboard";
@@ -17,6 +18,7 @@ import AdminOverview from "./pages/admin/AdminOverview";
 import AdminCampaigns from "./pages/admin/AdminCampaigns";
 import AdminSubmissions from "./pages/admin/AdminSubmissions";
 import AdminUsers from "./pages/admin/AdminUsers";
+import SuperadminDashboard from "./pages/superadmin/SuperadminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +44,7 @@ const App = () => (
             <Route path="/admin/campaigns" element={<AdminRoute><AdminCampaigns /></AdminRoute>} />
             <Route path="/admin/submissions" element={<AdminRoute><AdminSubmissions /></AdminRoute>} />
             <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+            <Route path="/superadmin" element={<SuperadminRoute><SuperadminDashboard /></SuperadminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

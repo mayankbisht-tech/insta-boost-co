@@ -12,7 +12,7 @@ const navItems = [
 ];
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
-  const { profile, signOut, isAdmin } = useAuth();
+  const { profile, signOut, isAdmin, isSuperadmin } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -48,8 +48,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
           <div className="flex items-center gap-2">
             {isAdmin && (
-              <Link to="/admin" className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors">
-                <Shield className="h-3.5 w-3.5" /> Admin
+              <Link to={isSuperadmin ? "/superadmin" : "/admin"} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors">
+                <Shield className="h-3.5 w-3.5" /> {isSuperadmin ? 'Superadmin' : 'Admin'}
               </Link>
             )}
             <Link to="/notifications" className="relative p-2 rounded-lg hover:bg-muted transition-colors">

@@ -1,12 +1,17 @@
-import { AppRole } from '@prisma/client';
+import { AppRole, type InstagramVerificationRequest, type User, type UserRole } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
-import { requireAdmin } from '../middleware/admin.js';
+import { requireAdmin, requireSuperadmin } from '../middleware/admin.js';
 import { requireAuth } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
 import { toCampaignPayload, toFrontendProfile, toSubmissionPayload } from '../lib/serializers.js';
 
 export const adminRouter = Router();
+
+type UserWithRolesAndVerification = User & {
+  roles: UserRole[];
+  instagramVerificationRequest: InstagramVerificationRequest | null;
+};
 
 const campaignSchema = z.object({
   title: z.string().trim().min(1),
@@ -18,27 +23,75 @@ const campaignSchema = z.object({
   image_url: z.string().trim().nullable().optional(),
 });
 
+const userStatusSchema = z.object({
+  status: z.enum(['active', 'paused', 'suspended', 'banned']),
+});
+
+const verificationDecisionSchema = z.object({
+  action: z.enum(['approve', 'reject']),
+  notes: z.string().trim().max(500).optional(),
+});
+
+const hasManagementRole = (roles: UserRole[]) =>
+  roles.some(role => role.role === AppRole.admin || role.role === AppRole.superadmin);
+
+const isCreator = (roles: UserRole[]) => roles.every(role => role.role === AppRole.user);
+
+const toSuperadminUserPayload = (user: UserWithRolesAndVerification) => ({
+  ...toFrontendProfile(user),
+  is_creator: isCreator(user.roles),
+  is_admin_account: hasManagementRole(user.roles),
+  instagram_verification_request: user.instagramVerificationRequest
+    ? {
+        id: user.instagramVerificationRequest.id,
+        instagram_username: user.instagramVerificationRequest.instagramUsername,
+        instagram_user_id: user.instagramVerificationRequest.instagramUserId,
+        followers_count: user.instagramVerificationRequest.followersCount,
+        verification_code: user.instagramVerificationRequest.verificationCode,
+        status: user.instagramVerificationRequest.status,
+        submitted_at: user.instagramVerificationRequest.submittedAt?.toISOString() ?? null,
+        reviewed_at: user.instagramVerificationRequest.reviewedAt?.toISOString() ?? null,
+        review_notes: user.instagramVerificationRequest.reviewNotes ?? null,
+      }
+    : null,
+});
+
 adminRouter.use(requireAuth, requireAdmin);
 
 adminRouter.get('/overview', async (_req, res) => {
-  const [totalUsers, totalCampaigns, submissions] = await Promise.all([
-    prisma.user.count(),
+  const [visibleUsers, totalCampaigns, submissions, pendingInstagramVerifications] = await Promise.all([
+    prisma.user.count({
+      where: {
+        OR: [
+          { instagramConnectionStatus: 'approved' },
+          { roles: { some: { role: { in: [AppRole.admin, AppRole.superadmin] } } } },
+        ],
+      },
+    }),
     prisma.campaign.count(),
     prisma.submission.findMany({ select: { status: true } }),
+    prisma.instagramVerificationRequest.count({ where: { status: 'submitted' } }),
   ]);
 
   res.json({
-    totalUsers,
+    totalUsers: visibleUsers,
     totalCampaigns,
     totalSubmissions: submissions.length,
     approved: submissions.filter(item => item.status === 'Approved').length,
     rejected: submissions.filter(item => item.status === 'Rejected').length,
     pending: submissions.filter(item => item.status === 'Pending').length,
+    pendingInstagramVerifications,
   });
 });
 
 adminRouter.get('/users', async (_req, res) => {
   const users = await prisma.user.findMany({
+    where: {
+      OR: [
+        { instagramConnectionStatus: 'approved' },
+        { roles: { some: { role: { in: [AppRole.admin, AppRole.superadmin] } } } },
+      ],
+    },
     include: { roles: true },
     orderBy: { createdAt: 'desc' },
   });
@@ -177,4 +230,131 @@ adminRouter.patch('/submissions/:id/views', async (req, res) => {
   });
 
   res.json(toSubmissionPayload(submission));
+});
+
+adminRouter.get('/superadmin/overview', requireSuperadmin, async (_req, res) => {
+  const [users, pendingVerifications] = await Promise.all([
+    prisma.user.findMany({
+      include: { roles: true },
+    }),
+    prisma.instagramVerificationRequest.count({ where: { status: 'submitted' } }),
+  ]);
+
+  const admins = users.filter(user => hasManagementRole(user.roles)).length;
+  const creators = users.filter(user => isCreator(user.roles)).length;
+  const paused = users.filter(user => user.accountStatus === 'paused').length;
+  const blocked = users.filter(user => user.accountStatus === 'suspended' || user.accountStatus === 'banned').length;
+
+  res.json({
+    totalUsers: users.length,
+    totalAdmins: admins,
+    totalCreators: creators,
+    pausedUsers: paused,
+    blockedUsers: blocked,
+    pendingVerifications,
+  });
+});
+
+adminRouter.get('/superadmin/users', requireSuperadmin, async (_req, res) => {
+  const users = await prisma.user.findMany({
+    include: {
+      roles: true,
+      instagramVerificationRequest: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  res.json(users.map(toSuperadminUserPayload));
+});
+
+adminRouter.patch('/superadmin/users/:id/status', requireSuperadmin, async (req, res) => {
+  const parsed = userStatusSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid account status.' });
+  }
+
+  const targetUserId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  if (targetUserId === req.auth!.user.id && parsed.data.status !== 'active') {
+    return res.status(400).json({ error: 'You cannot restrict your own superadmin account.' });
+  }
+
+  await prisma.user.update({
+    where: { id: targetUserId },
+    data: { accountStatus: parsed.data.status },
+  });
+
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: targetUserId },
+    include: {
+      roles: true,
+      instagramVerificationRequest: true,
+    },
+  });
+
+  res.json(toSuperadminUserPayload(user));
+});
+
+adminRouter.delete('/superadmin/users/:id', requireSuperadmin, async (req, res) => {
+  const targetUserId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  if (targetUserId === req.auth!.user.id) {
+    return res.status(400).json({ error: 'You cannot remove your own superadmin account.' });
+  }
+
+  await prisma.user.delete({
+    where: { id: targetUserId },
+  });
+
+  res.json({ message: 'User removed successfully.' });
+});
+
+adminRouter.patch('/superadmin/verifications/:userId', requireSuperadmin, async (req, res) => {
+  const parsed = verificationDecisionSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid verification decision.' });
+  }
+
+  const targetUserId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
+
+  const existingRequest = await prisma.instagramVerificationRequest.findUnique({
+    where: { userId: targetUserId },
+  });
+
+  if (!existingRequest || existingRequest.status !== 'submitted') {
+    return res.status(404).json({ error: 'Submitted verification request not found.' });
+  }
+
+  const now = new Date();
+  const user = await prisma.$transaction(async tx => {
+    await tx.instagramVerificationRequest.update({
+      where: { userId: targetUserId },
+      data: {
+        status: parsed.data.action === 'approve' ? 'approved' : 'rejected',
+        reviewedAt: now,
+        reviewerId: req.auth!.user.id,
+        reviewNotes: parsed.data.notes || null,
+      },
+    });
+
+    await tx.user.update({
+      where: { id: targetUserId },
+      data: {
+        instagramConnectionStatus: parsed.data.action === 'approve' ? 'approved' : 'rejected',
+        instagramVerified: parsed.data.action === 'approve',
+        instagramReviewReviewedAt: now,
+        instagramReviewNotes: parsed.data.notes || null,
+      },
+    });
+
+    return tx.user.findUniqueOrThrow({
+      where: { id: targetUserId },
+      include: {
+        roles: true,
+        instagramVerificationRequest: true,
+      },
+    });
+  });
+
+  res.json(toSuperadminUserPayload(user));
 });

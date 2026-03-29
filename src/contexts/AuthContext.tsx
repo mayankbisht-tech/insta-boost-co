@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api } from '@/lib/api';
 
-type AccountStatus = 'active' | 'banned' | 'suspended' | null;
+type AccountStatus = 'active' | 'paused' | 'banned' | 'suspended' | null;
 
 interface User {
   id: string;
@@ -14,13 +14,16 @@ interface Profile {
   name: string;
   email: string;
   account_status: Exclude<AccountStatus, null>;
-  instagram_connection_status: 'not_connected' | 'approval_pending' | 'approved' | 'rejected';
+  instagram_connection_status: 'not_connected' | 'code_generated' | 'approval_pending' | 'approved' | 'rejected';
   instagram_connected: boolean;
   instagram_username: string | null;
   instagram_user_id: string | null;
   instagram_verified: boolean;
   verification_code: string | null;
   followers_count: number;
+  instagram_review_submitted_at: string | null;
+  instagram_review_reviewed_at: string | null;
+  instagram_review_notes: string | null;
   created_at: string;
   roles: string[];
 }
@@ -30,6 +33,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   isAdmin: boolean;
+  isSuperadmin: boolean;
   isInstagramConnected: boolean;
   accountStatus: AccountStatus;
 
@@ -58,6 +62,7 @@ interface AuthPayload {
   user: User | null;
   profile: Profile | null;
   isAdmin: boolean;
+  isSuperadmin: boolean;
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -65,6 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperadmin, setIsSuperadmin] = useState(false);
 
   // ================= PROFILE =================
 
@@ -72,10 +78,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(payload?.user ?? null);
     setProfile(payload?.profile ?? null);
     setIsAdmin(payload?.isAdmin ?? false);
+    setIsSuperadmin(payload?.isSuperadmin ?? false);
 
     if (!payload?.user) {
       setProfile(null);
       setIsAdmin(false);
+      setIsSuperadmin(false);
     }
   };
 
@@ -220,6 +228,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setProfile(null);
     setUser(null);
     setIsAdmin(false);
+    setIsSuperadmin(false);
   };
 
   const isInstagramConnected =
@@ -234,6 +243,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         profile,
         loading,
         isAdmin,
+        isSuperadmin,
         isInstagramConnected,
         accountStatus,
         sendSignUpOtp,
