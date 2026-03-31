@@ -14,6 +14,7 @@ import { submissionsRouter } from './routes/submissions.js';
 
 const app = express();
 
+app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({
   origin: env.FRONTEND_ORIGIN,
@@ -35,6 +36,6 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api/admin', adminRouter);
 
-app.listen(env.PORT, () => {
-  console.log(`Backend listening on http://localhost:${env.PORT}`);
+app.listen(env.PORT, env.HOST, () => {
+  console.log(`Backend listening on http://${env.HOST}:${env.PORT}`);
 });

@@ -8,10 +8,12 @@ const optionalUrl = z.preprocess(
 
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
+  HOST: z.string().trim().default('0.0.0.0'),
   PORT: z.coerce.number().int().positive().default(4000),
   FRONTEND_ORIGIN: z.string().url().default('http://localhost:8080'),
   SESSION_COOKIE_NAME: z.string().min(1).default('insta_boost_session'),
   SESSION_SECRET: z.string().min(16),
+  SESSION_COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
   REEL_SUBMISSION_WINDOW_MINUTES: z.coerce.number().int().positive().default(30),
   INSTAGRAM_VERIFICATION_WINDOW_MINUTES: z.coerce.number().int().positive().default(5),
   SMTP_HOST: z.string().trim().optional(),
