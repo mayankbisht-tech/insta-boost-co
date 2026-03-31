@@ -13,22 +13,7 @@ import { profileRouter } from './routes/profile.js';
 import { submissionsRouter } from './routes/submissions.js';
 
 const app = express();
-const allowedOrigins = [env.FRONTEND_ORIGIN].map(origin => origin.replace(/\/$/, ''));
-
 app.use(helmet());
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow same-origin or non-browser clients that do not send Origin.
-    if (!origin) {
-      callback(null, true);
-      return;
-    }
-
-    const normalizedOrigin = origin.replace(/\/$/, '');
-    callback(null, allowedOrigins.includes(normalizedOrigin));
-  },
-  credentials: true,
-}));
 app.use(express.json());
 app.use(cookieParser());
 app.use(morgan('dev'));
