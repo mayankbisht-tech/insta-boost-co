@@ -2,7 +2,7 @@ import { AppRole, type InstagramVerificationRequest, type User, type UserRole } 
 import { Router } from 'express';
 import { z } from 'zod';
 import { getApifyRunOverview } from '../lib/apify.js';
-import { consumeRefreshQuota, syncSubmissionAnalytics } from '../lib/analyticsRefresh.js';
+import { consumeRefreshQuota, getRefreshQuota, syncSubmissionAnalytics } from '../lib/analyticsRefresh.js';
 import { normalizeVerificationStatus, overrideInstagramVerificationStatus, runInstagramVerificationCheck } from '../lib/instagramVerification.js';
 import { prisma } from '../lib/prisma.js';
 import { toCampaignPayload, toFrontendProfile, toSubmissionPayload } from '../lib/serializers.js';
@@ -276,13 +276,13 @@ adminRouter.patch('/submissions/:id/sync-analytics', async (req, res) => {
     return res.status(404).json({ error: 'Submission not found.' });
   }
 
-  const quota = consumeRefreshQuota(req.auth!.user);
-  if (!quota.ok) {
+  const quotaBeforeRefresh = getRefreshQuota(req.auth!.user);
+  if (quotaBeforeRefresh.refreshesRemaining <= 0) {
     return res.status(429).json({
-      error: `You have used all ${quota.refreshLimit} analytics refreshes for this hour.`,
-      refresh_limit: quota.refreshLimit,
-      refreshes_remaining: quota.refreshesRemaining,
-      window_resets_at: quota.windowResetsAt,
+      error: `You have used all ${quotaBeforeRefresh.refreshLimit} analytics refreshes for this hour.`,
+      refresh_limit: quotaBeforeRefresh.refreshLimit,
+      refreshes_remaining: quotaBeforeRefresh.refreshesRemaining,
+      window_resets_at: quotaBeforeRefresh.windowResetsAt,
     });
   }
 
@@ -290,11 +290,13 @@ adminRouter.patch('/submissions/:id/sync-analytics', async (req, res) => {
   if (!result.ok) {
     return res.status(result.status).json({
       error: result.error,
-      refresh_limit: quota.refreshLimit,
-      refreshes_remaining: quota.refreshesRemaining,
-      window_resets_at: quota.windowResetsAt,
+      refresh_limit: quotaBeforeRefresh.refreshLimit,
+      refreshes_remaining: quotaBeforeRefresh.refreshesRemaining,
+      window_resets_at: quotaBeforeRefresh.windowResetsAt,
     });
   }
+
+  const quota = consumeRefreshQuota(req.auth!.user);
 
   res.json({
     submission: toSubmissionPayload(result.submission),

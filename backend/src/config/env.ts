@@ -26,6 +26,7 @@ const envSchema = z.object({
   APIFY_API_TOKEN: z.string().trim().optional(),
   APIFY_ACTOR_RUN_URL: optionalUrl,
   APIFY_ACTOR_INPUT_URL: optionalUrl,
+  APIFY_REEL_RUN_SYNC_GET_URL: optionalUrl,
   APIFY_DATASET_ITEMS_URL: optionalUrl,
   APIFY_LAST_RUN_DATASET_ITEMS_URL: optionalUrl,
   APIFY_DATASET_ITEMS_LIMIT: z.coerce.number().int().min(50).max(5000).default(1000),

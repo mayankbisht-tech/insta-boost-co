@@ -1,5 +1,5 @@
 import type { Submission, User, UserRole } from '@prisma/client';
-import { findApifyAnalyticsByReelCode } from './apify.js';
+import { refreshApifyAnalyticsForReelUrl } from './apify.js';
 import { prisma } from './prisma.js';
 
 type SubmissionWithRelations = Submission & {
@@ -32,7 +32,7 @@ const getRefreshLimit = (actor: RefreshActor) => {
     return 5;
   }
 
-  return 3;
+  return 5;
 };
 
 export const getRefreshQuota = (actor: RefreshActor) => {
@@ -79,20 +79,34 @@ export const syncSubmissionAnalytics = async (submission: SubmissionWithRelation
     return { ok: false as const, status: 404, error: 'Submission not found.' };
   }
 
-  if (!submission.reelCode) {
-    return { ok: false as const, status: 400, error: 'This submission is missing a reel code, so analytics cannot be synced.' };
+  if (!submission.reelUrl) {
+    return { ok: false as const, status: 400, error: 'This submission is missing a reel URL, so analytics cannot be synced.' };
   }
 
-  let analytics;
+  let analyticsResult;
   try {
-    analytics = await findApifyAnalyticsByReelCode(submission.reelCode);
+    analyticsResult = await refreshApifyAnalyticsForReelUrl(submission.reelUrl);
   } catch {
     return { ok: false as const, status: 502, error: 'Apify analytics could not be reached right now.' };
   }
 
-  if (!analytics) {
+  if (analyticsResult.status === 'not-configured') {
+    return { ok: false as const, status: 400, error: 'Apify reel verification is not configured on the backend.' };
+  }
+
+  if (analyticsResult.status === 'not-found') {
     return { ok: false as const, status: 404, error: 'No Apify analytics were found for this reel yet.' };
   }
+
+  if (analyticsResult.status === 'missing-timestamp') {
+    return { ok: false as const, status: 400, error: 'Apify found the reel, but its upload timestamp is still missing.' };
+  }
+
+  if (analyticsResult.status === 'invalid-timestamp') {
+    return { ok: false as const, status: 400, error: 'Apify found the reel, but its upload timestamp is invalid.' };
+  }
+
+  const analytics = analyticsResult.snapshot;
 
   const updatedSubmission = await prisma.submission.update({
     where: { id: submission.id },
