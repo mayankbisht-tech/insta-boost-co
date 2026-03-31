@@ -18,6 +18,7 @@ export const apiRequest = async <T>(path: string, options: ApiOptions = {}): Pro
   const hasJsonBody = options.body !== undefined && !(options.body instanceof FormData);
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
+    cache: 'no-store',
     credentials: 'include',
     headers: buildHeaders(options.headers, hasJsonBody),
     body: hasJsonBody ? JSON.stringify(options.body) : (options.body as BodyInit | null | undefined),
