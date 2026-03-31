@@ -1,6 +1,10 @@
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '');
+const API_BASE_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, '');
 
-type ApiOptions = RequestInit & {
+if (!API_BASE_URL) {
+  throw new Error('Missing VITE_API_URL. Set it in the frontend .env file.');
+}
+
+type ApiOptions = Omit<RequestInit, 'body'> & {
   body?: unknown;
 };
 

@@ -29,7 +29,7 @@ export const createSession = async (userId: string, meta: { userAgent?: string; 
 export const attachSessionCookie = (res: Response, token: string) => {
   res.cookie(env.SESSION_COOKIE_NAME, token, {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: isProduction ? 'none' : 'lax',
     secure: isProduction,
     expires: addDays(new Date(), SESSION_TTL_DAYS),
     path: '/',
@@ -39,7 +39,7 @@ export const attachSessionCookie = (res: Response, token: string) => {
 export const clearSessionCookie = (res: Response) => {
   res.clearCookie(env.SESSION_COOKIE_NAME, {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: isProduction ? 'none' : 'lax',
     secure: isProduction,
     path: '/',
   });
