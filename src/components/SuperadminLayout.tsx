@@ -12,7 +12,7 @@ const SuperadminLayout = ({ children }: { children: React.ReactNode }) => {
           <div>
             <div className="flex items-center gap-2 text-primary">
               <ShieldCheck className="h-5 w-5" />
-              <span className="font-display text-xl font-bold">Viralkaro Superadmin</span>
+              <span className="font-display text-xl font-bold">Go Clips Superadmin</span>
             </div>
             <p className="text-xs text-muted-foreground">Manual verification, admin oversight, and account controls</p>
           </div>

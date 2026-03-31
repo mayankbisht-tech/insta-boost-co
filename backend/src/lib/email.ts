@@ -27,13 +27,13 @@ export const sendSignupOtpEmail = async (to: string, otp: string, ttlMinutes: nu
     subject: 'Your signup OTP',
     html: `
       <div style="font-family: Arial, sans-serif; line-height: 1.5;">
-        <h2>Your Viralkaro signup code</h2>
+        <h2>Your Go Clips signup code</h2>
         <p>Use this OTP to continue creating your account:</p>
         <p style="font-size: 24px; font-weight: 700; letter-spacing: 4px;">${otp}</p>
         <p>This code expires in ${ttlMinutes} minutes.</p>
       </div>
     `,
-    text: `Your Viralkaro signup code is ${otp}. This code expires in ${ttlMinutes} minutes.`,
+    text: `Your Go Clips signup code is ${otp}. This code expires in ${ttlMinutes} minutes.`,
   });
 
   if (!info.messageId) {

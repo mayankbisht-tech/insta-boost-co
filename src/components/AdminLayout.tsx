@@ -20,7 +20,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       <aside className="w-60 bg-card border-r border-border flex flex-col shrink-0">
         <div className="p-4 border-b border-border">
           <Link to="/admin" className="font-display text-lg font-bold gradient-text">
-            Viralkaro Admin
+            Go Clips Admin
           </Link>
         </div>
 

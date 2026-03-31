@@ -197,7 +197,9 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
         className="w-full max-w-md"
       >
         <div className="mb-4 text-center">
-          <h1 className="mb-2 font-display text-4xl font-bold gradient-text">Viralkaro</h1>
+          <h1 className="mb-2 font-display text-4xl font-bold gradient-text">
+            <img src="2.jpeg" className="h-24 mx-auto w-auto" alt="Go Clips" />
+          </h1>
           <p className="text-sm text-muted-foreground">{roleDescription}</p>
         </div>
 

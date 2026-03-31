@@ -24,8 +24,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <Link to="/dashboard" className="font-display text-xl font-bold gradient-text">
-              Viralkaro
+            <Link to="/dashboard" className="inline-flex items-center">
+              <img src="/1.jpeg" alt="Go Clips" className="h-12 w-auto" />
             </Link>
           </div>
 
