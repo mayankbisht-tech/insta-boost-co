@@ -13,7 +13,15 @@ import { profileRouter } from './routes/profile.js';
 import { submissionsRouter } from './routes/submissions.js';
 
 const app = express();
-const allowedOrigin = env.FRONTEND_ORIGIN.replace(/\/$/, '');
+const allowedOrigins = [
+  env.FRONTEND_ORIGIN,
+  'https://goclips.netlify.app',
+  'http://localhost:8080',
+  'http://localhost:5173',
+]
+  .map(origin => origin.replace(/\/$/, ''))
+  .filter((origin, index, array) => array.indexOf(origin) === index);
+
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
     // Allow server-to-server/health requests that do not send an Origin header.
@@ -23,9 +31,11 @@ const corsOptions: cors.CorsOptions = {
     }
 
     const normalizedOrigin = origin.replace(/\/$/, '');
-    callback(null, normalizedOrigin === allowedOrigin);
+    callback(null, allowedOrigins.includes(normalizedOrigin));
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
 app.use(helmet());
