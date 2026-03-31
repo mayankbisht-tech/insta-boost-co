@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { ArrowLeft, CheckCircle2, AlertTriangle, TrendingUp, Trophy } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, AlertTriangle, TrendingUp, Trophy, Clock3, Radar } from 'lucide-react';
 
 interface Campaign {
   id: string;
@@ -21,6 +21,8 @@ interface Campaign {
   status: string;
   image_url: string | null;
 }
+
+const submissionWindowMinutes = 30;
 
 const CampaignDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -70,11 +72,11 @@ const CampaignDetail = () => {
         campaign_id: campaign.id,
         reel_url: reelUrl.trim(),
       });
-      toast.success('Reel submitted successfully!');
+      toast.success('Reel submitted successfully.');
       setReelUrl('');
       setShowSubmit(false);
-    } catch {
-      toast.error('Failed to submit reel.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to submit reel.');
     }
     setSubmitting(false);
   };
@@ -119,12 +121,26 @@ const CampaignDetail = () => {
           <h1 className="font-display text-2xl font-bold mb-3">{campaign.title}</h1>
           <p className="text-muted-foreground mb-6 leading-relaxed">{campaign.description}</p>
 
-          <div className="flex items-center gap-2 text-primary mb-6 p-3 rounded-lg bg-primary/5 border border-primary/10">
+          <div className="flex items-center gap-2 text-primary mb-4 p-3 rounded-lg bg-primary/5 border border-primary/10">
             <TrendingUp className="h-4 w-4" />
             <span className="font-display font-semibold">${campaign.reward_per_million_views} per 1M views</span>
           </div>
 
-          {/* Leaderboard link */}
+          <div className="mb-6 rounded-lg border border-warning/20 bg-warning/5 p-4 text-sm text-muted-foreground">
+            <div className="flex items-start gap-2">
+              <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+              <div>
+                <p className="font-medium text-foreground">Submission guardrails</p>
+                <p className="mt-1">Submit the reel within {submissionWindowMinutes} minutes of upload.</p>
+                <p className="mt-1">Each reel can be used only once across the platform, so duplicate submissions are blocked.</p>
+                <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                  <Radar className="h-3.5 w-3.5" />
+                  Upload times are verified automatically via Apify.
+                </div>
+              </div>
+            </div>
+          </div>
+
           <Button asChild variant="outline" size="sm" className="mb-6">
             <Link to={`/campaign/${campaign.id}/leaderboard`}>
               <Trophy className="h-4 w-4 mr-1" /> View Leaderboard
@@ -176,6 +192,9 @@ const CampaignDetail = () => {
                   required
                 />
               </div>
+              <p className="text-xs text-muted-foreground">
+                We verify the upload time automatically using Apify before accepting the submission.
+              </p>
               <div className="flex gap-2">
                 <Button type="submit" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit'}</Button>
                 <Button type="button" variant="ghost" onClick={() => setShowSubmit(false)}>Cancel</Button>

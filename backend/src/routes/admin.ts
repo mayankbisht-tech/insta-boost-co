@@ -1,10 +1,12 @@
 import { AppRole, type InstagramVerificationRequest, type User, type UserRole } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
-import { requireAdmin, requireSuperadmin } from '../middleware/admin.js';
-import { requireAuth } from '../middleware/auth.js';
+import { findApifyAnalyticsByReelCode, getApifyRunOverview } from '../lib/apify.js';
+import { normalizeVerificationStatus, overrideInstagramVerificationStatus, runInstagramVerificationCheck } from '../lib/instagramVerification.js';
 import { prisma } from '../lib/prisma.js';
 import { toCampaignPayload, toFrontendProfile, toSubmissionPayload } from '../lib/serializers.js';
+import { requireAdmin, requireSuperadmin } from '../middleware/admin.js';
+import { requireAuth } from '../middleware/auth.js';
 
 export const adminRouter = Router();
 
@@ -28,14 +30,25 @@ const userStatusSchema = z.object({
 });
 
 const verificationDecisionSchema = z.object({
-  action: z.enum(['approve', 'reject']),
+  status: z.enum(['pending', 'verified', 'failed', 'expired']),
   notes: z.string().trim().max(500).optional(),
+});
+
+const submissionStatusSchema = z.object({
+  status: z.enum(['Pending', 'Approved', 'Rejected', 'Flagged']),
+});
+
+const submissionViewsSchema = z.object({
+  views: z.coerce.number().int().min(0),
 });
 
 const hasManagementRole = (roles: UserRole[]) =>
   roles.some(role => role.role === AppRole.admin || role.role === AppRole.superadmin);
 
 const isCreator = (roles: UserRole[]) => roles.every(role => role.role === AppRole.user);
+
+const calculateEarnings = (views: number, rewardPerMillionViews: number) =>
+  Number(((views / 1_000_000) * rewardPerMillionViews).toFixed(2));
 
 const toSuperadminUserPayload = (user: UserWithRolesAndVerification) => ({
   ...toFrontendProfile(user),
@@ -48,8 +61,14 @@ const toSuperadminUserPayload = (user: UserWithRolesAndVerification) => ({
         instagram_user_id: user.instagramVerificationRequest.instagramUserId,
         followers_count: user.instagramVerificationRequest.followersCount,
         verification_code: user.instagramVerificationRequest.verificationCode,
-        status: user.instagramVerificationRequest.status,
+        status: normalizeVerificationStatus(user.instagramVerificationRequest.status),
         submitted_at: user.instagramVerificationRequest.submittedAt?.toISOString() ?? null,
+        expires_at: user.instagramVerificationRequest.expiresAt?.toISOString() ?? null,
+        checked_at: user.instagramVerificationRequest.checkedAt?.toISOString() ?? null,
+        checked_bio: user.instagramVerificationRequest.checkedBio ?? null,
+        checked_followers: user.instagramVerificationRequest.checkedFollowers ?? null,
+        bio_contains_token: user.instagramVerificationRequest.bioContainsToken ?? null,
+        followers_match: user.instagramVerificationRequest.followersMatch ?? null,
         reviewed_at: user.instagramVerificationRequest.reviewedAt?.toISOString() ?? null,
         review_notes: user.instagramVerificationRequest.reviewNotes ?? null,
       }
@@ -69,9 +88,19 @@ adminRouter.get('/overview', async (_req, res) => {
       },
     }),
     prisma.campaign.count(),
-    prisma.submission.findMany({ select: { status: true } }),
-    prisma.instagramVerificationRequest.count({ where: { status: 'submitted' } }),
+    prisma.submission.findMany({
+      select: {
+        status: true,
+        views: true,
+        earnings: true,
+        analyticsSyncedAt: true,
+      },
+    }),
+    prisma.instagramVerificationRequest.count({ where: { status: { in: ['pending', 'submitted'] } } }),
   ]);
+
+  const totalViews = submissions.reduce((sum, submission) => sum + submission.views, 0);
+  const totalEarnings = submissions.reduce((sum, submission) => sum + Number(submission.earnings), 0);
 
   res.json({
     totalUsers: visibleUsers,
@@ -80,6 +109,11 @@ adminRouter.get('/overview', async (_req, res) => {
     approved: submissions.filter(item => item.status === 'Approved').length,
     rejected: submissions.filter(item => item.status === 'Rejected').length,
     pending: submissions.filter(item => item.status === 'Pending').length,
+    totalViews,
+    totalEarnings: Number(totalEarnings.toFixed(2)),
+    averageViews: submissions.length ? Math.round(totalViews / submissions.length) : 0,
+    uniqueReels: submissions.length,
+    reelsWithAnalytics: submissions.filter(item => item.analyticsSyncedAt).length,
     pendingInstagramVerifications,
   });
 });
@@ -173,9 +207,7 @@ adminRouter.get('/submissions', async (_req, res) => {
 });
 
 adminRouter.patch('/submissions/:id/status', async (req, res) => {
-  const parsed = z.object({
-    status: z.enum(['Pending', 'Approved', 'Rejected', 'Flagged']),
-  }).safeParse(req.body);
+  const parsed = submissionStatusSchema.safeParse(req.body);
 
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid submission status.' });
@@ -185,6 +217,7 @@ adminRouter.patch('/submissions/:id/status', async (req, res) => {
     where: { id: req.params.id },
     data: {
       status: parsed.data.status,
+      rejectionReason: parsed.data.status === 'Rejected' ? 'Rejected by admin review.' : null,
       reviewedAt: new Date(),
       reviewedByAdmin: req.auth!.user.id,
     },
@@ -198,9 +231,7 @@ adminRouter.patch('/submissions/:id/status', async (req, res) => {
 });
 
 adminRouter.patch('/submissions/:id/views', async (req, res) => {
-  const parsed = z.object({
-    views: z.coerce.number().int().min(0),
-  }).safeParse(req.body);
+  const parsed = submissionViewsSchema.safeParse(req.body);
 
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid views value.' });
@@ -215,13 +246,62 @@ adminRouter.patch('/submissions/:id/views', async (req, res) => {
     return res.status(404).json({ error: 'Submission not found.' });
   }
 
-  const earnings = Number(((parsed.data.views / 1_000_000) * existing.campaign.rewardPerMillionViews).toFixed(2));
+  const earnings = calculateEarnings(parsed.data.views, existing.campaign.rewardPerMillionViews);
 
   const submission = await prisma.submission.update({
     where: { id: req.params.id },
     data: {
       views: parsed.data.views,
       earnings,
+      analyticsSource: 'manual-admin',
+      analyticsSyncedAt: new Date(),
+    },
+    include: {
+      campaign: true,
+      user: true,
+    },
+  });
+
+  res.json(toSubmissionPayload(submission));
+});
+
+adminRouter.patch('/submissions/:id/sync-analytics', async (req, res) => {
+  const existing = await prisma.submission.findUnique({
+    where: { id: req.params.id },
+    include: { campaign: true, user: true },
+  });
+
+  if (!existing || !existing.campaign) {
+    return res.status(404).json({ error: 'Submission not found.' });
+  }
+
+  if (!existing.reelCode) {
+    return res.status(400).json({ error: 'This submission is missing a reel code, so analytics cannot be synced.' });
+  }
+
+  let analytics;
+  try {
+    analytics = await findApifyAnalyticsByReelCode(existing.reelCode);
+  } catch {
+    return res.status(502).json({ error: 'Apify analytics could not be reached right now.' });
+  }
+
+  if (!analytics) {
+    return res.status(404).json({ error: 'No Apify analytics were found for this reel yet.' });
+  }
+
+  const submission = await prisma.submission.update({
+    where: { id: req.params.id },
+    data: {
+      reelUploadedAt: analytics.uploadedAt ?? existing.reelUploadedAt,
+      views: analytics.views,
+      playCount: analytics.playCount,
+      likesCount: analytics.likesCount,
+      commentsCount: analytics.commentsCount,
+      analyticsSource: analytics.source,
+      analyticsSyncedAt: new Date(),
+      apifyDatasetItemId: analytics.datasetItemId,
+      earnings: calculateEarnings(analytics.views, existing.campaign.rewardPerMillionViews),
     },
     include: {
       campaign: true,
@@ -233,17 +313,33 @@ adminRouter.patch('/submissions/:id/views', async (req, res) => {
 });
 
 adminRouter.get('/superadmin/overview', requireSuperadmin, async (_req, res) => {
-  const [users, pendingVerifications] = await Promise.all([
+  const [users, submissions, campaigns, pendingVerifications, apifyRunOverview] = await Promise.all([
     prisma.user.findMany({
       include: { roles: true },
     }),
-    prisma.instagramVerificationRequest.count({ where: { status: 'submitted' } }),
+    prisma.submission.findMany({
+      select: {
+        views: true,
+        earnings: true,
+        analyticsSyncedAt: true,
+      },
+    }),
+    prisma.campaign.findMany({
+      select: {
+        status: true,
+      },
+    }),
+    prisma.instagramVerificationRequest.count({ where: { status: { in: ['pending', 'submitted'] } } }),
+    getApifyRunOverview().catch(() => null),
   ]);
 
   const admins = users.filter(user => hasManagementRole(user.roles)).length;
   const creators = users.filter(user => isCreator(user.roles)).length;
   const paused = users.filter(user => user.accountStatus === 'paused').length;
   const blocked = users.filter(user => user.accountStatus === 'suspended' || user.accountStatus === 'banned').length;
+  const connectedCreators = users.filter(user => user.instagramConnectionStatus === 'approved').length;
+  const totalViews = submissions.reduce((sum, submission) => sum + submission.views, 0);
+  const totalEarnings = submissions.reduce((sum, submission) => sum + Number(submission.earnings), 0);
 
   res.json({
     totalUsers: users.length,
@@ -252,6 +348,16 @@ adminRouter.get('/superadmin/overview', requireSuperadmin, async (_req, res) => 
     pausedUsers: paused,
     blockedUsers: blocked,
     pendingVerifications,
+    connectedCreators,
+    platformViews: totalViews,
+    platformEarnings: Number(totalEarnings.toFixed(2)),
+    uniqueReels: submissions.length,
+    activeCampaigns: campaigns.filter(campaign => campaign.status === 'Active').length,
+    reelsWithAnalytics: submissions.filter(submission => submission.analyticsSyncedAt).length,
+    averageViewsPerReel: submissions.length ? Math.round(totalViews / submissions.length) : 0,
+    apifyRunStatus: apifyRunOverview?.status ?? 'not-configured',
+    apifyRunStartedAt: apifyRunOverview?.startedAt ?? null,
+    apifyRunFinishedAt: apifyRunOverview?.finishedAt ?? null,
   });
 });
 
@@ -309,51 +415,45 @@ adminRouter.delete('/superadmin/users/:id', requireSuperadmin, async (req, res) 
   res.json({ message: 'User removed successfully.' });
 });
 
-adminRouter.patch('/superadmin/verifications/:userId', requireSuperadmin, async (req, res) => {
+adminRouter.patch('/superadmin/verifications/:userId/trigger', requireSuperadmin, async (req, res) => {
+  const targetUserId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
+
+  const result = await runInstagramVerificationCheck({
+    userId: targetUserId,
+    allowEarlyCheck: true,
+    reviewerId: req.auth!.user.id,
+  });
+
+  if (!result.ok) {
+    return res.status(400).json({ error: result.error, next_check_at: result.nextCheckAt?.toISOString() ?? null });
+  }
+
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: targetUserId },
+    include: { roles: true, instagramVerificationRequest: true },
+  });
+
+  res.json(toSuperadminUserPayload(user));
+});
+
+adminRouter.patch('/superadmin/verifications/:userId/status', requireSuperadmin, async (req, res) => {
   const parsed = verificationDecisionSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid verification decision.' });
+    return res.status(400).json({ error: 'Invalid verification status.' });
   }
 
   const targetUserId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
 
-  const existingRequest = await prisma.instagramVerificationRequest.findUnique({
-    where: { userId: targetUserId },
+  await overrideInstagramVerificationStatus({
+    userId: targetUserId,
+    status: parsed.data.status,
+    reviewerId: req.auth!.user.id,
+    notes: parsed.data.notes ?? null,
   });
 
-  if (!existingRequest || existingRequest.status !== 'submitted') {
-    return res.status(404).json({ error: 'Submitted verification request not found.' });
-  }
-
-  const now = new Date();
-  const user = await prisma.$transaction(async tx => {
-    await tx.instagramVerificationRequest.update({
-      where: { userId: targetUserId },
-      data: {
-        status: parsed.data.action === 'approve' ? 'approved' : 'rejected',
-        reviewedAt: now,
-        reviewerId: req.auth!.user.id,
-        reviewNotes: parsed.data.notes || null,
-      },
-    });
-
-    await tx.user.update({
-      where: { id: targetUserId },
-      data: {
-        instagramConnectionStatus: parsed.data.action === 'approve' ? 'approved' : 'rejected',
-        instagramVerified: parsed.data.action === 'approve',
-        instagramReviewReviewedAt: now,
-        instagramReviewNotes: parsed.data.notes || null,
-      },
-    });
-
-    return tx.user.findUniqueOrThrow({
-      where: { id: targetUserId },
-      include: {
-        roles: true,
-        instagramVerificationRequest: true,
-      },
-    });
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: targetUserId },
+    include: { roles: true, instagramVerificationRequest: true },
   });
 
   res.json(toSuperadminUserPayload(user));

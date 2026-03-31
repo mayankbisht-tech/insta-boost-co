@@ -6,7 +6,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { TrendingUp, Eye, CheckCircle, XCircle, Clock, DollarSign, BarChart3 } from 'lucide-react';
+import { TrendingUp, CheckCircle, XCircle, Clock, DollarSign, BarChart3, Eye, Radar } from 'lucide-react';
 
 interface Campaign {
   id: string;
@@ -20,10 +20,18 @@ interface Campaign {
   image_url: string | null;
 }
 
-interface Submission {
-  status: string;
-  views: number;
-  earnings: number;
+interface SubmissionOverview {
+  total_submissions: number;
+  approved: number;
+  rejected: number;
+  pending: number;
+  total_views: number;
+  total_earnings: number;
+  average_views: number;
+  active_reels: number;
+  reels_with_analytics: number;
+  best_reel_views: number;
+  latest_sync_at: string | null;
 }
 
 const categoryColors: Record<string, string> = {
@@ -32,11 +40,24 @@ const categoryColors: Record<string, string> = {
   Gambling: 'bg-warning/10 text-warning border border-warning/20',
 };
 
+const emptyOverview: SubmissionOverview = {
+  total_submissions: 0,
+  approved: 0,
+  rejected: 0,
+  pending: 0,
+  total_views: 0,
+  total_earnings: 0,
+  average_views: 0,
+  active_reels: 0,
+  reels_with_analytics: 0,
+  best_reel_views: 0,
+  latest_sync_at: null,
+};
+
 const Dashboard = () => {
   const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [stats, setStats] = useState({ total: 0, approved: 0, rejected: 0, pending: 0 });
-  const [earnings, setEarnings] = useState({ total: 0, estimated: 0 });
+  const [overview, setOverview] = useState<SubmissionOverview>(emptyOverview);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,39 +65,38 @@ const Dashboard = () => {
       const campData = await api.get<Campaign[]>('/api/campaigns');
       setCampaigns(campData);
 
-      const subData = user ? await api.get<Submission[]>('/api/submissions') : [];
-      const subs = subData as Submission[];
-      setStats({
-        total: subs.length,
-        approved: subs.filter(s => s.status === 'Approved').length,
-        rejected: subs.filter(s => s.status === 'Rejected').length,
-        pending: subs.filter(s => s.status === 'Pending').length,
-      });
-      const totalEarnings = subs.reduce((sum, s) => sum + Number(s.earnings || 0), 0);
-      const estimatedEarnings = subs.reduce((sum, s) => {
-        if (s.status === 'Pending' || s.status === 'Approved') {
-          return sum + Number(s.earnings || 0);
-        }
-        return sum;
-      }, 0);
-      setEarnings({ total: totalEarnings, estimated: estimatedEarnings });
+      if (user) {
+        const overviewData = await api.get<SubmissionOverview>('/api/submissions/overview');
+        setOverview(overviewData);
+      } else {
+        setOverview(emptyOverview);
+      }
+
       setLoading(false);
     };
-    fetchData();
+    void fetchData();
   }, [user]);
 
   const statCards = [
-    { label: 'Total Submissions', value: stats.total, icon: Eye, color: 'text-primary' },
-    { label: 'Approved', value: stats.approved, icon: CheckCircle, color: 'text-success' },
-    { label: 'Rejected', value: stats.rejected, icon: XCircle, color: 'text-destructive' },
-    { label: 'Pending', value: stats.pending, icon: Clock, color: 'text-warning' },
+    { label: 'Total Submissions', value: overview.total_submissions, icon: Eye, color: 'text-primary' },
+    { label: 'Approved', value: overview.approved, icon: CheckCircle, color: 'text-success' },
+    { label: 'Rejected', value: overview.rejected, icon: XCircle, color: 'text-destructive' },
+    { label: 'Pending', value: overview.pending, icon: Clock, color: 'text-warning' },
   ];
 
-  const topCampaign = campaigns.reduce((top, c) => c.reward_per_million_views > (top?.reward_per_million_views || 0) ? c : top, campaigns[0]);
+  const analyticsCards = [
+    { label: 'Total Views', value: overview.total_views.toLocaleString(), icon: TrendingUp, color: 'text-primary' },
+    { label: 'Average Views', value: overview.average_views.toLocaleString(), icon: BarChart3, color: 'text-info' },
+    { label: 'Tracked Reels', value: overview.reels_with_analytics, icon: Radar, color: 'text-foreground' },
+    { label: 'Best Reel Views', value: overview.best_reel_views.toLocaleString(), icon: Eye, color: 'text-success' },
+  ];
+
+  const topCampaign = campaigns.reduce((top, campaign) =>
+    campaign.reward_per_million_views > (top?.reward_per_million_views || 0) ? campaign : top,
+  campaigns[0]);
 
   return (
     <DashboardLayout>
-      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {statCards.map((stat, i) => (
           <motion.div
@@ -95,22 +115,42 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Earnings */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card p-5">
           <div className="flex items-center gap-2 mb-1">
             <DollarSign className="h-4 w-4 text-success" />
             <span className="text-sm text-muted-foreground">Total Earnings</span>
           </div>
-          <p className="font-display text-3xl font-bold text-success">${earnings.total.toFixed(2)}</p>
+          <p className="font-display text-3xl font-bold text-success">${overview.total_earnings.toFixed(2)}</p>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass-card p-5">
           <div className="flex items-center gap-2 mb-1">
-            <BarChart3 className="h-4 w-4 text-info" />
-            <span className="text-sm text-muted-foreground">Estimated Earnings</span>
+            <Radar className="h-4 w-4 text-info" />
+            <span className="text-sm text-muted-foreground">Analytics Coverage</span>
           </div>
-          <p className="font-display text-3xl font-bold text-info">${earnings.estimated.toFixed(2)}</p>
+          <p className="font-display text-3xl font-bold text-info">{overview.reels_with_analytics}/{overview.total_submissions}</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {overview.latest_sync_at ? `Latest sync ${new Date(overview.latest_sync_at).toLocaleString()}` : 'No synced reel analytics yet.'}
+          </p>
         </motion.div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {analyticsCards.map((card, i) => (
+          <motion.div
+            key={card.label}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 + i * 0.04 }}
+            className="glass-card p-4"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">{card.label}</span>
+              <card.icon className={`h-4 w-4 ${card.color}`} />
+            </div>
+            <p className="font-display text-2xl font-bold">{card.value}</p>
+          </motion.div>
+        ))}
       </div>
 
       <h2 className="font-display text-xl font-semibold mb-4">Active Campaigns</h2>
@@ -149,7 +189,7 @@ const Dashboard = () => {
                     {campaign.category}
                   </Badge>
                   {campaign.id === topCampaign?.id && (
-                    <Badge className="bg-warning/10 text-warning border border-warning/20">Top Performing</Badge>
+                    <Badge className="bg-warning/10 text-warning border border-warning/20">Top Paying</Badge>
                   )}
                 </div>
 

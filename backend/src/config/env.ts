@@ -1,12 +1,19 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+const optionalUrl = z.preprocess(
+  value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z.string().trim().url().optional(),
+);
+
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   PORT: z.coerce.number().int().positive().default(4000),
   FRONTEND_ORIGIN: z.string().url().default('http://localhost:8080'),
   SESSION_COOKIE_NAME: z.string().min(1).default('insta_boost_session'),
   SESSION_SECRET: z.string().min(16),
+  REEL_SUBMISSION_WINDOW_MINUTES: z.coerce.number().int().positive().default(30),
+  INSTAGRAM_VERIFICATION_WINDOW_MINUTES: z.coerce.number().int().positive().default(5),
   RESEND_API_KEY: z.string().trim().optional().refine(
     value => !value || !value.startsWith('http'),
     'RESEND_API_KEY should be the API key value (for example re_xxx), not a URL.',
@@ -15,6 +22,15 @@ const envSchema = z.object({
   OTP_LENGTH: z.coerce.number().int().min(4).max(10).default(8),
   OTP_TTL_MINUTES: z.coerce.number().int().positive().default(10),
   OTP_RESEND_COOLDOWN_SECONDS: z.coerce.number().int().positive().default(60),
+  APIFY_API_TOKEN: z.string().trim().optional(),
+  APIFY_ACTOR_RUN_URL: optionalUrl,
+  APIFY_ACTOR_INPUT_URL: optionalUrl,
+  APIFY_DATASET_ITEMS_URL: optionalUrl,
+  APIFY_PROFILE_DATASET_ITEMS_URL: optionalUrl,
+  APIFY_PROFILE_RUN_SYNC_GET_URL: optionalUrl,
+  APIFY_LOGS_URL: optionalUrl,
+  APIFY_RESURRECT_URL: optionalUrl,
+  APIFY_ABORT_URL: optionalUrl,
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 

@@ -27,7 +27,10 @@ lerna-debug.log*
 backend/.env
 backend/.env.*
 !backend/.env.example
-backend/scripts/seed.ts
+backend/src/scripts/seed.ts
+backend/local/setup-superadmins.sql
+backend/local/backend.env.template
+backend/local/workflow.txt
 # Tool caches
 .vite/
 .vitest/

@@ -30,6 +30,10 @@ enum AppRole {
 
 enum InstagramVerificationStatus {
   draft
+  pending
+  verified
+  failed
+  expired
   submitted
   approved
   rejected
@@ -125,6 +129,12 @@ model InstagramVerificationRequest {
   verificationCode String
   status           InstagramVerificationStatus @default(draft)
   submittedAt      DateTime?
+  expiresAt        DateTime?
+  checkedAt        DateTime?
+  checkedBio       String?
+  checkedFollowers Int?
+  bioContainsToken Boolean?
+  followersMatch   Boolean?
   reviewedAt       DateTime?
   reviewerId       String?
   reviewNotes      String?
@@ -151,18 +161,33 @@ model Campaign {
 }
 
 model Submission {
-  id              String    @id @default(cuid())
-  userId          String
-  campaignId      String
-  reelUrl         String
-  status          String    @default("Pending")
-  views           Int       @default(0)
-  earnings        Decimal   @default(0)
-  reviewedAt      DateTime?
-  reviewedByAdmin String?
-  submittedAt     DateTime  @default(now())
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  campaign        Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  id                   String    @id @default(cuid())
+  userId               String
+  campaignId           String
+  reelUrl              String
+  normalizedReelUrl    String?   @unique
+  reelCode             String?   @unique
+  reelUploadedAt       DateTime  @default(now())
+  submissionClosesAt   DateTime  @default(now())
+  status               String    @default("Pending")
+  views                Int       @default(0)
+  playCount            Int       @default(0)
+  likesCount           Int       @default(0)
+  commentsCount        Int       @default(0)
+  analyticsSource      String?
+  analyticsSyncedAt    DateTime?
+  apifyDatasetItemId   String?
+  rejectionReason      String?
+  earnings             Decimal   @default(0)
+  reviewedAt           DateTime?
+  reviewedByAdmin      String?
+  submittedAt          DateTime  @default(now())
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign             Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([userId, submittedAt])
+  @@index([campaignId, submittedAt])
+  @@index([status])
 }
 
 model Notification {

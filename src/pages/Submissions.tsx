@@ -1,19 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion } from 'framer-motion';
-import { ExternalLink, Eye, DollarSign, FileVideo } from 'lucide-react';
+import { ExternalLink, Eye, FileVideo, Heart, MessageCircle, PlayCircle } from 'lucide-react';
 
 interface Submission {
   id: string;
   campaign_id: string;
   reel_url: string;
   status: string;
+  reel_uploaded_at: string;
+  submission_closes_at: string;
+  rejection_reason: string | null;
   submitted_at: string;
   views: number;
+  play_count: number;
+  likes_count: number;
+  comments_count: number;
+  analytics_source: string | null;
+  analytics_synced_at: string | null;
   earnings: number;
   campaigns?: { title: string } | null;
 }
@@ -46,20 +54,20 @@ const Submissions = () => {
       setCampaigns(campData.map(({ id, title }) => ({ id, title })));
       setLoading(false);
     };
-    fetchData();
+    void fetchData();
   }, [user]);
 
-  const filtered = submissions.filter(s => {
-    if (filterStatus !== 'all' && s.status !== filterStatus) return false;
-    if (filterCampaign !== 'all' && s.campaign_id !== filterCampaign) return false;
+  const filtered = useMemo(() => submissions.filter(submission => {
+    if (filterStatus !== 'all' && submission.status !== filterStatus) return false;
+    if (filterCampaign !== 'all' && submission.campaign_id !== filterCampaign) return false;
     if (filterDate !== 'all') {
       const days = filterDate === '7' ? 7 : 30;
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - days);
-      if (new Date(s.submitted_at) < cutoff) return false;
+      if (new Date(submission.submitted_at) < cutoff) return false;
     }
     return true;
-  });
+  }), [filterCampaign, filterDate, filterStatus, submissions]);
 
   return (
     <DashboardLayout>
@@ -85,8 +93,8 @@ const Submissions = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Campaigns</SelectItem>
-            {campaigns.map(c => (
-              <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+            {campaigns.map(campaign => (
+              <SelectItem key={campaign.id} value={campaign.id}>{campaign.title}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -114,49 +122,82 @@ const Submissions = () => {
           <p className="text-xs text-muted-foreground mt-1">Submit a reel from a campaign to see it here.</p>
         </div>
       ) : (
-        <div className="glass-card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Campaign</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Reel</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                <th className="text-right py-3 px-4 font-medium text-muted-foreground">Views</th>
-                <th className="text-right py-3 px-4 font-medium text-muted-foreground">Earnings</th>
-                <th className="text-right py-3 px-4 font-medium text-muted-foreground">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((sub, i) => (
-                <motion.tr
-                  key={sub.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: i * 0.02 }}
-                  className="border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors"
-                >
-                  <td className="py-3 px-4 font-medium">{sub.campaigns?.title || 'Unknown'}</td>
-                  <td className="py-3 px-4">
-                    <a href={sub.reel_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                      View <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </td>
-                  <td className="py-3 px-4">
-                    <Badge className={statusColors[sub.status] || ''}>{sub.status}</Badge>
-                  </td>
-                  <td className="py-3 px-4 text-right text-muted-foreground">
-                    {(sub.views || 0).toLocaleString()}
-                  </td>
-                  <td className="py-3 px-4 text-right text-success font-medium">
-                    ${Number(sub.earnings || 0).toFixed(2)}
-                  </td>
-                  <td className="py-3 px-4 text-right text-muted-foreground text-xs">
-                    {new Date(sub.submitted_at).toLocaleDateString()}
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-4">
+          {filtered.map((submission, index) => (
+            <motion.div
+              key={submission.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.02 }}
+              className="glass-card p-5"
+            >
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="font-display text-lg font-semibold">{submission.campaigns?.title || 'Unknown campaign'}</h2>
+                    <Badge className={statusColors[submission.status] || ''}>{submission.status}</Badge>
+                    {submission.analytics_source && (
+                      <Badge variant="outline">{submission.analytics_source}</Badge>
+                    )}
+                  </div>
+
+                  <a
+                    href={submission.reel_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline flex items-center gap-1 text-sm"
+                  >
+                    View reel <ExternalLink className="h-3 w-3" />
+                  </a>
+
+                  <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 xl:grid-cols-4">
+                    <p>Uploaded: {new Date(submission.reel_uploaded_at).toLocaleString()}</p>
+                    <p>Submission window closed: {new Date(submission.submission_closes_at).toLocaleString()}</p>
+                    <p>Submitted: {new Date(submission.submitted_at).toLocaleString()}</p>
+                    <p>{submission.analytics_synced_at ? `Analytics synced ${new Date(submission.analytics_synced_at).toLocaleString()}` : 'Analytics not synced yet'}</p>
+                  </div>
+
+                  {submission.rejection_reason && (
+                    <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                      {submission.rejection_reason}
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[420px]">
+                  <div className="rounded-xl border border-border/70 bg-background/60 p-3">
+                    <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      <Eye className="h-3.5 w-3.5" /> Views
+                    </div>
+                    <p className="mt-2 text-xl font-semibold">{submission.views.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/70 bg-background/60 p-3">
+                    <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      <PlayCircle className="h-3.5 w-3.5" /> Plays
+                    </div>
+                    <p className="mt-2 text-xl font-semibold">{submission.play_count.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/70 bg-background/60 p-3">
+                    <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      <Heart className="h-3.5 w-3.5" /> Likes
+                    </div>
+                    <p className="mt-2 text-xl font-semibold">{submission.likes_count.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-xl border border-border/70 bg-background/60 p-3">
+                    <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      <MessageCircle className="h-3.5 w-3.5" /> Comments
+                    </div>
+                    <p className="mt-2 text-xl font-semibold">{submission.comments_count.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-4">
+                <p className="text-sm text-muted-foreground">Basic analytics for users stay high level and easy to scan.</p>
+                <p className="text-lg font-semibold text-success">${Number(submission.earnings || 0).toFixed(2)}</p>
+              </div>
+            </motion.div>
+          ))}
         </div>
       )}
     </DashboardLayout>
