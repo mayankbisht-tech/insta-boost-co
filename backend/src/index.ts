@@ -13,7 +13,24 @@ import { profileRouter } from './routes/profile.js';
 import { submissionsRouter } from './routes/submissions.js';
 
 const app = express();
+const allowedOrigin = env.FRONTEND_ORIGIN.replace(/\/$/, '');
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow server-to-server/health requests that do not send an Origin header.
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    callback(null, normalizedOrigin === allowedOrigin);
+  },
+  credentials: true,
+};
+
 app.use(helmet());
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 app.use(morgan('dev'));
