@@ -1,16 +1,27 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import { env } from '../config/env.js';
 
-const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
+const transporter =
+  env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS
+    ? nodemailer.createTransport({
+        host: env.SMTP_HOST,
+        port: env.SMTP_PORT,
+        secure: env.SMTP_SECURE,
+        auth: {
+          user: env.SMTP_USER,
+          pass: env.SMTP_PASS,
+        },
+      })
+    : null;
 
-export const canSendEmail = Boolean(env.RESEND_API_KEY && env.OTP_FROM_EMAIL);
+export const canSendEmail = Boolean(transporter && env.OTP_FROM_EMAIL);
 
 export const sendSignupOtpEmail = async (to: string, otp: string, ttlMinutes: number) => {
-  if (!resend || !env.OTP_FROM_EMAIL) {
+  if (!transporter || !env.OTP_FROM_EMAIL) {
     throw new Error('Email provider is not configured');
   }
 
-  const { data, error } = await resend.emails.send({
+  const info = await transporter.sendMail({
     from: env.OTP_FROM_EMAIL,
     to,
     subject: 'Your signup OTP',
@@ -22,13 +33,10 @@ export const sendSignupOtpEmail = async (to: string, otp: string, ttlMinutes: nu
         <p>This code expires in ${ttlMinutes} minutes.</p>
       </div>
     `,
+    text: `Your Viralkaro signup code is ${otp}. This code expires in ${ttlMinutes} minutes.`,
   });
 
-  if (error) {
-    throw new Error(`Failed to send OTP email: ${error.message}`);
-  }
-
-  if (!data?.id) {
+  if (!info.messageId) {
     throw new Error('Failed to send OTP email: provider did not return a message id.');
   }
 };

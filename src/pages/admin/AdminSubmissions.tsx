@@ -30,6 +30,13 @@ interface Submission {
   profiles?: { instagram_username: string | null; name: string; email: string } | null;
 }
 
+interface SyncAnalyticsResponse {
+  submission: Submission;
+  refresh_limit: number;
+  refreshes_remaining: number;
+  window_resets_at: string | null;
+}
+
 const statusColors: Record<string, string> = {
   Pending: 'bg-warning/10 text-warning border border-warning/20',
   Approved: 'bg-success/10 text-success border border-success/20',
@@ -45,6 +52,7 @@ const AdminSubmissions = () => {
   const [loading, setLoading] = useState(true);
   const [editingViews, setEditingViews] = useState<Record<string, string>>({});
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [refreshInfo, setRefreshInfo] = useState<Pick<SyncAnalyticsResponse, 'refresh_limit' | 'refreshes_remaining' | 'window_resets_at'> | null>(null);
 
   const fetchSubmissions = async () => {
     const data = await api.get<Submission[]>('/api/admin/submissions');
@@ -93,9 +101,16 @@ const AdminSubmissions = () => {
   const syncAnalytics = async (id: string) => {
     setSyncingId(id);
     try {
-      await api.patch(`/api/admin/submissions/${id}/sync-analytics`);
-      toast.success('Analytics synced from Apify.');
-      void fetchSubmissions();
+      const response = await api.patch<SyncAnalyticsResponse>(`/api/admin/submissions/${id}/sync-analytics`);
+      setSubmissions(current =>
+        current.map(submission => (submission.id === id ? response.submission : submission)),
+      );
+      setRefreshInfo({
+        refresh_limit: response.refresh_limit,
+        refreshes_remaining: response.refreshes_remaining,
+        window_resets_at: response.window_resets_at,
+      });
+      toast.success(`Analytics synced. ${response.refreshes_remaining} refreshes left this hour.`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to sync analytics.');
     } finally {
@@ -112,6 +127,12 @@ const AdminSubmissions = () => {
   return (
     <AdminLayout>
       <h1 className="font-display text-2xl font-bold mb-6">Submissions Review</h1>
+      {refreshInfo && (
+        <p className="mb-5 text-sm text-muted-foreground">
+          Refreshes left this hour: {refreshInfo.refreshes_remaining}/{refreshInfo.refresh_limit}
+          {refreshInfo.window_resets_at ? `, resets ${new Date(refreshInfo.window_resets_at).toLocaleTimeString()}` : ''}
+        </p>
+      )}
 
       <div className="flex flex-wrap gap-3 mb-5">
         <Select value={filterCampaign} onValueChange={setFilterCampaign}>

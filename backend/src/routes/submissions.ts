@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { env } from '../config/env.js';
-import { findApifyAnalyticsByReelCode } from '../lib/apify.js';
+import { getApifyAnalyticsByReelCode } from '../lib/apify.js';
+import { consumeRefreshQuota, getRefreshQuota, syncSubmissionAnalytics } from '../lib/analyticsRefresh.js';
 import { prisma } from '../lib/prisma.js';
 import { extractInstagramReelCode, normalizeInstagramReelUrl, normalizeInstagramUsername } from '../lib/reels.js';
 import { toSubmissionPayload } from '../lib/serializers.js';
@@ -71,6 +72,15 @@ submissionsRouter.get('/', async (req, res) => {
   res.json(submissions.map(toSubmissionPayload));
 });
 
+submissionsRouter.get('/refresh-quota', async (req, res) => {
+  const quota = getRefreshQuota(req.auth!.user);
+  res.json({
+    refresh_limit: quota.refreshLimit,
+    refreshes_remaining: quota.refreshesRemaining,
+    window_resets_at: quota.windowResetsAt,
+  });
+});
+
 submissionsRouter.post('/', async (req, res) => {
   const parsed = createSubmissionSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -115,20 +125,50 @@ submissionsRouter.post('/', async (req, res) => {
     });
   }
 
-  let analyticsSnapshot = null;
+  let analyticsResult;
   try {
-    analyticsSnapshot = await findApifyAnalyticsByReelCode(reelCode);
+    analyticsResult = await getApifyAnalyticsByReelCode(reelCode);
   } catch {
-    analyticsSnapshot = null;
+    analyticsResult = null;
   }
 
-  if (!analyticsSnapshot?.uploadedAt) {
+  if (!analyticsResult || analyticsResult.status === 'not-found') {
     return res.status(400).json({
-      error: 'We could not verify the reel upload time yet. Please wait a few minutes and try again.',
+      error: 'This reel is not in the Apify dataset yet, so upload time could not be verified.',
     });
   }
 
+  if (analyticsResult.status === 'missing-timestamp') {
+    return res.status(400).json({
+      error: 'This reel was found in Apify, but its upload timestamp is still missing.',
+    });
+  }
+
+  if (analyticsResult.status === 'invalid-timestamp') {
+    return res.status(400).json({
+      error: 'This reel was found in Apify, but its upload timestamp is invalid.',
+    });
+  }
+
+  if (analyticsResult.status === 'not-configured') {
+    return res.status(400).json({
+      error: 'Apify reel verification is not configured on the backend.',
+    });
+  }
+
+  if (analyticsResult.status !== 'ok') {
+    return res.status(400).json({
+      error: 'Reel analytics could not be verified right now.',
+    });
+  }
+
+  const analyticsSnapshot = analyticsResult.snapshot;
   const resolvedUploadedAt = analyticsSnapshot.uploadedAt;
+  if (!resolvedUploadedAt) {
+    return res.status(400).json({
+      error: 'Reel analytics were found, but the upload time is still unavailable.',
+    });
+  }
   const submissionClosesAt = addMinutes(resolvedUploadedAt, env.REEL_SUBMISSION_WINDOW_MINUTES);
 
   if (submissionClosesAt < new Date()) {
@@ -170,4 +210,48 @@ submissionsRouter.post('/', async (req, res) => {
   });
 
   res.status(201).json(toSubmissionPayload(submission));
+});
+
+submissionsRouter.patch('/:id/refresh-analytics', async (req, res) => {
+  const submission = await prisma.submission.findFirst({
+    where: {
+      id: req.params.id,
+      userId: req.auth!.user.id,
+    },
+    include: {
+      campaign: true,
+      user: true,
+    },
+  });
+
+  if (!submission) {
+    return res.status(404).json({ error: 'Submission not found.' });
+  }
+
+  const quota = consumeRefreshQuota(req.auth!.user);
+  if (!quota.ok) {
+    return res.status(429).json({
+      error: `You have used all ${quota.refreshLimit} analytics refreshes for this hour.`,
+      refresh_limit: quota.refreshLimit,
+      refreshes_remaining: quota.refreshesRemaining,
+      window_resets_at: quota.windowResetsAt,
+    });
+  }
+
+  const result = await syncSubmissionAnalytics(submission);
+  if (!result.ok) {
+    return res.status(result.status).json({
+      error: result.error,
+      refresh_limit: quota.refreshLimit,
+      refreshes_remaining: quota.refreshesRemaining,
+      window_resets_at: quota.windowResetsAt,
+    });
+  }
+
+  res.json({
+    submission: toSubmissionPayload(result.submission),
+    refresh_limit: quota.refreshLimit,
+    refreshes_remaining: quota.refreshesRemaining,
+    window_resets_at: quota.windowResetsAt,
+  });
 });

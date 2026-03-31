@@ -22,7 +22,7 @@ interface Campaign {
   image_url: string | null;
 }
 
-const submissionWindowMinutes = 30;
+const submissionWindowMinutes = 120;
 
 const CampaignDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -51,8 +51,8 @@ const CampaignDetail = () => {
     e.preventDefault();
     if (!user || !campaign) return;
 
-    if (!profile?.instagram_connected || (profile?.followers_count ?? 0) < 1000) {
-      toast.error('You need at least 1,000 Instagram followers to submit.');
+    if (!profile?.instagram_connected) {
+      toast.error('Connect your Instagram account before submitting.');
       return;
     }
 
@@ -91,7 +91,7 @@ const CampaignDetail = () => {
     );
   }
 
-  const canSubmit = profile?.instagram_connected && (profile?.followers_count ?? 0) >= 1000 && campaign.status === 'Active';
+  const canSubmit = profile?.instagram_connected && campaign.status === 'Active';
 
   return (
     <DashboardLayout>
@@ -133,9 +133,10 @@ const CampaignDetail = () => {
                 <p className="font-medium text-foreground">Submission guardrails</p>
                 <p className="mt-1">Submit the reel within {submissionWindowMinutes} minutes of upload.</p>
                 <p className="mt-1">Each reel can be used only once across the platform, so duplicate submissions are blocked.</p>
+                <p className="mt-1">The reel must belong to the same Instagram account you connected here.</p>
                 <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                   <Radar className="h-3.5 w-3.5" />
-                  Upload times are verified automatically via Apify.
+                  Upload times and account ownership are verified automatically via Apify.
                 </div>
               </div>
             </div>
@@ -163,8 +164,6 @@ const CampaignDetail = () => {
               <span>
                 {!profile?.instagram_connected
                   ? 'Connect your Instagram account to submit reels.'
-                  : (profile?.followers_count ?? 0) < 1000
-                  ? 'You need at least 1,000 followers to participate.'
                   : 'This campaign is closed.'}
               </span>
             </div>

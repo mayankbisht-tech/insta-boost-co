@@ -1,7 +1,8 @@
 import { AppRole, type InstagramVerificationRequest, type User, type UserRole } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
-import { findApifyAnalyticsByReelCode, getApifyRunOverview } from '../lib/apify.js';
+import { getApifyRunOverview } from '../lib/apify.js';
+import { consumeRefreshQuota, syncSubmissionAnalytics } from '../lib/analyticsRefresh.js';
 import { normalizeVerificationStatus, overrideInstagramVerificationStatus, runInstagramVerificationCheck } from '../lib/instagramVerification.js';
 import { prisma } from '../lib/prisma.js';
 import { toCampaignPayload, toFrontendProfile, toSubmissionPayload } from '../lib/serializers.js';
@@ -275,41 +276,32 @@ adminRouter.patch('/submissions/:id/sync-analytics', async (req, res) => {
     return res.status(404).json({ error: 'Submission not found.' });
   }
 
-  if (!existing.reelCode) {
-    return res.status(400).json({ error: 'This submission is missing a reel code, so analytics cannot be synced.' });
+  const quota = consumeRefreshQuota(req.auth!.user);
+  if (!quota.ok) {
+    return res.status(429).json({
+      error: `You have used all ${quota.refreshLimit} analytics refreshes for this hour.`,
+      refresh_limit: quota.refreshLimit,
+      refreshes_remaining: quota.refreshesRemaining,
+      window_resets_at: quota.windowResetsAt,
+    });
   }
 
-  let analytics;
-  try {
-    analytics = await findApifyAnalyticsByReelCode(existing.reelCode);
-  } catch {
-    return res.status(502).json({ error: 'Apify analytics could not be reached right now.' });
+  const result = await syncSubmissionAnalytics(existing);
+  if (!result.ok) {
+    return res.status(result.status).json({
+      error: result.error,
+      refresh_limit: quota.refreshLimit,
+      refreshes_remaining: quota.refreshesRemaining,
+      window_resets_at: quota.windowResetsAt,
+    });
   }
 
-  if (!analytics) {
-    return res.status(404).json({ error: 'No Apify analytics were found for this reel yet.' });
-  }
-
-  const submission = await prisma.submission.update({
-    where: { id: req.params.id },
-    data: {
-      reelUploadedAt: analytics.uploadedAt ?? existing.reelUploadedAt,
-      views: analytics.views,
-      playCount: analytics.playCount,
-      likesCount: analytics.likesCount,
-      commentsCount: analytics.commentsCount,
-      analyticsSource: analytics.source,
-      analyticsSyncedAt: new Date(),
-      apifyDatasetItemId: analytics.datasetItemId,
-      earnings: calculateEarnings(analytics.views, existing.campaign.rewardPerMillionViews),
-    },
-    include: {
-      campaign: true,
-      user: true,
-    },
+  res.json({
+    submission: toSubmissionPayload(result.submission),
+    refresh_limit: quota.refreshLimit,
+    refreshes_remaining: quota.refreshesRemaining,
+    window_resets_at: quota.windowResetsAt,
   });
-
-  res.json(toSubmissionPayload(submission));
 });
 
 adminRouter.get('/superadmin/overview', requireSuperadmin, async (_req, res) => {

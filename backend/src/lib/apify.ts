@@ -46,6 +46,13 @@ export type ReelAnalyticsSnapshot = {
   source: 'apify-dataset';
 };
 
+export type ReelAnalyticsLookup =
+  | { status: 'not-configured' }
+  | { status: 'not-found' }
+  | { status: 'missing-timestamp'; snapshot: ReelAnalyticsSnapshot }
+  | { status: 'invalid-timestamp'; snapshot: ReelAnalyticsSnapshot }
+  | { status: 'ok'; snapshot: ReelAnalyticsSnapshot };
+
 const buildHeaders = (hasBody?: boolean) => {
   const headers: Record<string, string> = {};
   if (env.APIFY_API_TOKEN) {
@@ -55,6 +62,14 @@ const buildHeaders = (hasBody?: boolean) => {
     headers['Content-Type'] = 'application/json';
   }
   return headers;
+};
+
+const sanitizeApifyUrl = (url: string) => {
+  const parsed = new URL(url);
+  if (parsed.searchParams.has('token')) {
+    parsed.searchParams.set('token', '[redacted]');
+  }
+  return parsed.toString();
 };
 
 const fetchJson = async <T>(url: string, options?: RequestInit): Promise<T> => {
@@ -73,39 +88,62 @@ const fetchJson = async <T>(url: string, options?: RequestInit): Promise<T> => {
   return response.json() as Promise<T>;
 };
 
-export const isApifyConfigured = () => Boolean(env.APIFY_DATASET_ITEMS_URL);
+const getDatasetCandidateCode = (item: ApifyDatasetItem) =>
+  item.shortCode ?? extractInstagramReelCode(item.url ?? item.inputUrl ?? '');
+
+const buildDatasetDebugContext = (items: ApifyDatasetItem[]) => ({
+  itemCount: items.length,
+  recentShortCodes: items
+    .map(getDatasetCandidateCode)
+    .filter((value): value is string => Boolean(value))
+    .slice(0, 10),
+});
+
+const getReelDatasetItemsUrl = () => env.APIFY_LAST_RUN_DATASET_ITEMS_URL || env.APIFY_DATASET_ITEMS_URL;
+
+export const isApifyConfigured = () => Boolean(getReelDatasetItemsUrl());
 export const isApifyProfileConfigured = () =>
   Boolean(env.APIFY_PROFILE_RUN_SYNC_GET_URL || env.APIFY_PROFILE_DATASET_ITEMS_URL);
 
 export const findApifyAnalyticsByReelCode = async (reelCode: string) => {
-  if (!env.APIFY_DATASET_ITEMS_URL) {
-    return null;
+  const result = await getApifyAnalyticsByReelCode(reelCode);
+  return result.status === 'ok' ? result.snapshot : null;
+};
+
+export const getApifyAnalyticsByReelCode = async (reelCode: string): Promise<ReelAnalyticsLookup> => {
+  const baseDatasetUrl = getReelDatasetItemsUrl();
+  if (!baseDatasetUrl) {
+    return { status: 'not-configured' };
   }
 
-  const datasetUrl = new URL(env.APIFY_DATASET_ITEMS_URL);
+  const datasetUrl = new URL(baseDatasetUrl);
   datasetUrl.searchParams.set('clean', '1');
   datasetUrl.searchParams.set('format', 'json');
-  datasetUrl.searchParams.set('limit', '200');
+  datasetUrl.searchParams.set('limit', String(env.APIFY_DATASET_ITEMS_LIMIT));
   datasetUrl.searchParams.set('desc', '1');
 
   const items = await fetchJson<ApifyDatasetItem[]>(datasetUrl.toString());
   const target = reelCode.toLowerCase();
   const match = items.find(item => {
-    const candidateCode = item.shortCode ?? extractInstagramReelCode(item.url ?? item.inputUrl ?? '');
+    const candidateCode = getDatasetCandidateCode(item);
     return candidateCode?.toLowerCase() === target;
   });
 
   if (!match) {
-    return null;
+    console.warn('Apify reel lookup did not find a matching dataset item.', {
+      reelCode,
+      datasetUrl: sanitizeApifyUrl(datasetUrl.toString()),
+      ...buildDatasetDebugContext(items),
+    });
+    return { status: 'not-found' };
   }
 
-  const uploadedAt = match.timestamp ? new Date(match.timestamp) : null;
-
-  return {
+  const rawUploadedAt = match.timestamp ? new Date(match.timestamp) : null;
+  const snapshot = {
     datasetItemId: match.id ?? null,
     reelCode,
     normalizedReelUrl: normalizeInstagramReelUrl(match.url ?? match.inputUrl ?? ''),
-    uploadedAt: uploadedAt && !Number.isNaN(uploadedAt.getTime()) ? uploadedAt : null,
+    uploadedAt: rawUploadedAt && !Number.isNaN(rawUploadedAt.getTime()) ? rawUploadedAt : null,
     ownerUsername: normalizeInstagramUsername(match.ownerUsername),
     views: match.videoViewCount ?? 0,
     playCount: match.videoPlayCount ?? 0,
@@ -113,6 +151,28 @@ export const findApifyAnalyticsByReelCode = async (reelCode: string) => {
     commentsCount: match.commentsCount ?? 0,
     source: 'apify-dataset' as const,
   } satisfies ReelAnalyticsSnapshot;
+
+  if (!match.timestamp) {
+    console.warn('Apify reel lookup found a reel without timestamp.', {
+      reelCode,
+      datasetItemId: match.id ?? null,
+      matchedUrl: match.url ?? match.inputUrl ?? null,
+      ownerUsername: match.ownerUsername ?? null,
+    });
+    return { status: 'missing-timestamp', snapshot };
+  }
+
+  if (!snapshot.uploadedAt) {
+    console.warn('Apify reel lookup found an invalid timestamp.', {
+      reelCode,
+      datasetItemId: match.id ?? null,
+      rawTimestamp: match.timestamp,
+      matchedUrl: match.url ?? match.inputUrl ?? null,
+    });
+    return { status: 'invalid-timestamp', snapshot };
+  }
+
+  return { status: 'ok', snapshot };
 };
 
 export const getApifyRunOverview = async () => {
@@ -180,7 +240,12 @@ export const findApifyProfileByUsername = async (username: string) => {
     } satisfies InstagramProfileSnapshot;
   }
 
-  const datasetUrl = new URL(env.APIFY_PROFILE_DATASET_ITEMS_URL);
+  const datasetItemsUrl = env.APIFY_PROFILE_DATASET_ITEMS_URL;
+  if (!datasetItemsUrl) {
+    return null;
+  }
+
+  const datasetUrl = new URL(datasetItemsUrl);
   datasetUrl.searchParams.set('clean', '1');
   datasetUrl.searchParams.set('format', 'json');
   datasetUrl.searchParams.set('limit', '200');
