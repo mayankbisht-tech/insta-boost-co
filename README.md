@@ -12,6 +12,7 @@ Run `npm install` and `npm run build`.
 Copy [`backend/.env.example`](c:\Users\LENOVO\Desktop\projects\insta\insta-boost-co\backend\.env.example) to `backend/.env`.
 Fill database, session, SMTP, and Apify values.
 If frontend and backend are on different domains, set `SESSION_COOKIE_SAME_SITE="none"` and use HTTPS.
+Set `FRONTEND_ORIGIN` to your Vercel URL. You can also provide multiple origins as a comma-separated list.
 Run `npm install`, `npm run prisma:generate`, `npm run build`, and `npm run start` inside `backend`.
 
 3. Full build:

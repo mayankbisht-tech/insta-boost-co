@@ -13,11 +13,19 @@ import { profileRouter } from './routes/profile.js';
 import { submissionsRouter } from './routes/submissions.js';
 
 const app = express();
+const allowedOrigins = new Set(env.FRONTEND_ORIGIN);
 
 app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({
-  origin: env.FRONTEND_ORIGIN,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.has(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`Origin ${origin} is not allowed by CORS.`));
+  },
   credentials: true,
 }));
 app.use(express.json());

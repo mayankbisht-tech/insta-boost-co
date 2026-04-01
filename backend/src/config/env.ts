@@ -1,19 +1,33 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+const defaultNodeEnv = process.env.NODE_ENV === 'production' ? 'production' : 'development';
+const defaultSessionSameSite = defaultNodeEnv === 'production' ? 'none' : 'lax';
+
 const optionalUrl = z.preprocess(
   value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
   z.string().trim().url().optional(),
 );
 
+const frontendOrigins = z.preprocess((value) => {
+  if (typeof value !== 'string') return value;
+
+  const origins = value
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
+  return origins.length > 0 ? origins : undefined;
+}, z.array(z.string().url()).min(1).default(['http://localhost:8080']));
+
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   HOST: z.string().trim().default('0.0.0.0'),
   PORT: z.coerce.number().int().positive().default(4000),
-  FRONTEND_ORIGIN: z.string().url().default('http://localhost:8080'),
+  FRONTEND_ORIGIN: frontendOrigins,
   SESSION_COOKIE_NAME: z.string().min(1).default('insta_boost_session'),
   SESSION_SECRET: z.string().min(16),
-  SESSION_COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
+  SESSION_COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default(defaultSessionSameSite),
   REEL_SUBMISSION_WINDOW_MINUTES: z.coerce.number().int().positive().default(30),
   INSTAGRAM_VERIFICATION_WINDOW_MINUTES: z.coerce.number().int().positive().default(5),
   SMTP_HOST: z.string().trim().optional(),
