@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, AlertTriangle, ExternalLink, Eye, Heart, MessageCircle, PlayCircle, RefreshCcw } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, ExternalLink, Eye, Heart, MessageCircle, PlayCircle, RefreshCcw, FileVideo } from 'lucide-react';
 import { api } from '@/lib/api';
 
 interface Submission {
@@ -126,44 +126,65 @@ const AdminSubmissions = () => {
 
   return (
     <AdminLayout>
-      <h1 className="font-display text-2xl font-bold mb-6">Submissions Review</h1>
-      {refreshInfo && (
-        <p className="mb-5 text-sm text-muted-foreground">
-          Refreshes left this hour: {refreshInfo.refreshes_remaining}/{refreshInfo.refresh_limit}
-          {refreshInfo.window_resets_at ? `, resets ${new Date(refreshInfo.window_resets_at).toLocaleTimeString()}` : ''}
-        </p>
-      )}
-
-      <div className="flex flex-wrap gap-3 mb-5">
-        <Select value={filterCampaign} onValueChange={setFilterCampaign}>
-          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Campaign" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Campaigns</SelectItem>
-            {campaigns.map(campaign => <SelectItem key={campaign.id} value={campaign.id}>{campaign.title}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="Pending">Pending</SelectItem>
-            <SelectItem value="Approved">Approved</SelectItem>
-            <SelectItem value="Rejected">Rejected</SelectItem>
-            <SelectItem value="Flagged">Flagged</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+        <div className="mb-8">
+          <h1 className="admin-header">Submissions Review</h1>
+          <p className="text-muted-foreground mt-2">Review and manage user submissions</p>
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="glass-card p-12 text-center">
-          <p className="text-muted-foreground">No submissions found.</p>
+
+        {refreshInfo && (
+          <motion.p 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 text-sm font-medium text-accent bg-accent/10 border border-accent/20 rounded-lg px-4 py-2 w-fit"
+          >
+            📊 Refreshes: {refreshInfo.refreshes_remaining}/{refreshInfo.refresh_limit} remaining
+            {refreshInfo.window_resets_at ? ` - Resets ${new Date(refreshInfo.window_resets_at).toLocaleTimeString()}` : ''}
+          </motion.p>
+        )}
+
+        <div className="flex flex-wrap gap-3 mb-8">
+          <motion.div whileHover={{ scale: 1.02 }} className="flex-1 min-w-[200px]">
+            <Select value={filterCampaign} onValueChange={setFilterCampaign}>
+              <SelectTrigger className="bg-secondary/50 border-border/50 focus:border-primary"><SelectValue placeholder="Campaign" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Campaigns</SelectItem>
+                {campaigns.map(campaign => <SelectItem key={campaign.id} value={campaign.id}>{campaign.title}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.02 }} className="flex-1 min-w-[150px]">
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="bg-secondary/50 border-border/50 focus:border-primary"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Approved">Approved</SelectItem>
+                <SelectItem value="Rejected">Rejected</SelectItem>
+                <SelectItem value="Flagged">Flagged</SelectItem>
+              </SelectContent>
+            </Select>
+          </motion.div>
         </div>
-      ) : (
-        <div className="space-y-3">
+
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <div className="space-y-4 text-center">
+              <div className="h-8 w-8 mx-auto animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+              <p className="text-muted-foreground text-sm">Loading submissions...</p>
+            </div>
+          </div>
+        ) : filtered.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="stat-card py-12 text-center"
+          >
+            <FileVideo className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-muted-foreground">No submissions found</p>
+          </motion.div>
+        ) : (
+          <div className="space-y-4">
           {filtered.map((submission, i) => (
             <motion.div
               key={submission.id}
@@ -265,8 +286,9 @@ const AdminSubmissions = () => {
               </div>
             </motion.div>
           ))}
-        </div>
-      )}
+          </div>
+        )}
+      </motion.div>
     </AdminLayout>
   );
 };
