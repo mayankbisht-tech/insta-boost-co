@@ -134,13 +134,47 @@ submissionsRouter.post('/', async (req, res) => {
     analyticsResult = null;
   }
 
-  const analyticsSnapshot = analyticsResult?.status === 'ok' ? analyticsResult.snapshot : null;
-  const resolvedUploadedAt = analyticsSnapshot?.uploadedAt ?? new Date();
-  const submissionClosesAt = analyticsSnapshot?.uploadedAt
-    ? addMinutes(analyticsSnapshot.uploadedAt, env.REEL_SUBMISSION_WINDOW_MINUTES)
-    : addMinutes(new Date(), env.REEL_SUBMISSION_WINDOW_MINUTES);
+  if (!analyticsResult || analyticsResult.status === 'not-found') {
+    return res.status(400).json({
+      error: 'This reel is not in the Apify dataset yet, so upload time could not be verified.',
+    });
+  }
 
-  if (analyticsSnapshot?.uploadedAt && submissionClosesAt < new Date()) {
+  if (analyticsResult.status === 'missing-timestamp') {
+    return res.status(400).json({
+      error: 'This reel was found in Apify, but its upload timestamp is still missing.',
+    });
+  }
+
+  if (analyticsResult.status === 'invalid-timestamp') {
+    return res.status(400).json({
+      error: 'This reel was found in Apify, but its upload timestamp is invalid.',
+    });
+  }
+
+  if (analyticsResult.status === 'not-configured') {
+    return res.status(400).json({
+      error: 'Apify reel verification is not configured on the backend.',
+    });
+  }
+
+  if (analyticsResult.status !== 'ok') {
+    return res.status(400).json({
+      error: 'Reel analytics could not be verified right now.',
+    });
+  }
+
+  const analyticsSnapshot = analyticsResult.snapshot;
+  const resolvedUploadedAt = analyticsSnapshot.uploadedAt;
+  if (!resolvedUploadedAt) {
+    return res.status(400).json({
+      error: 'Reel analytics were found, but the upload time is still unavailable.',
+    });
+  }
+
+  const submissionClosesAt = addMinutes(resolvedUploadedAt, env.REEL_SUBMISSION_WINDOW_MINUTES);
+
+  if (submissionClosesAt < new Date()) {
     return res.status(400).json({
       error: `Reels must be submitted within ${env.REEL_SUBMISSION_WINDOW_MINUTES} minutes of upload.`,
     });
@@ -168,7 +202,7 @@ submissionsRouter.post('/', async (req, res) => {
       playCount: analyticsSnapshot?.playCount ?? 0,
       likesCount: analyticsSnapshot?.likesCount ?? 0,
       commentsCount: analyticsSnapshot?.commentsCount ?? 0,
-      analyticsSource: analyticsSnapshot?.source ?? 'submission-manual',
+      analyticsSource: analyticsSnapshot?.source ?? null,
       analyticsSyncedAt: analyticsSnapshot ? new Date() : null,
       apifyDatasetItemId: analyticsSnapshot?.datasetItemId ?? null,
       earnings: calculateSubmissionEarnings(
@@ -181,13 +215,6 @@ submissionsRouter.post('/', async (req, res) => {
       campaign: true,
     },
   });
-
-  if (!analyticsSnapshot) {
-    await createNotification(
-      req.auth!.user.id,
-      `Your reel for ${campaign.title} was submitted and is waiting for analytics sync before earnings can update.`,
-    );
-  }
 
   res.status(201).json(toSubmissionPayload(submission));
 });

@@ -23,16 +23,32 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
+  const refreshUnreadCount = async () => {
     if (!user) {
       setUnreadCount(0);
       return;
     }
 
-    api.get<Notification[]>('/api/notifications')
-      .then(data => setUnreadCount(data.filter(item => !item.read).length))
-      .catch(() => setUnreadCount(0));
+    try {
+      const data = await api.get<Notification[]>('/api/notifications');
+      setUnreadCount(data.filter(item => !item.read).length);
+    } catch {
+      setUnreadCount(0);
+    }
+  };
+
+  useEffect(() => {
+    void refreshUnreadCount();
   }, [user, location.pathname]);
+
+  useEffect(() => {
+    const handleNotificationsRead = () => {
+      setUnreadCount(0);
+    };
+
+    window.addEventListener('notifications:read-all', handleNotificationsRead);
+    return () => window.removeEventListener('notifications:read-all', handleNotificationsRead);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
