@@ -180,11 +180,6 @@ const InstagramConnect = () => {
                     </Button>
                   </>
                 )}
-                {isVerified && (
-                  <p className="text-sm text-muted-foreground">
-                    Instagram account is verified and locked for user changes.
-                  </p>
-                )}
               </div>
             </div>
           </div>
