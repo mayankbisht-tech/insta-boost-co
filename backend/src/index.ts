@@ -64,6 +64,13 @@ const allowedOrigins = [
   .map(origin => origin.replace(/\/$/, ''))
   .filter((origin, index, array) => array.indexOf(origin) === index);
 
+const allowedOriginPatterns = [
+  /^https:\/\/.*\.vercel\.app$/i,
+];
+
+const isAllowedOrigin = (origin: string) =>
+  allowedOrigins.includes(origin) || allowedOriginPatterns.some(pattern => pattern.test(origin));
+
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
     // Allow server-to-server/health requests that do not send an Origin header.
@@ -73,7 +80,7 @@ const corsOptions: cors.CorsOptions = {
     }
 
     const normalizedOrigin = origin.replace(/\/$/, '');
-    callback(null, allowedOrigins.includes(normalizedOrigin));
+    callback(null, isAllowedOrigin(normalizedOrigin));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
