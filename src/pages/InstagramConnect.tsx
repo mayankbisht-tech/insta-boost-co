@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Instagram, RefreshCcw, ShieldCheck, Unplug } from 'lucide-react';
+import { Instagram, RefreshCcw, ShieldCheck } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -54,14 +54,10 @@ const statusTone: Record<string, string> = {
 const InstagramConnect = () => {
   const { user, profile, refreshProfile } = useAuth();
   const [instagramUsername, setInstagramUsername] = useState(profile?.instagram_username ?? '');
-  const [followersCount, setFollowersCount] = useState(
-    profile?.followers_count ? String(profile.followers_count) : '',
-  );
   const [request, setRequest] = useState<VerificationRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [disconnecting, setDisconnecting] = useState(false);
 
   const loadRequest = async () => {
     try {
@@ -77,21 +73,14 @@ const InstagramConnect = () => {
   useEffect(() => {
     if (!user) return;
     setInstagramUsername(profile?.instagram_username ?? '');
-    setFollowersCount(profile?.followers_count ? String(profile.followers_count) : '');
     void loadRequest();
-  }, [user, profile?.followers_count, profile?.instagram_username]);
+  }, [user, profile?.instagram_username]);
 
   const handleGenerateCode = async () => {
     const trimmedUsername = instagramUsername.trim();
-    const parsedFollowers = Number.parseInt(followersCount, 10);
 
     if (!trimmedUsername) {
       toast.error('Enter an Instagram username.');
-      return;
-    }
-
-    if (Number.isNaN(parsedFollowers) || parsedFollowers < 0) {
-      toast.error('Enter a valid followers count.');
       return;
     }
 
@@ -99,7 +88,6 @@ const InstagramConnect = () => {
     try {
       const response = await api.patch<ConnectResponse>('/api/profile/instagram', {
         instagram_username: trimmedUsername,
-        followers_count: parsedFollowers,
       });
       await refreshProfile();
       await loadRequest();
@@ -128,22 +116,6 @@ const InstagramConnect = () => {
       toast.error(error instanceof Error ? error.message : 'Verification failed.');
     } finally {
       setChecking(false);
-    }
-  };
-
-  const handleDisconnect = async () => {
-    setDisconnecting(true);
-    try {
-      await api.delete('/api/profile/instagram');
-      await refreshProfile();
-      setInstagramUsername('');
-      setFollowersCount('');
-      setRequest(null);
-      toast.success('Instagram account disconnected.');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to disconnect Instagram.');
-    } finally {
-      setDisconnecting(false);
     }
   };
 
@@ -179,7 +151,7 @@ const InstagramConnect = () => {
           <div className="glass-card p-5">
             <h2 className="font-display text-lg font-semibold">Setup</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Use the same username and follower count that should match your live Instagram profile.
+              Enter only your Instagram username. Follower count will be fetched from Apify during verification.
             </p>
 
             <div className="mt-5 space-y-4">
@@ -193,18 +165,6 @@ const InstagramConnect = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="followers-count">Followers Count</Label>
-                <Input
-                  id="followers-count"
-                  type="number"
-                  min="0"
-                  value={followersCount}
-                  onChange={event => setFollowersCount(event.target.value)}
-                  placeholder="1000"
-                />
-              </div>
-
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => void handleGenerateCode()} disabled={saving}>
                   <ShieldCheck className="mr-2 h-4 w-4" />
@@ -213,10 +173,6 @@ const InstagramConnect = () => {
                 <Button variant="outline" onClick={() => void handleVerify()} disabled={checking || !request}>
                   <RefreshCcw className="mr-2 h-4 w-4" />
                   {checking ? 'Checking...' : 'Verify Now'}
-                </Button>
-                <Button variant="ghost" onClick={() => void handleDisconnect()} disabled={disconnecting}>
-                  <Unplug className="mr-2 h-4 w-4" />
-                  {disconnecting ? 'Disconnecting...' : 'Disconnect'}
                 </Button>
               </div>
             </div>
@@ -245,8 +201,10 @@ const InstagramConnect = () => {
                     <p className="mt-1 font-mono font-medium">{request.verification_code}</p>
                   </div>
                   <div className="rounded-xl border border-border/70 p-3">
-                    <p className="text-xs text-muted-foreground">Followers Submitted</p>
-                    <p className="mt-1 font-medium">{request.followers_count.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">Followers from Apify</p>
+                    <p className="mt-1 font-medium">
+                      {request.followers_count > 0 ? request.followers_count.toLocaleString() : 'Will appear after verification'}
+                    </p>
                   </div>
                 </div>
 

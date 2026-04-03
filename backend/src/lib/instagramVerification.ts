@@ -36,7 +36,6 @@ export const startInstagramVerification = async (params: {
   userId: string;
   instagramUsername: string;
   instagramUserId: string;
-  followersCount: number;
   verificationCode: string;
 }) => {
   const now = new Date();
@@ -48,7 +47,7 @@ export const startInstagramVerification = async (params: {
       update: {
         instagramUsername: params.instagramUsername,
         instagramUserId: params.instagramUserId,
-        followersCount: params.followersCount,
+        followersCount: 0,
         verificationCode: params.verificationCode,
         status: 'draft',
         submittedAt: null,
@@ -66,7 +65,7 @@ export const startInstagramVerification = async (params: {
         userId: params.userId,
         instagramUsername: params.instagramUsername,
         instagramUserId: params.instagramUserId,
-        followersCount: params.followersCount,
+        followersCount: 0,
         verificationCode: params.verificationCode,
         status: 'draft',
         submittedAt: null,
@@ -80,7 +79,7 @@ export const startInstagramVerification = async (params: {
         instagramConnectionStatus: 'code_generated',
         instagramUserId: params.instagramUserId,
         instagramUsername: params.instagramUsername,
-        followersCount: params.followersCount,
+        followersCount: 0,
         verificationCode: params.verificationCode,
         instagramVerified: false,
         instagramReviewSubmittedAt: null,
@@ -122,10 +121,10 @@ export const runInstagramVerificationCheck = async (params: {
   const bio = profile?.bio ?? null;
   const followers = profile?.followers ?? null;
   const bioContainsToken = bio ? bio.includes(request.verificationCode) : false;
-  const followersMatch = followers !== null ? followers === request.followersCount : false;
+  const followersMatch = followers !== null;
 
   let status: InstagramVerificationStatus = 'failed';
-  if (bioContainsToken && followersMatch) {
+  if (bioContainsToken) {
     status = 'verified';
   } else if (request.expiresAt && now > request.expiresAt) {
     status = 'expired';
@@ -139,6 +138,7 @@ export const runInstagramVerificationCheck = async (params: {
       data: {
         status,
         submittedAt: now,
+        followersCount: followers ?? request.followersCount,
         checkedAt: now,
         checkedBio: bio,
         checkedFollowers: followers,
@@ -160,7 +160,7 @@ export const runInstagramVerificationCheck = async (params: {
         instagramReviewReviewedAt: now,
         instagramReviewNotes:
           status === 'failed'
-            ? 'Bio token or follower count did not match.'
+            ? 'Verification code was not found in the Instagram bio.'
             : status === 'expired'
             ? 'Verification window expired.'
             : 'Instagram account verified automatically.',
@@ -173,7 +173,7 @@ export const runInstagramVerificationCheck = async (params: {
   } else if (status === 'failed') {
     await createNotification(
       params.userId,
-      'Instagram verification failed because the bio token or follower count did not match.',
+      'Instagram verification failed because the verification code was not found in the Instagram bio.',
     );
   } else if (status === 'expired') {
     await createNotification(

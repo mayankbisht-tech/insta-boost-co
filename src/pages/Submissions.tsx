@@ -3,11 +3,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion } from 'framer-motion';
-import { toast } from 'sonner';
-import { ExternalLink, Eye, FileVideo, Heart, MessageCircle, PlayCircle, RefreshCcw } from 'lucide-react';
+import { ExternalLink, Eye, FileVideo, Heart, MessageCircle, PlayCircle } from 'lucide-react';
 
 interface Submission {
   id: string;
@@ -28,16 +26,6 @@ interface Submission {
   campaigns?: { title: string } | null;
 }
 
-interface RefreshQuota {
-  refresh_limit: number;
-  refreshes_remaining: number;
-  window_resets_at: string | null;
-}
-
-interface RefreshAnalyticsResponse extends RefreshQuota {
-  submission: Submission;
-}
-
 const statusColors: Record<string, string> = {
   Pending: 'bg-warning/10 text-warning border border-warning/20',
   Approved: 'bg-success/10 text-success border border-success/20',
@@ -53,8 +41,6 @@ const Submissions = () => {
   const [filterCampaign, setFilterCampaign] = useState('all');
   const [filterDate, setFilterDate] = useState('all');
   const [loading, setLoading] = useState(true);
-  const [quota, setQuota] = useState<RefreshQuota | null>(null);
-  const [syncingId, setSyncingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -69,34 +55,8 @@ const Submissions = () => {
       setLoading(false);
     };
 
-    const fetchQuota = async () => {
-      const data = await api.get<RefreshQuota>('/api/submissions/refresh-quota');
-      setQuota(data);
-    };
-
     void fetchData();
-    void fetchQuota();
   }, [user]);
-
-  const refreshAnalytics = async (id: string) => {
-    setSyncingId(id);
-    try {
-      const response = await api.patch<RefreshAnalyticsResponse>(`/api/submissions/${id}/refresh-analytics`);
-      setSubmissions(current =>
-        current.map(submission => (submission.id === id ? response.submission : submission)),
-      );
-      setQuota({
-        refresh_limit: response.refresh_limit,
-        refreshes_remaining: response.refreshes_remaining,
-        window_resets_at: response.window_resets_at,
-      });
-      toast.success(`Analytics updated. ${response.refreshes_remaining} refreshes left this hour.`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to refresh analytics.');
-    } finally {
-      setSyncingId(null);
-    }
-  };
 
   const filtered = useMemo(() => submissions.filter(submission => {
     if (filterStatus !== 'all' && submission.status !== filterStatus) return false;
@@ -113,12 +73,6 @@ const Submissions = () => {
   return (
     <DashboardLayout>
       <h1 className="font-display text-xl font-bold mb-5">My Submissions</h1>
-      {quota && (
-        <p className="mb-5 text-sm text-muted-foreground">
-          Analytics refreshes left this hour: {quota.refreshes_remaining}/{quota.refresh_limit}
-          {quota.window_resets_at ? `, resets ${new Date(quota.window_resets_at).toLocaleTimeString()}` : ''}
-        </p>
-      )}
       <div className="flex flex-wrap gap-3 mb-5">
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-[140px]">
@@ -243,17 +197,8 @@ const Submissions = () => {
                   <p className="text-sm text-muted-foreground">
                     {submission.status === 'Rejected' || submission.status === 'Flagged'
                       ? 'This reel is not earning right now because its status is rejected or flagged.'
-                      : 'Basic analytics for users stay high level and easy to scan.'}
+                      : 'Analytics updates are managed by admin only.'}
                   </p>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void refreshAnalytics(submission.id)}
-                    disabled={syncingId === submission.id || Boolean(quota && quota.refreshes_remaining <= 0)}
-                  >
-                    <RefreshCcw className="mr-2 h-3.5 w-3.5" />
-                    {syncingId === submission.id ? 'Updating...' : 'Update'}
-                  </Button>
                 </div>
                 <p className={`text-lg font-semibold ${submission.earnings > 0 ? 'text-success' : 'text-foreground'}`}>
                   ${Number(submission.earnings || 0).toFixed(2)}

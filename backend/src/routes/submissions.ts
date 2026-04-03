@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { env } from '../config/env.js';
 import { refreshApifyAnalyticsForReelUrl } from '../lib/apify.js';
-import { consumeRefreshQuota, getRefreshQuota, syncSubmissionAnalytics } from '../lib/analyticsRefresh.js';
 import { prisma } from '../lib/prisma.js';
 import { extractInstagramReelCode, normalizeInstagramReelUrl, normalizeInstagramUsername } from '../lib/reels.js';
 import { toSubmissionPayload } from '../lib/serializers.js';
@@ -71,15 +70,6 @@ submissionsRouter.get('/', async (req, res) => {
   });
 
   res.json(submissions.map(toSubmissionPayload));
-});
-
-submissionsRouter.get('/refresh-quota', async (req, res) => {
-  const quota = getRefreshQuota(req.auth!.user);
-  res.json({
-    refresh_limit: quota.refreshLimit,
-    refreshes_remaining: quota.refreshesRemaining,
-    window_resets_at: quota.windowResetsAt,
-  });
 });
 
 submissionsRouter.post('/', async (req, res) => {
@@ -219,47 +209,5 @@ submissionsRouter.post('/', async (req, res) => {
 });
 
 submissionsRouter.patch('/:id/refresh-analytics', async (req, res) => {
-  const submission = await prisma.submission.findFirst({
-    where: {
-      id: req.params.id,
-      userId: req.auth!.user.id,
-    },
-    include: {
-      campaign: true,
-      user: true,
-    },
-  });
-
-  if (!submission) {
-    return res.status(404).json({ error: 'Submission not found.' });
-  }
-
-  const quotaBeforeRefresh = getRefreshQuota(req.auth!.user);
-  if (quotaBeforeRefresh.refreshesRemaining <= 0) {
-    return res.status(429).json({
-      error: `You have used all ${quotaBeforeRefresh.refreshLimit} analytics refreshes for this hour.`,
-      refresh_limit: quotaBeforeRefresh.refreshLimit,
-      refreshes_remaining: quotaBeforeRefresh.refreshesRemaining,
-      window_resets_at: quotaBeforeRefresh.windowResetsAt,
-    });
-  }
-
-  const result = await syncSubmissionAnalytics(submission);
-  if (!result.ok) {
-    return res.status(result.status).json({
-      error: result.error,
-      refresh_limit: quotaBeforeRefresh.refreshLimit,
-      refreshes_remaining: quotaBeforeRefresh.refreshesRemaining,
-      window_resets_at: quotaBeforeRefresh.windowResetsAt,
-    });
-  }
-
-  const quota = consumeRefreshQuota(req.auth!.user);
-
-  res.json({
-    submission: toSubmissionPayload(result.submission),
-    refresh_limit: quota.refreshLimit,
-    refreshes_remaining: quota.refreshesRemaining,
-    window_resets_at: quota.windowResetsAt,
-  });
+  return res.status(403).json({ error: 'Analytics updates are managed by admin only.' });
 });

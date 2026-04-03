@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.js';
+import { isApifyProfileConfigured } from '../lib/apify.js';
 import { prisma } from '../lib/prisma.js';
 import { startInstagramVerification, runInstagramVerificationCheck, normalizeVerificationStatus } from '../lib/instagramVerification.js';
 import { toFrontendProfile } from '../lib/serializers.js';
@@ -9,7 +10,6 @@ export const profileRouter = Router();
 
 const instagramSchema = z.object({
   instagram_username: z.string().trim().min(1),
-  followers_count: z.coerce.number().int().min(0),
 });
 
 const generateVerificationCode = () =>
@@ -27,6 +27,10 @@ profileRouter.patch('/instagram', async (req, res) => {
   const normalizedInstagramId = username.toLowerCase();
   const verificationCode = generateVerificationCode();
 
+  if (!isApifyProfileConfigured()) {
+    return res.status(400).json({ error: 'Instagram verification is not configured on the backend yet.' });
+  }
+
   const existingOwner = await prisma.user.findFirst({
     where: {
       instagramUserId: normalizedInstagramId,
@@ -43,7 +47,6 @@ profileRouter.patch('/instagram', async (req, res) => {
     userId: req.auth!.user.id,
     instagramUsername: username,
     instagramUserId: normalizedInstagramId,
-    followersCount: parsed.data.followers_count,
     verificationCode,
   });
 
