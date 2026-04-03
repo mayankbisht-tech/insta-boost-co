@@ -1,9 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { env } from '../config/env.js';
-import { getApifyAnalyticsByReelCode } from '../lib/apify.js';
+import { refreshApifyAnalyticsForReelUrl } from '../lib/apify.js';
 import { consumeRefreshQuota, getRefreshQuota, syncSubmissionAnalytics } from '../lib/analyticsRefresh.js';
-import { createNotification } from '../lib/notifications.js';
 import { prisma } from '../lib/prisma.js';
 import { extractInstagramReelCode, normalizeInstagramReelUrl, normalizeInstagramUsername } from '../lib/reels.js';
 import { toSubmissionPayload } from '../lib/serializers.js';
@@ -129,7 +128,7 @@ submissionsRouter.post('/', async (req, res) => {
 
   let analyticsResult;
   try {
-    analyticsResult = await getApifyAnalyticsByReelCode(reelCode);
+    analyticsResult = await refreshApifyAnalyticsForReelUrl(parsed.data.reel_url);
   } catch {
     analyticsResult = null;
   }
