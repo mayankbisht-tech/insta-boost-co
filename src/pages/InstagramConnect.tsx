@@ -59,6 +59,8 @@ const InstagramConnect = () => {
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
 
+  const isVerified = profile?.instagram_connection_status === 'approved' || request?.status === 'verified';
+
   const loadRequest = async () => {
     try {
       const data = await api.get<RequestResponse>('/api/profile/instagram/request');
@@ -166,14 +168,23 @@ const InstagramConnect = () => {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => void handleGenerateCode()} disabled={saving}>
-                  <ShieldCheck className="mr-2 h-4 w-4" />
-                  {saving ? 'Generating...' : 'Generate Verification Code'}
-                </Button>
-                <Button variant="outline" onClick={() => void handleVerify()} disabled={checking || !request}>
-                  <RefreshCcw className="mr-2 h-4 w-4" />
-                  {checking ? 'Checking...' : 'Verify Now'}
-                </Button>
+                {!isVerified && (
+                  <>
+                    <Button onClick={() => void handleGenerateCode()} disabled={saving}>
+                      <ShieldCheck className="mr-2 h-4 w-4" />
+                      {saving ? 'Generating...' : 'Generate Verification Code'}
+                    </Button>
+                    <Button variant="outline" onClick={() => void handleVerify()} disabled={checking || !request}>
+                      <RefreshCcw className="mr-2 h-4 w-4" />
+                      {checking ? 'Checking...' : 'Verify Now'}
+                    </Button>
+                  </>
+                )}
+                {isVerified && (
+                  <p className="text-sm text-muted-foreground">
+                    Instagram account is verified and locked for user changes.
+                  </p>
+                )}
               </div>
             </div>
           </div>
