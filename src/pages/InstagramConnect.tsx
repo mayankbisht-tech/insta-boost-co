@@ -150,39 +150,37 @@ const InstagramConnect = () => {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="glass-card p-5">
-            <h2 className="font-display text-lg font-semibold">Setup</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Enter only your Instagram username. Follower count will be fetched from Apify during verification.
-            </p>
+          {!isVerified && (
+            <div className="glass-card p-5">
+              <h2 className="font-display text-lg font-semibold">Setup</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Enter only your Instagram username. Follower count will be fetched from Apify during verification.
+              </p>
 
-            <div className="mt-5 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="instagram-username">Instagram Username</Label>
-                <Input
-                  id="instagram-username"
-                  value={instagramUsername}
-                  onChange={event => setInstagramUsername(event.target.value)}
-                  placeholder="@yourhandle"
-                />
-              </div>
+              <div className="mt-5 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="instagram-username">Instagram Username</Label>
+                  <Input
+                    id="instagram-username"
+                    value={instagramUsername}
+                    onChange={event => setInstagramUsername(event.target.value)}
+                    placeholder="@yourhandle"
+                  />
+                </div>
 
-              <div className="flex flex-wrap gap-2">
-                {!isVerified && (
-                  <>
-                    <Button onClick={() => void handleGenerateCode()} disabled={saving}>
-                      <ShieldCheck className="mr-2 h-4 w-4" />
-                      {saving ? 'Generating...' : 'Generate Verification Code'}
-                    </Button>
-                    <Button variant="outline" onClick={() => void handleVerify()} disabled={checking || !request}>
-                      <RefreshCcw className="mr-2 h-4 w-4" />
-                      {checking ? 'Checking...' : 'Verify Now'}
-                    </Button>
-                  </>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => void handleGenerateCode()} disabled={saving}>
+                    <ShieldCheck className="mr-2 h-4 w-4" />
+                    {saving ? 'Generating...' : 'Generate Verification Code'}
+                  </Button>
+                  <Button variant="outline" onClick={() => void handleVerify()} disabled={checking || !request}>
+                    <RefreshCcw className="mr-2 h-4 w-4" />
+                    {checking ? 'Checking...' : 'Verify Now'}
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <div className="glass-card p-5">
             <h2 className="font-display text-lg font-semibold">Verification Request</h2>
