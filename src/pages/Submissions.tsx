@@ -240,7 +240,11 @@ const Submissions = () => {
 
               <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-4">
                 <div className="flex items-center gap-3">
-                  <p className="text-sm text-muted-foreground">Basic analytics for users stay high level and easy to scan.</p>
+                  <p className="text-sm text-muted-foreground">
+                    {submission.status === 'Rejected' || submission.status === 'Flagged'
+                      ? 'This reel is not earning right now because its status is rejected or flagged.'
+                      : 'Basic analytics for users stay high level and easy to scan.'}
+                  </p>
                   <Button
                     size="sm"
                     variant="outline"
@@ -251,7 +255,9 @@ const Submissions = () => {
                     {syncingId === submission.id ? 'Updating...' : 'Update'}
                   </Button>
                 </div>
-                <p className="text-lg font-semibold text-success">${Number(submission.earnings || 0).toFixed(2)}</p>
+                <p className={`text-lg font-semibold ${submission.earnings > 0 ? 'text-success' : 'text-foreground'}`}>
+                  ${Number(submission.earnings || 0).toFixed(2)}
+                </p>
               </div>
             </motion.div>
           ))}

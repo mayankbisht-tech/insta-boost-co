@@ -1,10 +1,10 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import express, { type Request } from 'express';
+import express, { type NextFunction, type Request, type Response } from 'express';
 import fs from 'fs';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import multer from 'multer';
+import multer, { type FileFilterCallback, type StorageEngine } from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { env } from './config/env.js';
@@ -26,11 +26,18 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Configure multer for image uploads
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
+type CampaignUploadRequest = Request & {
+  file?: {
+    filename: string;
+  };
+  fileUrl?: string;
+};
+
+const storage: StorageEngine = multer.diskStorage({
+  destination: (_req: Request, _file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
     cb(null, uploadsDir);
   },
-  filename: (_req, file, cb) => {
+  filename: (_req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
   },
@@ -38,7 +45,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  fileFilter: (_req, file, cb) => {
+  fileFilter: (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
@@ -47,15 +54,6 @@ const upload = multer({
   },
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 });
-
-// Extend Express Request type to include file
-declare global {
-  namespace Express {
-    interface Request {
-      fileUrl?: string;
-    }
-  }
-}
 
 const allowedOrigins = [
   ...env.FRONTEND_ORIGIN,
@@ -95,13 +93,15 @@ app.use('/uploads', express.static(uploadsDir));
 
 // Middleware to process file uploads for admin campaigns
 const uploadCampaignImage = upload.single('image');
-const campaignUploadMiddleware = (req: Request, _res: any, next: any) => {
-  uploadCampaignImage(req, _res, (err: any) => {
+const campaignUploadMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const uploadRequest = req as CampaignUploadRequest;
+
+  uploadCampaignImage(uploadRequest, res, (err?: unknown) => {
     if (err) {
       return next(err);
     }
-    if (req.file) {
-      req.fileUrl = `/uploads/${req.file.filename}`;
+    if (uploadRequest.file) {
+      uploadRequest.fileUrl = `/uploads/${uploadRequest.file.filename}`;
     }
     next();
   });

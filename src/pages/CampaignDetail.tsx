@@ -24,6 +24,17 @@ interface Campaign {
 
 const submissionWindowMinutes = 120;
 
+const normalizeReelUrlInput = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^(www\.)?instagram\.com\//i.test(trimmed)) {
+    return `https://${trimmed.replace(/^\/+/, '')}`;
+  }
+
+  return trimmed;
+};
+
 const CampaignDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -61,7 +72,9 @@ const CampaignDetail = () => {
       return;
     }
 
-    if (!validateReelUrl(reelUrl)) {
+    const normalizedReelUrl = normalizeReelUrlInput(reelUrl);
+
+    if (!validateReelUrl(normalizedReelUrl)) {
       toast.error('Please enter a valid Instagram Reel URL.');
       return;
     }
@@ -70,7 +83,7 @@ const CampaignDetail = () => {
     try {
       await api.post('/api/submissions', {
         campaign_id: campaign.id,
-        reel_url: reelUrl.trim(),
+        reel_url: normalizedReelUrl,
       });
       toast.success('Reel submitted successfully.');
       setReelUrl('');
@@ -186,7 +199,7 @@ const CampaignDetail = () => {
                   id="reel-url"
                   value={reelUrl}
                   onChange={e => setReelUrl(e.target.value)}
-                  placeholder="https://www.instagram.com/reel/..."
+                  placeholder="instagram.com/reel/... or https://www.instagram.com/reel/..."
                   className="mt-1"
                   required
                 />

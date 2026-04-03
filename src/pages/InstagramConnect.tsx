@@ -13,8 +13,9 @@ type VerificationRequest = {
   id: string;
   instagram_username: string;
   instagram_user_id: string;
+  followers_count: number;
   verification_code: string;
-  status: 'pending' | 'verified' | 'failed' | 'expired';
+  status: 'draft' | 'pending' | 'verified' | 'failed' | 'expired';
   submitted_at: string | null;
   expires_at: string | null;
   checked_at: string | null;
@@ -34,6 +35,10 @@ type ConnectResponse = {
   verification_code: string;
 };
 
+type VerifyResponse = {
+  status: 'verified' | 'failed' | 'expired' | 'pending';
+};
+
 const statusTone: Record<string, string> = {
   not_connected: 'bg-muted text-muted-foreground',
   code_generated: 'bg-warning/10 text-warning border border-warning/20',
@@ -49,6 +54,9 @@ const statusTone: Record<string, string> = {
 const InstagramConnect = () => {
   const { user, profile, refreshProfile } = useAuth();
   const [instagramUsername, setInstagramUsername] = useState(profile?.instagram_username ?? '');
+  const [followersCount, setFollowersCount] = useState(
+    profile?.followers_count ? String(profile.followers_count) : '',
+  );
   const [request, setRequest] = useState<VerificationRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -69,14 +77,21 @@ const InstagramConnect = () => {
   useEffect(() => {
     if (!user) return;
     setInstagramUsername(profile?.instagram_username ?? '');
+    setFollowersCount(profile?.followers_count ? String(profile.followers_count) : '');
     void loadRequest();
-  }, [user, profile?.instagram_username]);
+  }, [user, profile?.followers_count, profile?.instagram_username]);
 
   const handleGenerateCode = async () => {
     const trimmedUsername = instagramUsername.trim();
+    const parsedFollowers = Number.parseInt(followersCount, 10);
 
     if (!trimmedUsername) {
       toast.error('Enter an Instagram username.');
+      return;
+    }
+
+    if (Number.isNaN(parsedFollowers) || parsedFollowers < 0) {
+      toast.error('Enter a valid followers count.');
       return;
     }
 
@@ -84,6 +99,7 @@ const InstagramConnect = () => {
     try {
       const response = await api.patch<ConnectResponse>('/api/profile/instagram', {
         instagram_username: trimmedUsername,
+        followers_count: parsedFollowers,
       });
       await refreshProfile();
       await loadRequest();
@@ -98,10 +114,16 @@ const InstagramConnect = () => {
   const handleVerify = async () => {
     setChecking(true);
     try {
-      await api.post('/api/profile/instagram/verify');
+      const response = await api.post<VerifyResponse>('/api/profile/instagram/verify');
       await refreshProfile();
       await loadRequest();
-      toast.success('Verification check submitted.');
+      toast.success(
+        response.status === 'verified'
+          ? 'Instagram verified successfully.'
+          : response.status === 'expired'
+          ? 'Verification window expired. Generate a new code and try again.'
+          : 'Verification check completed.',
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Verification failed.');
     } finally {
@@ -115,6 +137,7 @@ const InstagramConnect = () => {
       await api.delete('/api/profile/instagram');
       await refreshProfile();
       setInstagramUsername('');
+      setFollowersCount('');
       setRequest(null);
       toast.success('Instagram account disconnected.');
     } catch (error) {
@@ -128,9 +151,9 @@ const InstagramConnect = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="font-display text-xl font-bold">Connect Account</h1>
+          <h1 className="font-display text-xl font-bold">Instagram Connect</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Generate your verification code, place it in your Instagram bio, then request a verification check.
+            Generate your verification code, add it to your Instagram bio, then run the check yourself. No superadmin approval is needed now.
           </p>
         </div>
 
@@ -145,6 +168,7 @@ const InstagramConnect = () => {
                 <Badge className={statusTone[profile?.instagram_connection_status ?? 'not_connected'] || ''}>
                   {profile?.instagram_connection_status ?? 'not_connected'}
                 </Badge>
+                <span>{(profile?.followers_count ?? 0).toLocaleString()} followers</span>
                 {profile?.verification_code && <span>Code: {profile.verification_code}</span>}
               </div>
             </div>
@@ -155,7 +179,7 @@ const InstagramConnect = () => {
           <div className="glass-card p-5">
             <h2 className="font-display text-lg font-semibold">Setup</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Use the same username that should be verified.
+              Use the same username and follower count that should match your live Instagram profile.
             </p>
 
             <div className="mt-5 space-y-4">
@@ -169,6 +193,18 @@ const InstagramConnect = () => {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="followers-count">Followers Count</Label>
+                <Input
+                  id="followers-count"
+                  type="number"
+                  min="0"
+                  value={followersCount}
+                  onChange={event => setFollowersCount(event.target.value)}
+                  placeholder="1000"
+                />
+              </div>
+
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => void handleGenerateCode()} disabled={saving}>
                   <ShieldCheck className="mr-2 h-4 w-4" />
@@ -176,7 +212,7 @@ const InstagramConnect = () => {
                 </Button>
                 <Button variant="outline" onClick={() => void handleVerify()} disabled={checking || !request}>
                   <RefreshCcw className="mr-2 h-4 w-4" />
-                  {checking ? 'Checking...' : 'Check Verification'}
+                  {checking ? 'Checking...' : 'Verify Now'}
                 </Button>
                 <Button variant="ghost" onClick={() => void handleDisconnect()} disabled={disconnecting}>
                   <Unplug className="mr-2 h-4 w-4" />
@@ -194,7 +230,7 @@ const InstagramConnect = () => {
               </div>
             ) : !request ? (
               <p className="mt-3 text-sm text-muted-foreground">
-                No verification request yet. Generate a code first, add it to your Instagram bio, then run a check.
+                No verification request yet. Generate a code first, add it to your Instagram bio, then run the automatic check.
               </p>
             ) : (
               <div className="mt-4 space-y-4 text-sm">
@@ -210,6 +246,7 @@ const InstagramConnect = () => {
                   </div>
                   <div className="rounded-xl border border-border/70 p-3">
                     <p className="text-xs text-muted-foreground">Followers Submitted</p>
+                    <p className="mt-1 font-medium">{request.followers_count.toLocaleString()}</p>
                   </div>
                 </div>
 

@@ -1,9 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LayoutDashboard, FileVideo, Instagram, Bell, LogOut, Menu, X, Shield } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { api } from '@/lib/api';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -11,10 +12,27 @@ const navItems = [
   { path: '/instagram', label: 'Instagram', icon: Instagram },
 ];
 
+type Notification = {
+  id: string;
+  read: boolean;
+};
+
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
-  const { profile, signOut, isAdmin, isSuperadmin } = useAuth();
+  const { user, profile, signOut, isAdmin, isSuperadmin } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
+
+    api.get<Notification[]>('/api/notifications')
+      .then(data => setUnreadCount(data.filter(item => !item.read).length))
+      .catch(() => setUnreadCount(0));
+  }, [user, location.pathname]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -54,6 +72,11 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             )}
             <Link to="/notifications" className="relative p-2 rounded-lg hover:bg-muted transition-colors">
               <Bell className="h-4 w-4 text-muted-foreground" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </Link>
             <span className="hidden sm:block text-sm text-muted-foreground">
               {profile?.name || profile?.email}

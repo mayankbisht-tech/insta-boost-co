@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { toCampaignPayload } from '../lib/serializers.js';
+import { resolveSubmissionEarnings } from '../lib/submissionEarnings.js';
 
 export const campaignsRouter = Router();
 
@@ -47,7 +48,7 @@ campaignsRouter.get('/:id/leaderboard', async (req, res) => {
       rank: index + 1,
       username: submission.user?.instagramUsername || submission.user?.name || 'Anonymous',
       views: submission.views,
-      earnings: Number(submission.earnings),
+      earnings: resolveSubmissionEarnings(submission.earnings, submission.status),
     })),
   });
 });

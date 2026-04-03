@@ -3,9 +3,11 @@ import { z } from 'zod';
 import { env } from '../config/env.js';
 import { getApifyAnalyticsByReelCode } from '../lib/apify.js';
 import { consumeRefreshQuota, getRefreshQuota, syncSubmissionAnalytics } from '../lib/analyticsRefresh.js';
+import { createNotification } from '../lib/notifications.js';
 import { prisma } from '../lib/prisma.js';
 import { extractInstagramReelCode, normalizeInstagramReelUrl, normalizeInstagramUsername } from '../lib/reels.js';
 import { toSubmissionPayload } from '../lib/serializers.js';
+import { calculateSubmissionEarnings, resolveSubmissionEarnings } from '../lib/submissionEarnings.js';
 import { requireAuth } from '../middleware/auth.js';
 import { addMinutes } from '../utils/time.js';
 
@@ -13,11 +15,8 @@ export const submissionsRouter = Router();
 
 const createSubmissionSchema = z.object({
   campaign_id: z.string().min(1),
-  reel_url: z.string().trim().url(),
+  reel_url: z.string().trim().min(1),
 });
-
-const calculateEarnings = (views: number, rewardPerMillionViews: number) =>
-  Number(((views / 1_000_000) * rewardPerMillionViews).toFixed(2));
 
 submissionsRouter.use(requireAuth);
 
@@ -28,7 +27,10 @@ submissionsRouter.get('/overview', async (req, res) => {
   });
 
   const totalViews = submissions.reduce((sum, submission) => sum + submission.views, 0);
-  const totalEarnings = submissions.reduce((sum, submission) => sum + Number(submission.earnings), 0);
+  const totalEarnings = submissions.reduce(
+    (sum, submission) => sum + resolveSubmissionEarnings(submission.earnings, submission.status),
+    0,
+  );
   const bestSubmission = submissions.reduce<typeof submissions[number] | null>(
     (best, submission) => (!best || submission.views > best.views ? submission : best),
     null,
@@ -132,46 +134,13 @@ submissionsRouter.post('/', async (req, res) => {
     analyticsResult = null;
   }
 
-  if (!analyticsResult || analyticsResult.status === 'not-found') {
-    return res.status(400).json({
-      error: 'This reel is not in the Apify dataset yet, so upload time could not be verified.',
-    });
-  }
+  const analyticsSnapshot = analyticsResult?.status === 'ok' ? analyticsResult.snapshot : null;
+  const resolvedUploadedAt = analyticsSnapshot?.uploadedAt ?? new Date();
+  const submissionClosesAt = analyticsSnapshot?.uploadedAt
+    ? addMinutes(analyticsSnapshot.uploadedAt, env.REEL_SUBMISSION_WINDOW_MINUTES)
+    : addMinutes(new Date(), env.REEL_SUBMISSION_WINDOW_MINUTES);
 
-  if (analyticsResult.status === 'missing-timestamp') {
-    return res.status(400).json({
-      error: 'This reel was found in Apify, but its upload timestamp is still missing.',
-    });
-  }
-
-  if (analyticsResult.status === 'invalid-timestamp') {
-    return res.status(400).json({
-      error: 'This reel was found in Apify, but its upload timestamp is invalid.',
-    });
-  }
-
-  if (analyticsResult.status === 'not-configured') {
-    return res.status(400).json({
-      error: 'Apify reel verification is not configured on the backend.',
-    });
-  }
-
-  if (analyticsResult.status !== 'ok') {
-    return res.status(400).json({
-      error: 'Reel analytics could not be verified right now.',
-    });
-  }
-
-  const analyticsSnapshot = analyticsResult.snapshot;
-  const resolvedUploadedAt = analyticsSnapshot.uploadedAt;
-  if (!resolvedUploadedAt) {
-    return res.status(400).json({
-      error: 'Reel analytics were found, but the upload time is still unavailable.',
-    });
-  }
-  const submissionClosesAt = addMinutes(resolvedUploadedAt, env.REEL_SUBMISSION_WINDOW_MINUTES);
-
-  if (submissionClosesAt < new Date()) {
+  if (analyticsSnapshot?.uploadedAt && submissionClosesAt < new Date()) {
     return res.status(400).json({
       error: `Reels must be submitted within ${env.REEL_SUBMISSION_WINDOW_MINUTES} minutes of upload.`,
     });
@@ -199,15 +168,26 @@ submissionsRouter.post('/', async (req, res) => {
       playCount: analyticsSnapshot?.playCount ?? 0,
       likesCount: analyticsSnapshot?.likesCount ?? 0,
       commentsCount: analyticsSnapshot?.commentsCount ?? 0,
-      analyticsSource: analyticsSnapshot?.source ?? null,
+      analyticsSource: analyticsSnapshot?.source ?? 'submission-manual',
       analyticsSyncedAt: analyticsSnapshot ? new Date() : null,
       apifyDatasetItemId: analyticsSnapshot?.datasetItemId ?? null,
-      earnings: calculateEarnings(analyticsSnapshot?.views ?? 0, campaign.rewardPerMillionViews),
+      earnings: calculateSubmissionEarnings(
+        analyticsSnapshot?.views ?? 0,
+        campaign.rewardPerMillionViews,
+        'Pending',
+      ),
     },
     include: {
       campaign: true,
     },
   });
+
+  if (!analyticsSnapshot) {
+    await createNotification(
+      req.auth!.user.id,
+      `Your reel for ${campaign.title} was submitted and is waiting for analytics sync before earnings can update.`,
+    );
+  }
 
   res.status(201).json(toSubmissionPayload(submission));
 });

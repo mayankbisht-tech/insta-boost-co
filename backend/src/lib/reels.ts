@@ -1,4 +1,4 @@
-const INSTAGRAM_REEL_REGEX = /^https?:\/\/(?:www\.)?instagram\.com\/(?:reel|reels|p)\/([\w-]+)(?:\/|\?|$)/i;
+const INSTAGRAM_REEL_REGEX = /^(?:https?:\/\/)?(?:www\.)?instagram\.com\/(?:reel|reels|p)\/([\w-]+)(?:\/|\?|$)/i;
 
 export const extractInstagramReelCode = (url: string) => {
   const match = url.trim().match(INSTAGRAM_REEL_REGEX);

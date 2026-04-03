@@ -15,6 +15,10 @@ type AuthProps = {
   initialRole?: AuthRole;
 };
 
+type AuthLocationState = {
+  rolePreSelected?: boolean;
+};
+
 const Auth = ({ initialRole = 'user' }: AuthProps) => {
   const navigate = useNavigate();
   const {
@@ -33,7 +37,7 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
   } = useAuth();
 
   const location = useLocation();
-  const rolePreSelected = (location.state as any)?.rolePreSelected === true;
+  const rolePreSelected = (location.state as AuthLocationState | null)?.rolePreSelected === true;
 
   const [role, setRole] = useState<AuthRole>(initialRole);
   const [isLogin, setIsLogin] = useState(true);

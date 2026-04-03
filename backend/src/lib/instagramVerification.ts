@@ -1,6 +1,7 @@
 import { InstagramVerificationStatus } from '@prisma/client';
 import { env } from '../config/env.js';
 import { findApifyProfileByUsername, isApifyProfileConfigured } from './apify.js';
+import { createNotification } from './notifications.js';
 import { prisma } from './prisma.js';
 import { addMinutes } from '../utils/time.js';
 
@@ -11,6 +12,10 @@ const toUserConnection = (status: InstagramVerificationStatus) => {
 
   if (status === 'pending') {
     return { instagramConnectionStatus: 'approval_pending' as const, instagramVerified: false };
+  }
+
+  if (status === 'draft') {
+    return { instagramConnectionStatus: 'code_generated' as const, instagramVerified: false };
   }
 
   return { instagramConnectionStatus: 'rejected' as const, instagramVerified: false };
@@ -45,8 +50,8 @@ export const startInstagramVerification = async (params: {
         instagramUserId: params.instagramUserId,
         followersCount: params.followersCount,
         verificationCode: params.verificationCode,
-        status: 'pending',
-        submittedAt: now,
+        status: 'draft',
+        submittedAt: null,
         expiresAt,
         checkedAt: null,
         checkedBio: null,
@@ -63,8 +68,8 @@ export const startInstagramVerification = async (params: {
         instagramUserId: params.instagramUserId,
         followersCount: params.followersCount,
         verificationCode: params.verificationCode,
-        status: 'pending',
-        submittedAt: now,
+        status: 'draft',
+        submittedAt: null,
         expiresAt,
       },
     });
@@ -72,15 +77,15 @@ export const startInstagramVerification = async (params: {
     return tx.user.update({
       where: { id: params.userId },
       data: {
-        instagramConnectionStatus: 'approval_pending',
+        instagramConnectionStatus: 'code_generated',
         instagramUserId: params.instagramUserId,
         instagramUsername: params.instagramUsername,
         followersCount: params.followersCount,
         verificationCode: params.verificationCode,
         instagramVerified: false,
-        instagramReviewSubmittedAt: now,
+        instagramReviewSubmittedAt: null,
         instagramReviewReviewedAt: null,
-        instagramReviewNotes: null,
+        instagramReviewNotes: 'Verification code generated. Run the check after updating your Instagram bio.',
       },
       include: { roles: true },
     });
@@ -112,10 +117,6 @@ export const runInstagramVerificationCheck = async (params: {
     return { ok: true, status: 'verified' };
   }
 
-  if (request.expiresAt && now < request.expiresAt && !params.allowEarlyCheck) {
-    return { ok: false, error: 'Please wait until the verification window closes.', nextCheckAt: request.expiresAt };
-  }
-
   const profile = await findApifyProfileByUsername(request.instagramUsername);
 
   const bio = profile?.bio ?? null;
@@ -137,6 +138,7 @@ export const runInstagramVerificationCheck = async (params: {
       where: { userId: params.userId },
       data: {
         status,
+        submittedAt: now,
         checkedAt: now,
         checkedBio: bio,
         checkedFollowers: followers,
@@ -154,16 +156,31 @@ export const runInstagramVerificationCheck = async (params: {
         instagramConnectionStatus: userStatus.instagramConnectionStatus,
         instagramVerified: userStatus.instagramVerified,
         followersCount: followers ?? request.followersCount,
+        instagramReviewSubmittedAt: now,
         instagramReviewReviewedAt: now,
         instagramReviewNotes:
           status === 'failed'
             ? 'Bio token or follower count did not match.'
             : status === 'expired'
             ? 'Verification window expired.'
-            : null,
+            : 'Instagram account verified automatically.',
       },
     });
   });
+
+  if (status === 'verified') {
+    await createNotification(params.userId, 'Instagram account verified successfully. You can now submit reels directly.');
+  } else if (status === 'failed') {
+    await createNotification(
+      params.userId,
+      'Instagram verification failed because the bio token or follower count did not match.',
+    );
+  } else if (status === 'expired') {
+    await createNotification(
+      params.userId,
+      'Instagram verification expired. Generate a new code and try again.',
+    );
+  }
 
   return { ok: true, status };
 };

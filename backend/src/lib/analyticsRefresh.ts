@@ -1,6 +1,7 @@
 import type { Submission, User, UserRole } from '@prisma/client';
 import { refreshApifyAnalyticsForReelUrl } from './apify.js';
 import { prisma } from './prisma.js';
+import { calculateSubmissionEarnings } from './submissionEarnings.js';
 
 type SubmissionWithRelations = Submission & {
   campaign: {
@@ -19,9 +20,6 @@ type RefreshWindow = {
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const refreshWindows = new Map<string, RefreshWindow>();
-
-const calculateEarnings = (views: number, rewardPerMillionViews: number) =>
-  Number(((views / 1_000_000) * rewardPerMillionViews).toFixed(2));
 
 const getRefreshLimit = (actor: RefreshActor) => {
   if (actor.roles.some(role => role.role === 'superadmin')) {
@@ -119,7 +117,11 @@ export const syncSubmissionAnalytics = async (submission: SubmissionWithRelation
       analyticsSource: analytics.source,
       analyticsSyncedAt: new Date(),
       apifyDatasetItemId: analytics.datasetItemId,
-      earnings: calculateEarnings(analytics.views, submission.campaign.rewardPerMillionViews),
+      earnings: calculateSubmissionEarnings(
+        analytics.views,
+        submission.campaign.rewardPerMillionViews,
+        submission.status,
+      ),
     },
     include: {
       campaign: true,

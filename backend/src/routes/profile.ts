@@ -56,7 +56,7 @@ profileRouter.patch('/instagram', async (req, res) => {
 profileRouter.post('/instagram/verify', async (req, res) => {
   const result = await runInstagramVerificationCheck({
     userId: req.auth!.user.id,
-    allowEarlyCheck: false,
+    allowEarlyCheck: true,
   });
 
   if (!result.ok) {

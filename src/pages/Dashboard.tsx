@@ -6,7 +6,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { TrendingUp, CheckCircle, XCircle, Clock, DollarSign, BarChart3, Eye, Radar } from 'lucide-react';
+import { TrendingUp, CheckCircle, XCircle, Clock, DollarSign, BarChart3, Eye, Radar, BellRing } from 'lucide-react';
 
 interface Campaign {
   id: string;
@@ -34,6 +34,13 @@ interface SubmissionOverview {
   latest_sync_at: string | null;
 }
 
+interface Notification {
+  id: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
+
 const categoryColors: Record<string, string> = {
   Sports: 'bg-info/10 text-info border border-info/20',
   General: 'bg-success/10 text-success border border-success/20',
@@ -58,6 +65,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [overview, setOverview] = useState<SubmissionOverview>(emptyOverview);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -66,10 +74,15 @@ const Dashboard = () => {
       setCampaigns(campData);
 
       if (user) {
-        const overviewData = await api.get<SubmissionOverview>('/api/submissions/overview');
+        const [overviewData, notificationData] = await Promise.all([
+          api.get<SubmissionOverview>('/api/submissions/overview'),
+          api.get<Notification[]>('/api/notifications'),
+        ]);
         setOverview(overviewData);
+        setNotifications(notificationData.slice(0, 4));
       } else {
         setOverview(emptyOverview);
+        setNotifications([]);
       }
 
       setLoading(false);
@@ -79,24 +92,25 @@ const Dashboard = () => {
 
   const statCards = [
     { label: 'Total Submissions', value: overview.total_submissions, icon: Eye, color: 'text-primary' },
-    {label: 'Total Views', value: overview.total_views.toLocaleString(), icon: TrendingUp, color: 'text-primary'},
     { label: 'Approved', value: overview.approved, icon: CheckCircle, color: 'text-success' },
     { label: 'Rejected', value: overview.rejected, icon: XCircle, color: 'text-destructive' },
-    { label: 'Pending', value: overview.pending, icon: Clock, color: 'text-warning'},
+    { label: 'Pending', value: overview.pending, icon: Clock, color: 'text-warning' },
+  ];
+
+  const analyticsCards = [
+    { label: 'Total Views', value: overview.total_views.toLocaleString(), icon: TrendingUp, color: 'text-primary' },
+    { label: 'Average Views', value: overview.average_views.toLocaleString(), icon: BarChart3, color: 'text-info' },
+    { label: 'Tracked Reels', value: overview.reels_with_analytics, icon: Radar, color: 'text-foreground' },
+    { label: 'Best Reel Views', value: overview.best_reel_views.toLocaleString(), icon: Eye, color: 'text-success' },
   ];
 
   const topCampaign = campaigns.reduce((top, campaign) =>
     campaign.reward_per_million_views > (top?.reward_per_million_views || 0) ? campaign : top,
   campaigns[0]);
 
-  const averageRewardPerMillionViews = campaigns.length
-    ? campaigns.reduce((sum, campaign) => sum + campaign.reward_per_million_views, 0) / campaigns.length
-    : 0;
-  const estimatedEarnings = (overview.total_views / 1_000_000) * averageRewardPerMillionViews;
-
   return (
     <DashboardLayout>
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {statCards.map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -125,14 +139,72 @@ const Dashboard = () => {
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass-card p-5">
           <div className="flex items-center gap-2 mb-1">
             <Radar className="h-4 w-4 text-info" />
-            <span className="text-sm text-muted-foreground">Estimated Earnings</span>
+            <span className="text-sm text-muted-foreground">Analytics Coverage</span>
           </div>
-          <p className="font-display text-3xl font-bold text-info">₹ {estimatedEarnings.toFixed(2)}</p>
+          <p className="font-display text-3xl font-bold text-info">{overview.reels_with_analytics}/{overview.total_submissions}</p>
           <p className="mt-2 text-xs text-muted-foreground">
-            {campaigns.length
-              ? `Based on ${overview.total_views.toLocaleString()} views at avg ₹ ${averageRewardPerMillionViews.toFixed(2)}/1M views.`
-              : 'Add campaigns to estimate earnings from your current views.'}
+            {overview.latest_sync_at ? `Latest sync ${new Date(overview.latest_sync_at).toLocaleString()}` : 'No synced reel analytics yet.'}
           </p>
+        </motion.div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {analyticsCards.map((card, i) => (
+          <motion.div
+            key={card.label}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 + i * 0.04 }}
+            className="glass-card p-4"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">{card.label}</span>
+              <card.icon className={`h-4 w-4 ${card.color}`} />
+            </div>
+            <p className="font-display text-2xl font-bold">{card.value}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="mb-8 grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }} className="glass-card p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <BellRing className="h-4 w-4 text-primary" />
+            <div>
+              <h2 className="font-display text-lg font-semibold">Latest Notifications</h2>
+              <p className="text-sm text-muted-foreground">Approval, rejection, verification, and analytics updates show up here.</p>
+            </div>
+          </div>
+
+          {notifications.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-border/80 px-4 py-6 text-sm text-muted-foreground">
+              No notifications yet. As soon as a reel is reviewed or your Instagram verification changes, it will show here.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {notifications.map(notification => (
+                <div key={notification.id} className="rounded-xl border border-border/70 bg-background/50 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm">{notification.message}</p>
+                    {!notification.read && <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />}
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">{new Date(notification.created_at).toLocaleString()}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }} className="glass-card p-5">
+          <h2 className="font-display text-lg font-semibold">Creator Snapshot</h2>
+          <div className="mt-4 space-y-4 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-border/70 bg-background/50 p-4">
+              <p className="text-xs uppercase tracking-[0.18em]">Connected Instagram</p>
+              <p className="mt-2 text-base font-semibold text-foreground">
+                {user ? (overview.total_submissions > 0 ? 'Ready for reel submissions' : 'Verified and ready to start') : 'Sign in required'}
+              </p>
+            </div>
+          </div>
         </motion.div>
       </div>
 

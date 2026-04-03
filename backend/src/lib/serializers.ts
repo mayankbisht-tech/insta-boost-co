@@ -1,4 +1,5 @@
 import type { Campaign, Notification, Session, Submission, User, UserRole } from '@prisma/client';
+import { resolveSubmissionEarnings } from './submissionEarnings.js';
 
 type UserWithRoles = User & { roles: UserRole[] };
 type SessionWithUser = Session & { user: UserWithRoles };
@@ -85,7 +86,7 @@ export const toSubmissionPayload = (submission: SubmissionWithRelations) => ({
   comments_count: submission.commentsCount,
   analytics_source: submission.analyticsSource ?? null,
   analytics_synced_at: submission.analyticsSyncedAt?.toISOString() ?? null,
-  earnings: Number(submission.earnings),
+  earnings: resolveSubmissionEarnings(submission.earnings, submission.status),
   campaigns: submission.campaign
     ? {
         title: submission.campaign.title,

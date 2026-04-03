@@ -69,8 +69,6 @@ const SuperadminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
-  const [noteByUserId, setNoteByUserId] = useState<Record<string, string>>({});
-
   const loadData = async () => {
     try {
       const [overviewData, usersData] = await Promise.all([
@@ -137,32 +135,14 @@ const SuperadminDashboard = () => {
   };
 
   const triggerVerification = async (userId: string) => {
-    setBusyUserId(userId);
-    try {
-      await api.patch(`/api/admin/superadmin/verifications/${userId}/trigger`);
-      toast.success('Verification check triggered.');
-      await loadData();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to trigger verification.');
-    } finally {
-      setBusyUserId(null);
-    }
+    void userId;
+    toast('Instagram verification is now handled directly by the creator.');
   };
 
   const overrideVerification = async (userId: string, status: VerificationRequest['status']) => {
-    setBusyUserId(userId);
-    try {
-      await api.patch(`/api/admin/superadmin/verifications/${userId}/status`, {
-        status,
-        notes: noteByUserId[userId]?.trim() || undefined,
-      });
-      toast.success(`Verification set to ${status}.`);
-      await loadData();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update verification.');
-    } finally {
-      setBusyUserId(null);
-    }
+    void userId;
+    void status;
+    toast('Manual verification overrides have been removed. Creators now verify automatically.');
   };
 
   return (
@@ -217,7 +197,7 @@ const SuperadminDashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <ShieldCheck className="h-4 w-4 text-primary" />
-                  Pending Verifications
+                  Creator Verification Requests
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-3xl font-bold">{overview?.pendingVerifications ?? 0}</CardContent>
@@ -282,11 +262,11 @@ const SuperadminDashboard = () => {
           <section className="glass-card p-5 space-y-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="font-display text-xl font-bold">Instagram Review Queue</h2>
-                <p className="text-sm text-muted-foreground">
-                  Compare the username, follower count, and verification code with the Instagram bio before approving.
-                </p>
-              </div>
+                  <h2 className="font-display text-xl font-bold">Instagram Verification Overview</h2>
+                  <p className="text-sm text-muted-foreground">
+                  Verification is now creator-managed. This section is read-only so the team can monitor outcomes without approving accounts manually.
+                  </p>
+                </div>
               <Badge variant="secondary">{pendingVerifications.length} queued</Badge>
             </div>
 
@@ -379,48 +359,41 @@ const SuperadminDashboard = () => {
                         </div>
                       </div>
 
-                      <textarea
-                        value={noteByUserId[user.id] ?? ''}
-                        onChange={event => setNoteByUserId(current => ({ ...current, [user.id]: event.target.value }))}
-                        placeholder="Optional review note"
-                        className="min-h-24 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                      />
-
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          onClick={() => void triggerVerification(user.id)}
-                          disabled={busyUserId === user.id}
-                        >
-                          Trigger Apify Check
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => void overrideVerification(user.id, 'verified')}
-                          disabled={busyUserId === user.id}
-                        >
-                          Mark Verified
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => void overrideVerification(user.id, 'failed')}
-                          disabled={busyUserId === user.id}
-                        >
-                          Mark Failed
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => void overrideVerification(user.id, 'expired')}
-                          disabled={busyUserId === user.id}
-                        >
-                          Mark Expired
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          onClick={() => void overrideVerification(user.id, 'pending')}
-                          disabled={busyUserId === user.id}
-                        >
-                          Reset Pending
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            onClick={() => void triggerVerification(user.id)}
+                            disabled
+                          >
+                            Creator Managed
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => void overrideVerification(user.id, 'verified')}
+                            disabled
+                          >
+                            Auto Verify Only
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => void overrideVerification(user.id, 'failed')}
+                            disabled
+                          >
+                            No Manual Fail
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => void overrideVerification(user.id, 'expired')}
+                            disabled
+                          >
+                            No Manual Expire
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() => void overrideVerification(user.id, 'pending')}
+                            disabled
+                          >
+                            No Manual Reset
+                          </Button>
                       </div>
                     </div>
                   );
@@ -433,7 +406,7 @@ const SuperadminDashboard = () => {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="font-display text-xl font-bold">Verification Statuses</h2>
-                <p className="text-sm text-muted-foreground">View all users with verification states.</p>
+                <p className="text-sm text-muted-foreground">View all users with verification states and automatic check results.</p>
               </div>
               <Badge variant="secondary">{allVerificationUsers.length} total</Badge>
             </div>
@@ -493,21 +466,8 @@ const SuperadminDashboard = () => {
                               : request?.followers_count?.toLocaleString() ?? '-'}
                           </td>
                           <td className="py-4">
-                            <div className="flex flex-wrap gap-2">
-                              <Button size="sm" variant="outline" onClick={() => void triggerVerification(user.id)} disabled={busyUserId === user.id}>
-                                Trigger
-                              </Button>
-                              <Button size="sm" onClick={() => void overrideVerification(user.id, 'verified')} disabled={busyUserId === user.id}>
-                                Verify
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => void overrideVerification(user.id, 'failed')} disabled={busyUserId === user.id}>
-                                Fail
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => void overrideVerification(user.id, 'expired')} disabled={busyUserId === user.id}>
-                                Expire
-                              </Button>
-                            </div>
-                          </td>
+                              <Badge variant="outline">Creator managed</Badge>
+                            </td>
                         </tr>
                       );
                     })}

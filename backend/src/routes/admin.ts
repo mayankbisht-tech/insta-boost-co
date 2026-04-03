@@ -1,15 +1,21 @@
 import { AppRole, type InstagramVerificationRequest, type User, type UserRole } from '@prisma/client';
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import { z } from 'zod';
 import { getApifyRunOverview } from '../lib/apify.js';
 import { consumeRefreshQuota, getRefreshQuota, syncSubmissionAnalytics } from '../lib/analyticsRefresh.js';
+import { createNotification } from '../lib/notifications.js';
 import { normalizeVerificationStatus, overrideInstagramVerificationStatus, runInstagramVerificationCheck } from '../lib/instagramVerification.js';
 import { prisma } from '../lib/prisma.js';
 import { toCampaignPayload, toFrontendProfile, toSubmissionPayload } from '../lib/serializers.js';
+import { calculateSubmissionEarnings, resolveSubmissionEarnings } from '../lib/submissionEarnings.js';
 import { requireAdmin, requireSuperadmin } from '../middleware/admin.js';
 import { requireAuth } from '../middleware/auth.js';
 
 export const adminRouter = Router();
+
+type CampaignUploadRequest = Request & {
+  fileUrl?: string;
+};
 
 type UserWithRolesAndVerification = User & {
   roles: UserRole[];
@@ -53,9 +59,6 @@ const hasManagementRole = (roles: UserRole[]) =>
   roles.some(role => role.role === AppRole.admin || role.role === AppRole.superadmin);
 
 const isCreator = (roles: UserRole[]) => roles.every(role => role.role === AppRole.user);
-
-const calculateEarnings = (views: number, rewardPerMillionViews: number) =>
-  Number(((views / 1_000_000) * rewardPerMillionViews).toFixed(2));
 
 const toSuperadminUserPayload = (user: UserWithRolesAndVerification) => ({
   ...toFrontendProfile(user),
@@ -107,7 +110,10 @@ adminRouter.get('/overview', async (_req, res) => {
   ]);
 
   const totalViews = submissions.reduce((sum, submission) => sum + submission.views, 0);
-  const totalEarnings = submissions.reduce((sum, submission) => sum + Number(submission.earnings), 0);
+  const totalEarnings = submissions.reduce(
+    (sum, submission) => sum + resolveSubmissionEarnings(submission.earnings, submission.status),
+    0,
+  );
   const approvedCount = submissions.filter(item => item.status === 'Approved').length;
 
   res.json({
@@ -151,6 +157,7 @@ adminRouter.get('/campaigns', async (_req, res) => {
 });
 
 adminRouter.post('/campaigns', async (req, res) => {
+  const uploadRequest = req as CampaignUploadRequest;
   const parsed = campaignSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid campaign data.' });
@@ -164,7 +171,7 @@ adminRouter.post('/campaigns', async (req, res) => {
       rewardPerMillionViews: parsed.data.reward_per_million_views,
       rules: parsed.data.rules,
       status: parsed.data.status,
-      imageUrl: (req as any).fileUrl || null,
+      imageUrl: uploadRequest.fileUrl || null,
       createdByAdminId: req.auth!.user.id,
     },
   });
@@ -173,6 +180,7 @@ adminRouter.post('/campaigns', async (req, res) => {
 });
 
 adminRouter.put('/campaigns/:id', async (req, res) => {
+  const uploadRequest = req as CampaignUploadRequest;
   const parsed = campaignSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid campaign data.' });
@@ -195,7 +203,7 @@ adminRouter.put('/campaigns/:id', async (req, res) => {
       rewardPerMillionViews: parsed.data.reward_per_million_views,
       rules: parsed.data.rules,
       status: parsed.data.status,
-      imageUrl: (req as any).fileUrl || existing.imageUrl,
+      imageUrl: uploadRequest.fileUrl || existing.imageUrl,
       createdByAdminId: req.auth!.user.id,
     },
   });
@@ -230,11 +238,35 @@ adminRouter.patch('/submissions/:id/status', async (req, res) => {
     return res.status(400).json({ error: 'Invalid submission status.' });
   }
 
+  const existing = await prisma.submission.findUnique({
+    where: { id: req.params.id },
+    include: {
+      campaign: true,
+      user: true,
+    },
+  });
+
+  if (!existing || !existing.campaign) {
+    return res.status(404).json({ error: 'Submission not found.' });
+  }
+
+  const rejectionReason =
+    parsed.data.status === 'Rejected'
+      ? 'Rejected by admin review.'
+      : parsed.data.status === 'Flagged'
+      ? 'Flagged by admin review.'
+      : null;
+
   const submission = await prisma.submission.update({
     where: { id: req.params.id },
     data: {
       status: parsed.data.status,
-      rejectionReason: parsed.data.status === 'Rejected' ? 'Rejected by admin review.' : null,
+      rejectionReason,
+      earnings: calculateSubmissionEarnings(
+        existing.views,
+        existing.campaign.rewardPerMillionViews,
+        parsed.data.status,
+      ),
       reviewedAt: new Date(),
       reviewedByAdmin: req.auth!.user.id,
     },
@@ -243,6 +275,24 @@ adminRouter.patch('/submissions/:id/status', async (req, res) => {
       user: true,
     },
   });
+
+  const campaignTitle = existing.campaign.title;
+  if (parsed.data.status === 'Approved') {
+    await createNotification(
+      submission.userId,
+      `Your reel for ${campaignTitle} was approved. Current earnings: $${Number(submission.earnings).toFixed(2)}.`,
+    );
+  } else if (parsed.data.status === 'Rejected') {
+    await createNotification(
+      submission.userId,
+      `Your reel for ${campaignTitle} was rejected. Earnings for this reel are now $0.00.`,
+    );
+  } else if (parsed.data.status === 'Flagged') {
+    await createNotification(
+      submission.userId,
+      `Your reel for ${campaignTitle} was flagged for review. Earnings for this reel are now $0.00.`,
+    );
+  }
 
   res.json(toSubmissionPayload(submission));
 });
@@ -263,7 +313,11 @@ adminRouter.patch('/submissions/:id/views', async (req, res) => {
     return res.status(404).json({ error: 'Submission not found.' });
   }
 
-  const earnings = calculateEarnings(parsed.data.views, existing.campaign.rewardPerMillionViews);
+  const earnings = calculateSubmissionEarnings(
+    parsed.data.views,
+    existing.campaign.rewardPerMillionViews,
+    existing.status,
+  );
 
   const submission = await prisma.submission.update({
     where: { id: req.params.id },
@@ -329,6 +383,7 @@ adminRouter.get('/superadmin/overview', requireSuperadmin, async (_req, res) => 
     }),
     prisma.submission.findMany({
       select: {
+        status: true,
         views: true,
         earnings: true,
         analyticsSyncedAt: true,
@@ -349,7 +404,10 @@ adminRouter.get('/superadmin/overview', requireSuperadmin, async (_req, res) => 
   const blocked = users.filter(user => user.accountStatus === 'suspended' || user.accountStatus === 'banned').length;
   const connectedCreators = users.filter(user => user.instagramConnectionStatus === 'approved').length;
   const totalViews = submissions.reduce((sum, submission) => sum + submission.views, 0);
-  const totalEarnings = submissions.reduce((sum, submission) => sum + Number(submission.earnings), 0);
+  const totalEarnings = submissions.reduce(
+    (sum, submission) => sum + resolveSubmissionEarnings(submission.earnings, submission.status),
+    0,
+  );
 
   res.json({
     totalUsers: users.length,
@@ -426,45 +484,9 @@ adminRouter.delete('/superadmin/users/:id', requireSuperadmin, async (req, res) 
 });
 
 adminRouter.patch('/superadmin/verifications/:userId/trigger', requireSuperadmin, async (req, res) => {
-  const targetUserId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
-
-  const result = await runInstagramVerificationCheck({
-    userId: targetUserId,
-    allowEarlyCheck: true,
-    reviewerId: req.auth!.user.id,
-  });
-
-  if (!result.ok) {
-    return res.status(400).json({ error: result.error, next_check_at: result.nextCheckAt?.toISOString() ?? null });
-  }
-
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id: targetUserId },
-    include: { roles: true, instagramVerificationRequest: true },
-  });
-
-  res.json(toSuperadminUserPayload(user));
+  res.status(410).json({ error: 'Instagram verification is now creator-managed and no longer requires superadmin access.' });
 });
 
 adminRouter.patch('/superadmin/verifications/:userId/status', requireSuperadmin, async (req, res) => {
-  const parsed = verificationDecisionSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid verification status.' });
-  }
-
-  const targetUserId = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
-
-  await overrideInstagramVerificationStatus({
-    userId: targetUserId,
-    status: parsed.data.status,
-    reviewerId: req.auth!.user.id,
-    notes: parsed.data.notes ?? null,
-  });
-
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id: targetUserId },
-    include: { roles: true, instagramVerificationRequest: true },
-  });
-
-  res.json(toSuperadminUserPayload(user));
+  res.status(410).json({ error: 'Instagram verification is now creator-managed and no longer requires superadmin access.' });
 });
