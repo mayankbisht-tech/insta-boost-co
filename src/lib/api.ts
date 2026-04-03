@@ -1,6 +1,14 @@
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '');
+const rawApiUrl = import.meta.env.VITE_API_URL?.trim();
+const normalizedApiUrl = rawApiUrl
+  ? (/^https?:\/\//i.test(rawApiUrl) ? rawApiUrl : `https://${rawApiUrl}`)
+  : undefined;
+const API_BASE_URL = normalizedApiUrl?.replace(/\/$/, '');
 
-type ApiOptions = RequestInit & {
+if (!API_BASE_URL) {
+  throw new Error('Missing VITE_API_URL. Set it in the frontend .env file.');
+}
+
+type ApiOptions = Omit<RequestInit, 'body'> & {
   body?: unknown;
 };
 

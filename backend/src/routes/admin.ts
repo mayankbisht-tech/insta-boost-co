@@ -21,9 +21,15 @@ const campaignSchema = z.object({
   description: z.string().trim().min(1),
   category: z.string().trim().min(1),
   reward_per_million_views: z.coerce.number().int().min(0),
-  rules: z.array(z.string().trim()).default([]),
+  rules: z.string().transform(v => {
+    try {
+      const parsed = JSON.parse(v);
+      return Array.isArray(parsed) ? parsed : [v];
+    } catch {
+      return [v];
+    }
+  }).default('[]'),
   status: z.string().trim().min(1),
-  image_url: z.string().trim().nullable().optional(),
 });
 
 const userStatusSchema = z.object({
@@ -102,14 +108,16 @@ adminRouter.get('/overview', async (_req, res) => {
 
   const totalViews = submissions.reduce((sum, submission) => sum + submission.views, 0);
   const totalEarnings = submissions.reduce((sum, submission) => sum + Number(submission.earnings), 0);
+  const approvedCount = submissions.filter(item => item.status === 'Approved').length;
 
   res.json({
     totalUsers: visibleUsers,
     totalCampaigns,
     totalSubmissions: submissions.length,
-    approved: submissions.filter(item => item.status === 'Approved').length,
+    approved: approvedCount,
     rejected: submissions.filter(item => item.status === 'Rejected').length,
     pending: submissions.filter(item => item.status === 'Pending').length,
+    eligible: approvedCount,
     totalViews,
     totalEarnings: Number(totalEarnings.toFixed(2)),
     averageViews: submissions.length ? Math.round(totalViews / submissions.length) : 0,
@@ -156,7 +164,7 @@ adminRouter.post('/campaigns', async (req, res) => {
       rewardPerMillionViews: parsed.data.reward_per_million_views,
       rules: parsed.data.rules,
       status: parsed.data.status,
-      imageUrl: parsed.data.image_url ?? null,
+      imageUrl: (req as any).fileUrl || null,
       createdByAdminId: req.auth!.user.id,
     },
   });
@@ -170,6 +178,14 @@ adminRouter.put('/campaigns/:id', async (req, res) => {
     return res.status(400).json({ error: 'Invalid campaign data.' });
   }
 
+  const existing = await prisma.campaign.findUnique({
+    where: { id: req.params.id },
+  });
+
+  if (!existing) {
+    return res.status(404).json({ error: 'Campaign not found.' });
+  }
+
   const campaign = await prisma.campaign.update({
     where: { id: req.params.id },
     data: {
@@ -179,7 +195,7 @@ adminRouter.put('/campaigns/:id', async (req, res) => {
       rewardPerMillionViews: parsed.data.reward_per_million_views,
       rules: parsed.data.rules,
       status: parsed.data.status,
-      imageUrl: parsed.data.image_url ?? null,
+      imageUrl: (req as any).fileUrl || existing.imageUrl,
       createdByAdminId: req.auth!.user.id,
     },
   });

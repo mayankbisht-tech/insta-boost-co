@@ -79,25 +79,24 @@ const Dashboard = () => {
 
   const statCards = [
     { label: 'Total Submissions', value: overview.total_submissions, icon: Eye, color: 'text-primary' },
+    {label: 'Total Views', value: overview.total_views.toLocaleString(), icon: TrendingUp, color: 'text-primary'},
     { label: 'Approved', value: overview.approved, icon: CheckCircle, color: 'text-success' },
     { label: 'Rejected', value: overview.rejected, icon: XCircle, color: 'text-destructive' },
-    { label: 'Pending', value: overview.pending, icon: Clock, color: 'text-warning' },
-  ];
-
-  const analyticsCards = [
-    { label: 'Total Views', value: overview.total_views.toLocaleString(), icon: TrendingUp, color: 'text-primary' },
-    { label: 'Average Views', value: overview.average_views.toLocaleString(), icon: BarChart3, color: 'text-info' },
-    { label: 'Tracked Reels', value: overview.reels_with_analytics, icon: Radar, color: 'text-foreground' },
-    { label: 'Best Reel Views', value: overview.best_reel_views.toLocaleString(), icon: Eye, color: 'text-success' },
+    { label: 'Pending', value: overview.pending, icon: Clock, color: 'text-warning'},
   ];
 
   const topCampaign = campaigns.reduce((top, campaign) =>
     campaign.reward_per_million_views > (top?.reward_per_million_views || 0) ? campaign : top,
   campaigns[0]);
 
+  const averageRewardPerMillionViews = campaigns.length
+    ? campaigns.reduce((sum, campaign) => sum + campaign.reward_per_million_views, 0) / campaigns.length
+    : 0;
+  const estimatedEarnings = (overview.total_views / 1_000_000) * averageRewardPerMillionViews;
+
   return (
     <DashboardLayout>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         {statCards.map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -121,36 +120,20 @@ const Dashboard = () => {
             <DollarSign className="h-4 w-4 text-success" />
             <span className="text-sm text-muted-foreground">Total Earnings</span>
           </div>
-          <p className="font-display text-3xl font-bold text-success">${overview.total_earnings.toFixed(2)}</p>
+          <p className="font-display text-3xl font-bold text-success">₹ {overview.total_earnings.toFixed(2)}</p>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass-card p-5">
           <div className="flex items-center gap-2 mb-1">
             <Radar className="h-4 w-4 text-info" />
-            <span className="text-sm text-muted-foreground">Analytics Coverage</span>
+            <span className="text-sm text-muted-foreground">Estimated Earnings</span>
           </div>
-          <p className="font-display text-3xl font-bold text-info">{overview.reels_with_analytics}/{overview.total_submissions}</p>
+          <p className="font-display text-3xl font-bold text-info">₹ {estimatedEarnings.toFixed(2)}</p>
           <p className="mt-2 text-xs text-muted-foreground">
-            {overview.latest_sync_at ? `Latest sync ${new Date(overview.latest_sync_at).toLocaleString()}` : 'No synced reel analytics yet.'}
+            {campaigns.length
+              ? `Based on ${overview.total_views.toLocaleString()} views at avg ₹ ${averageRewardPerMillionViews.toFixed(2)}/1M views.`
+              : 'Add campaigns to estimate earnings from your current views.'}
           </p>
         </motion.div>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {analyticsCards.map((card, i) => (
-          <motion.div
-            key={card.label}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 + i * 0.04 }}
-            className="glass-card p-4"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">{card.label}</span>
-              <card.icon className={`h-4 w-4 ${card.color}`} />
-            </div>
-            <p className="font-display text-2xl font-bold">{card.value}</p>
-          </motion.div>
-        ))}
       </div>
 
       <h2 className="font-display text-xl font-semibold mb-4">Active Campaigns</h2>
@@ -203,7 +186,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between pt-3 border-t border-border">
                   <div className="flex items-center gap-1 text-primary">
                     <TrendingUp className="h-3.5 w-3.5" />
-                    <span className="text-sm font-semibold">${campaign.reward_per_million_views}/1M</span>
+                    <span className="text-sm font-semibold">₹ {campaign.reward_per_million_views}/1M</span>
                   </div>
                   <Button asChild size="sm" variant="outline" className="text-xs">
                     <Link to={`/campaign/${campaign.id}`}>View Details</Link>

@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ArrowLeft } from 'lucide-react';
 
 type SignUpStep = 'email' | 'otp' | 'details';
 type AuthRole = 'user' | 'admin';
@@ -15,6 +16,7 @@ type AuthProps = {
 };
 
 const Auth = ({ initialRole = 'user' }: AuthProps) => {
+  const navigate = useNavigate();
   const {
     user,
     isAdmin,
@@ -29,6 +31,9 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
     verifyAdminSignUpOtp,
     completeAdminSignUp,
   } = useAuth();
+
+  const location = useLocation();
+  const rolePreSelected = (location.state as any)?.rolePreSelected === true;
 
   const [role, setRole] = useState<AuthRole>(initialRole);
   const [isLogin, setIsLogin] = useState(true);
@@ -188,215 +193,306 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
     setSubmitting(false);
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.3,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: 'easeOut',
+      },
+    },
+  };
+
+  const floatingVariants = {
+    animate: {
+      y: [0, -10, 0],
+      transition: {
+        duration: 3,
+        ease: 'easeInOut',
+        repeat: Infinity,
+      },
+    },
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="relative min-h-screen overflow-hidden bg-background">
+      {/* Logo on the right side - full screen height */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="w-full max-w-md"
+        className="absolute right-0 top-0 h-screen w-1/2 flex items-center justify-center pointer-events-none overflow-hidden"
+        variants={floatingVariants}
+        animate="animate"
       >
-        <div className="mb-4 text-center">
-          <h1 className="mb-2 font-display text-4xl font-bold gradient-text">
-            <img src="2.jpeg" className="h-24 mx-auto w-auto" alt="Go Clips" />
-          </h1>
-          <p className="text-sm text-muted-foreground">{roleDescription}</p>
+        <img
+          src="/4.png"
+          alt="Go Clips"
+          className="h-[200vh] w-auto object-contain opacity-90"
+          loading="eager"
+          onError={(e) => {
+            console.log('Image failed to load');
+            (e.target as HTMLImageElement).style.display = 'block';
+          }}
+        />
+      </motion.div>
+
+      {/* Bottom blur effect */}
+      <div className="absolute bottom-0 left-0 h-1/3 w-1/2 bg-gradient-to-t from-background via-background/50 to-transparent pointer-events-none z-10" />
+      <div className="absolute bottom-0 right-0 h-4/5 w-1/2 bg-gradient-to-t from-background via-background/50 to-transparent pointer-events-none z-10" />
+
+      {/* GoClips text on the left side - rotated -90 degrees */}
+      <div className="absolute top-1/2 -translate-y-1/2 z-0" style={{ left: '-8rem' }}>
+        <div
+          style={{
+            transform: 'rotate(-90deg)',
+            transformOrigin: 'center',
+            whiteSpace: 'nowrap',
+          }}
+          className="text-[150px] font-display font-bold gradient-text opacity-50"
+        >
+          GoClips
         </div>
+      </div>
 
-        <div className="glass-card p-8">
-          <div className="mb-6">
-            <Label className="mb-2 block text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              Choose Role
-            </Label>
-            <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
-              <button
-                type="button"
-                onClick={() => switchRole('user')}
-                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                  role === 'user' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'
-                }`}
-              >
-                User
-              </button>
-              <button
-                type="button"
-                onClick={() => switchRole('admin')}
-                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                  role === 'admin' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'
-                }`}
-              >
-                Admin
-              </button>
-            </div>
-          </div>
+      {/* Main content - centered */}
+      <div className="relative z-20 flex min-h-screen items-center justify-center px-4">
+        {/* Back button */}
+        <motion.button
+          onClick={() => navigate('/')}
+          whileHover={{ scale: 1.1, x: -5 }}
+          whileTap={{ scale: 0.95 }}
+          className="absolute top-6 left-6 p-2 rounded-full bg-primary/20 hover:bg-primary/30 text-primary transition-colors"
+          title="Back to Landing"
+        >
+          <ArrowLeft className="w-6 h-6" />
+        </motion.button>
 
-          <div className="mb-4 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-md"
+          variants={containerVariants}
+        >
+        
+
+        <motion.div className="glass-card p-8"
+          variants={itemVariants}
+          whileHover={{ scale: 1.02 }}
+          transition={{ duration: 0.3 }}
+        >
+          <motion.div className="mb-4 text-center" variants={itemVariants}>
             <h2 className="font-display text-2xl font-bold gradient-text">{roleLabel} Portal</h2>
-          </div>
+          </motion.div>
 
-          <div className="mb-6 flex rounded-lg bg-muted p-1">
-            <button
+          <motion.div className="mb-6 flex rounded-lg bg-muted p-1" variants={itemVariants}>
+            <motion.button
               type="button"
               onClick={() => switchMode(true)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
                 isLogin ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'
               }`}
             >
               Log In
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="button"
               onClick={() => switchMode(false)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
                 !isLogin ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'
               }`}
             >
               Sign Up
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <motion.form onSubmit={handleSubmit} className="space-y-4" variants={containerVariants}>
             {isLogin && (
               <>
-                <div>
+                <motion.div variants={itemVariants}>
                   <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
+                  <motion.div whileFocus={{ scale: 1.02 }} whileHover={{ scale: 1.01 }}>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                      className="mt-1"
+                    />
+                  </motion.div>
+                </motion.div>
+                <motion.div variants={itemVariants}>
                   <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="Password"
-                    required
-                    minLength={6}
-                    className="mt-1"
-                  />
-                </div>
+                  <motion.div whileFocus={{ scale: 1.02 }} whileHover={{ scale: 1.01 }}>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="Password"
+                      required
+                      minLength={6}
+                      className="mt-1"
+                    />
+                  </motion.div>
+                </motion.div>
               </>
             )}
 
             {!isLogin && signUpStep === 'email' && (
               <>
-                <div>
+                <motion.div variants={itemVariants}>
                   <Label htmlFor="signup-name">Full Name</Label>
-                  <Input
-                    id="signup-name"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    placeholder="John Doe"
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
+                  <motion.div whileFocus={{ scale: 1.02 }} whileHover={{ scale: 1.01 }}>
+                    <Input
+                      id="signup-name"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      placeholder="John Doe"
+                      required
+                      className="mt-1"
+                    />
+                  </motion.div>
+                </motion.div>
+                <motion.div variants={itemVariants}>
                   <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    required
-                    className="mt-1"
-                  />
+                  <motion.div whileFocus={{ scale: 1.02 }} whileHover={{ scale: 1.01 }}>
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                      className="mt-1"
+                    />
+                  </motion.div>
                   <p className="mt-2 text-xs text-muted-foreground">
                     We will send a one-time OTP before password setup.
                   </p>
-                </div>
+                </motion.div>
               </>
             )}
 
             {!isLogin && signUpStep === 'otp' && (
               <>
-                <div>
+                <motion.div variants={itemVariants}>
                   <Label htmlFor="verified-email">Email</Label>
                   <Input id="verified-email" type="email" value={email} disabled className="mt-1" />
-                </div>
-                <div>
+                </motion.div>
+                <motion.div variants={itemVariants}>
                   <Label htmlFor="verified-name">Full Name</Label>
                   <Input id="verified-name" value={name} disabled className="mt-1" />
-                </div>
-                <div>
+                </motion.div>
+                <motion.div variants={itemVariants}>
                   <Label htmlFor="otp">OTP</Label>
-                  <Input
-                    id="otp"
-                    value={otp}
-                    onChange={e => setOtp(e.target.value)}
-                    placeholder="Enter the OTP from your email"
-                    required
-                    className="mt-1"
-                  />
-                </div>
+                  <motion.div whileFocus={{ scale: 1.02 }} whileHover={{ scale: 1.01 }}>
+                    <Input
+                      id="otp"
+                      value={otp}
+                      onChange={e => setOtp(e.target.value)}
+                      placeholder="Enter the OTP from your email"
+                      required
+                      className="mt-1"
+                    />
+                  </motion.div>
+                </motion.div>
               </>
             )}
 
             {!isLogin && signUpStep === 'details' && (
               <>
-                <div>
+                <motion.div variants={itemVariants}>
                   <Label htmlFor="signup-verified-email">Verified Email</Label>
                   <Input id="signup-verified-email" type="email" value={email} disabled className="mt-1" />
-                </div>
-                <div>
+                </motion.div>
+                <motion.div variants={itemVariants}>
                   <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="Create password"
-                    required
-                    minLength={6}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
+                  <motion.div whileFocus={{ scale: 1.02 }} whileHover={{ scale: 1.01 }}>
+                    <Input
+                      id="signup-password"
+                      type="password"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="Create password"
+                      required
+                      minLength={6}
+                      className="mt-1"
+                    />
+                  </motion.div>
+                </motion.div>
+                <motion.div variants={itemVariants}>
                   <Label htmlFor="confirm-password">Rewrite Password</Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    placeholder="Rewrite password"
-                    required
-                    minLength={6}
-                    className="mt-1"
-                  />
-                </div>
+                  <motion.div whileFocus={{ scale: 1.02 }} whileHover={{ scale: 1.01 }}>
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      placeholder="Rewrite password"
+                      required
+                      minLength={6}
+                      className="mt-1"
+                    />
+                  </motion.div>
+                </motion.div>
               </>
             )}
 
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting
-                ? 'Loading...'
-                : isLogin
-                  ? `Log In as ${roleLabel}`
-                  : signUpStep === 'email'
-                    ? 'Get OTP'
-                    : signUpStep === 'otp'
-                      ? 'Verify OTP'
-                      : `Create ${roleLabel} Account`}
-            </Button>
+            <motion.div variants={itemVariants}>
+              <motion.button
+                type="submit"
+                disabled={submitting}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {submitting
+                  ? 'Loading...'
+                  : isLogin
+                    ? `Log In as ${roleLabel}`
+                    : signUpStep === 'email'
+                      ? 'Get OTP'
+                      : signUpStep === 'otp'
+                        ? 'Verify OTP'
+                        : `Create ${roleLabel} Account`}
+              </motion.button>
+            </motion.div>
 
             {!isLogin && signUpStep !== 'email' && (
-              <Button type="button" variant="outline" className="w-full" onClick={goBackOneStep}>
-                Back
-              </Button>
+              <motion.div variants={itemVariants}>
+                <motion.button
+                  type="button"
+                  onClick={goBackOneStep}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full px-4 py-2 border-2 border-muted-foreground text-muted-foreground rounded-lg font-semibold hover:bg-muted/50 transition-all"
+                >
+                  Back
+                </motion.button>
+              </motion.div>
             )}
-          </form>
-        </div>
-      </motion.div>
-    </div>
+          </motion.form>
+        </motion.div>
+      </motion.div>      </div>    </div>
   );
 };
 
