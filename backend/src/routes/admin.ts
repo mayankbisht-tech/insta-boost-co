@@ -6,6 +6,7 @@ import { consumeRefreshQuota, getRefreshQuota, syncSubmissionAnalytics } from '.
 import { createNotification } from '../lib/notifications.js';
 import { normalizeVerificationStatus, overrideInstagramVerificationStatus, runInstagramVerificationCheck } from '../lib/instagramVerification.js';
 import { prisma } from '../lib/prisma.js';
+import { emitCampaignBudgetUpdate } from '../lib/realtime.js';
 import { toCampaignPayload, toFrontendProfile, toSubmissionPayload } from '../lib/serializers.js';
 import { calculateSubmissionEarnings, resolveSubmissionEarnings } from '../lib/submissionEarnings.js';
 import { requireAdmin, requireSuperadmin } from '../middleware/admin.js';
@@ -26,7 +27,9 @@ const campaignSchema = z.object({
   title: z.string().trim().min(1),
   description: z.string().trim().min(1),
   category: z.string().trim().min(1),
-  reward_per_million_views: z.coerce.number().int().min(0),
+  budget_rupees: z.coerce.number().int().min(0),
+  rupees_per_thousand_views: z.coerce.number().int().min(0),
+  reward_per_million_views: z.coerce.number().int().min(0).optional().default(0),
   rules: z.string().transform(v => {
     try {
       const parsed = JSON.parse(v);
@@ -153,7 +156,22 @@ adminRouter.get('/campaigns', async (_req, res) => {
     orderBy: { createdAt: 'desc' },
   });
 
-  res.json(campaigns.map(toCampaignPayload));
+  const billedViewsByCampaign = await prisma.submission.groupBy({
+    by: ['campaignId'],
+    where: {
+      campaignId: { in: campaigns.map(campaign => campaign.id) },
+      status: { notIn: ['Rejected', 'Flagged'] },
+    },
+    _sum: {
+      views: true,
+    },
+  });
+
+  const billedViewsMap = new Map(
+    billedViewsByCampaign.map(item => [item.campaignId, item._sum.views ?? 0]),
+  );
+
+  res.json(campaigns.map(campaign => toCampaignPayload(campaign, billedViewsMap.get(campaign.id) ?? 0)));
 });
 
 adminRouter.post('/campaigns', async (req, res) => {
@@ -168,13 +186,17 @@ adminRouter.post('/campaigns', async (req, res) => {
       title: parsed.data.title,
       description: parsed.data.description,
       category: parsed.data.category,
-      rewardPerMillionViews: parsed.data.reward_per_million_views,
+      budgetRupees: parsed.data.budget_rupees,
+      rupeesPerThousandViews: parsed.data.rupees_per_thousand_views,
+      rewardPerMillionViews: parsed.data.rupees_per_thousand_views * 1000,
       rules: parsed.data.rules,
       status: parsed.data.status,
       imageUrl: uploadRequest.fileUrl || null,
       createdByAdminId: req.auth!.user.id,
     },
   });
+
+  await emitCampaignBudgetUpdate(campaign.id);
 
   res.status(201).json(toCampaignPayload(campaign));
 });
@@ -200,13 +222,17 @@ adminRouter.put('/campaigns/:id', async (req, res) => {
       title: parsed.data.title,
       description: parsed.data.description,
       category: parsed.data.category,
-      rewardPerMillionViews: parsed.data.reward_per_million_views,
+      budgetRupees: parsed.data.budget_rupees,
+      rupeesPerThousandViews: parsed.data.rupees_per_thousand_views,
+      rewardPerMillionViews: parsed.data.rupees_per_thousand_views * 1000,
       rules: parsed.data.rules,
       status: parsed.data.status,
       imageUrl: uploadRequest.fileUrl || existing.imageUrl,
       createdByAdminId: req.auth!.user.id,
     },
   });
+
+  await emitCampaignBudgetUpdate(campaign.id);
 
   res.json(toCampaignPayload(campaign));
 });
@@ -294,6 +320,8 @@ adminRouter.patch('/submissions/:id/status', async (req, res) => {
     );
   }
 
+  await emitCampaignBudgetUpdate(submission.campaignId);
+
   res.json(toSubmissionPayload(submission));
 });
 
@@ -333,6 +361,8 @@ adminRouter.patch('/submissions/:id/views', async (req, res) => {
     },
   });
 
+  await emitCampaignBudgetUpdate(submission.campaignId);
+
   res.json(toSubmissionPayload(submission));
 });
 
@@ -367,6 +397,8 @@ adminRouter.patch('/submissions/:id/sync-analytics', async (req, res) => {
   }
 
   const quota = consumeRefreshQuota(req.auth!.user);
+
+  await emitCampaignBudgetUpdate(result.submission.campaignId);
 
   res.json({
     submission: toSubmissionPayload(result.submission),

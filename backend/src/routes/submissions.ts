@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { env } from '../config/env.js';
 import { refreshApifyAnalyticsForReelUrl } from '../lib/apify.js';
 import { prisma } from '../lib/prisma.js';
+import { emitCampaignBudgetUpdate } from '../lib/realtime.js';
 import { extractInstagramReelCode, normalizeInstagramReelUrl, normalizeInstagramUsername } from '../lib/reels.js';
 import { toSubmissionPayload } from '../lib/serializers.js';
 import { calculateSubmissionEarnings, resolveSubmissionEarnings } from '../lib/submissionEarnings.js';
@@ -204,6 +205,8 @@ submissionsRouter.post('/', async (req, res) => {
       campaign: true,
     },
   });
+
+  await emitCampaignBudgetUpdate(submission.campaignId);
 
   res.status(201).json(toSubmissionPayload(submission));
 });

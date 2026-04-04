@@ -53,18 +53,52 @@ export const toAuthPayload = (auth: AuthState | null) => {
   };
 };
 
-export const toCampaignPayload = (campaign: Campaign) => ({
-  id: campaign.id,
-  title: campaign.title,
-  description: campaign.description,
-  category: campaign.category,
-  reward_per_million_views: campaign.rewardPerMillionViews,
-  rules: campaign.rules,
-  status: campaign.status,
-  image_url: campaign.imageUrl,
-  created_at: campaign.createdAt.toISOString(),
-  created_by_admin: campaign.createdByAdminId,
-});
+const resolveRupeesPerThousandViews = (campaign: Campaign) => {
+  if (campaign.rupeesPerThousandViews > 0) {
+    return campaign.rupeesPerThousandViews;
+  }
+
+  return Number((campaign.rewardPerMillionViews / 1000).toFixed(2));
+};
+
+const calculateCampaignBudgetMetrics = (campaign: Campaign, billedViews: number) => {
+  const rupeesPerThousandViews = resolveRupeesPerThousandViews(campaign);
+  const spentBudgetRupees = Number(((billedViews / 1000) * rupeesPerThousandViews).toFixed(2));
+  const remainingBudgetRupees = Number(Math.max(campaign.budgetRupees - spentBudgetRupees, 0).toFixed(2));
+  const budgetConsumedPercent = campaign.budgetRupees > 0
+    ? Number(Math.min((spentBudgetRupees / campaign.budgetRupees) * 100, 100).toFixed(2))
+    : 0;
+
+  return {
+    rupeesPerThousandViews,
+    spentBudgetRupees,
+    remainingBudgetRupees,
+    budgetConsumedPercent,
+  };
+};
+
+export const toCampaignPayload = (campaign: Campaign, billedViews = 0) => {
+  const metrics = calculateCampaignBudgetMetrics(campaign, billedViews);
+
+  return {
+    id: campaign.id,
+    title: campaign.title,
+    description: campaign.description,
+    category: campaign.category,
+    budget_rupees: campaign.budgetRupees,
+    rupees_per_thousand_views: metrics.rupeesPerThousandViews,
+    reward_per_million_views: campaign.rewardPerMillionViews,
+    billed_views: billedViews,
+    spent_budget_rupees: metrics.spentBudgetRupees,
+    remaining_budget_rupees: metrics.remainingBudgetRupees,
+    budget_consumed_percent: metrics.budgetConsumedPercent,
+    rules: campaign.rules,
+    status: campaign.status,
+    image_url: campaign.imageUrl,
+    created_at: campaign.createdAt.toISOString(),
+    created_by_admin: campaign.createdByAdminId,
+  };
+};
 
 export const toSubmissionPayload = (submission: SubmissionWithRelations) => ({
   id: submission.id,

@@ -10,7 +10,22 @@ campaignsRouter.get('/', async (_req, res) => {
     orderBy: { createdAt: 'desc' },
   });
 
-  res.json(campaigns.map(toCampaignPayload));
+  const billedViewsByCampaign = await prisma.submission.groupBy({
+    by: ['campaignId'],
+    where: {
+      campaignId: { in: campaigns.map(campaign => campaign.id) },
+      status: { notIn: ['Rejected', 'Flagged'] },
+    },
+    _sum: {
+      views: true,
+    },
+  });
+
+  const billedViewsMap = new Map(
+    billedViewsByCampaign.map(item => [item.campaignId, item._sum.views ?? 0]),
+  );
+
+  res.json(campaigns.map(campaign => toCampaignPayload(campaign, billedViewsMap.get(campaign.id) ?? 0)));
 });
 
 campaignsRouter.get('/:id', async (req, res) => {
@@ -22,7 +37,17 @@ campaignsRouter.get('/:id', async (req, res) => {
     return res.status(404).json({ error: 'Campaign not found.' });
   }
 
-  res.json(toCampaignPayload(campaign));
+  const aggregate = await prisma.submission.aggregate({
+    where: {
+      campaignId: campaign.id,
+      status: { notIn: ['Rejected', 'Flagged'] },
+    },
+    _sum: {
+      views: true,
+    },
+  });
+
+  res.json(toCampaignPayload(campaign, aggregate._sum.views ?? 0));
 });
 
 campaignsRouter.get('/:id/leaderboard', async (req, res) => {

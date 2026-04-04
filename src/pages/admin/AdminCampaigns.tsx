@@ -11,21 +11,17 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Plus, Pencil, Trash2, Megaphone } from 'lucide-react';
 import { api } from '@/lib/api';
+import { CampaignBudgetCard, type CampaignBudget } from '@/components/CampaignBudgetCard';
+import { getRealtimeSocket } from '@/lib/realtime';
 
-interface Campaign {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
+interface Campaign extends CampaignBudget {
   reward_per_million_views: number;
   rules: string[];
-  status: string;
-  image_url: string | null;
   created_at: string;
 }
 
 const emptyForm = {
-  title: '', description: '', category: 'General', reward_per_million_views: 100,
+  title: '', description: '', category: 'General', budget_rupees: 20000, rupees_per_thousand_views: 150,
   rules: '', status: 'Active', imageFile: null as File | null,
 };
 
@@ -45,6 +41,39 @@ const AdminCampaigns = () => {
 
   useEffect(() => { fetchCampaigns(); }, []);
 
+  useEffect(() => {
+    const socket = getRealtimeSocket();
+    const onBudgetUpdate = (payload: CampaignBudget) => {
+      setCampaigns(previous => {
+        const found = previous.some(campaign => campaign.id === payload.id);
+        if (!found) {
+          return [{
+            ...payload,
+            reward_per_million_views: payload.rupees_per_thousand_views * 1000,
+            rules: [],
+            created_at: new Date().toISOString(),
+          }, ...previous];
+        }
+
+        return previous.map(campaign => (
+          campaign.id === payload.id
+            ? {
+                ...campaign,
+                ...payload,
+                reward_per_million_views: payload.rupees_per_thousand_views * 1000,
+              }
+            : campaign
+        ));
+      });
+    };
+
+    socket.on('campaign:budget-updated', onBudgetUpdate);
+
+    return () => {
+      socket.off('campaign:budget-updated', onBudgetUpdate);
+    };
+  }, []);
+
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyForm);
@@ -57,7 +86,8 @@ const AdminCampaigns = () => {
       title: c.title,
       description: c.description,
       category: c.category,
-      reward_per_million_views: c.reward_per_million_views,
+      budget_rupees: c.budget_rupees,
+      rupees_per_thousand_views: c.rupees_per_thousand_views,
       rules: c.rules?.join('\n') || '',
       status: c.status,
       imageFile: null,
@@ -73,7 +103,9 @@ const AdminCampaigns = () => {
     formData.append('title', form.title.trim());
     formData.append('description', form.description.trim());
     formData.append('category', form.category);
-    formData.append('reward_per_million_views', form.reward_per_million_views.toString());
+    formData.append('budget_rupees', form.budget_rupees.toString());
+    formData.append('rupees_per_thousand_views', form.rupees_per_thousand_views.toString());
+    formData.append('reward_per_million_views', (form.rupees_per_thousand_views * 1000).toString());
     formData.append('rules', JSON.stringify(form.rules.split('\n').map(r => r.trim()).filter(Boolean)));
     formData.append('status', form.status);
     if (form.imageFile) {
@@ -147,93 +179,37 @@ const AdminCampaigns = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="glass-card overflow-hidden"
+            className="grid gap-5 lg:grid-cols-2"
           >
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-gradient-to-r from-secondary/50 to-transparent">
-                    <th className="text-left py-4 px-6 font-display font-semibold text-foreground">Campaign</th>
-                    <th className="text-left py-4 px-6 font-display font-semibold text-foreground">Category</th>
-                    <th className="text-left py-4 px-6 font-display font-semibold text-foreground">Reward</th>
-                    <th className="text-left py-4 px-6 font-display font-semibold text-foreground">Status</th>
-                    <th className="text-right py-4 px-6 font-display font-semibold text-foreground">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {campaigns.map((c, i) => (
-                    <motion.tr
-                      key={c.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                      className="table-row-hover border-b border-border/50 last:border-b-0"
-                    >
-                      <td className="py-4 px-6">
-                        <motion.div 
-                          className="flex items-center gap-4"
-                          whileHover={{ x: 2 }}
-                        >
-                          {c.image_url && (
-                            <motion.img 
-                              src={c.image_url} 
-                              alt="" 
-                              className="h-12 w-16 object-cover rounded-lg border border-border shadow-md" 
-                              whileHover={{ scale: 1.05 }}
-                            />
-                          )}
-                          <motion.span className="font-semibold text-foreground hover:text-primary transition-colors">
-                            {c.title}
-                          </motion.span>
-                        </motion.div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <Badge variant="secondary" className="bg-gradient-to-r from-accent/30 to-accent/20 border-accent/40 text-accent font-medium">
-                          {c.category}
-                        </Badge>
-                      </td>
-                      <td className="py-4 px-6 font-semibold text-primary">
-                        ${c.reward_per_million_views}/1M
-                      </td>
-                      <td className="py-4 px-6">
-                        <motion.div whileHover={{ scale: 1.05 }}>
-                          <Badge 
-                            variant={c.status === 'Active' ? 'default' : c.status === 'Paused' ? 'outline' : 'secondary'}
-                            className={c.status === 'Active' ? 'bg-gradient-to-r from-success to-success/60 border-success/40 text-white' : ''}
-                          >
-                            {c.status}
-                          </Badge>
-                        </motion.div>
-                      </td>
-                      <td className="py-4 px-6 text-right">
-                        <motion.div className="flex items-center justify-end gap-2" whileHover={{ scale: 1.05 }}>
-                          <motion.div whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.95 }}>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => openEdit(c)}
-                              className="hover:bg-primary/10 hover:text-primary transition-colors"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </motion.div>
-                          <motion.div whileHover={{ scale: 1.1, rotate: -5 }} whileTap={{ scale: 0.95 }}>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => handleDelete(c.id)} 
-                              className="hover:bg-destructive/10 hover:text-destructive transition-colors"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </motion.div>
-                        </motion.div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {campaigns.map((c, i) => (
+              <motion.div
+                key={c.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04 }}
+                className="space-y-3"
+              >
+                <CampaignBudgetCard campaign={c} />
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openEdit(c)}
+                    className="hover:bg-primary/10 hover:text-primary transition-colors"
+                  >
+                    <Pencil className="h-4 w-4 mr-1" /> Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(c.id)}
+                    className="hover:bg-destructive/10 hover:text-destructive transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" /> Delete
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
           </motion.div>
         )}
       </motion.div>
@@ -321,14 +297,32 @@ const AdminCampaigns = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25 }}
               >
-                <Label className="text-sm font-semibold">Reward per 1M views ($)</Label>
+                <Label className="text-sm font-semibold">Campaign Budget (INR)</Label>
                 <Input 
                   type="number" 
-                  value={form.reward_per_million_views} 
-                  onChange={e => setForm(f => ({ ...f, reward_per_million_views: parseInt(e.target.value) || 0 }))} 
+                  value={form.budget_rupees} 
+                  onChange={e => setForm(f => ({ ...f, budget_rupees: parseInt(e.target.value, 10) || 0 }))} 
                   className="mt-2 bg-secondary/50 border-border/50 focus:border-primary transition-colors" 
-                  placeholder="100"
+                  placeholder="20000"
                 />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.28 }}
+              >
+                <Label className="text-sm font-semibold">Rupees per 1,000 views</Label>
+                <Input
+                  type="number"
+                  value={form.rupees_per_thousand_views}
+                  onChange={e => setForm(f => ({ ...f, rupees_per_thousand_views: parseInt(e.target.value, 10) || 0 }))}
+                  className="mt-2 bg-secondary/50 border-border/50 focus:border-primary transition-colors"
+                  placeholder="150"
+                />
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Equivalent 1M rate: ₹{(form.rupees_per_thousand_views * 1000).toLocaleString('en-IN')}
+                </p>
               </motion.div>
               
               <motion.div

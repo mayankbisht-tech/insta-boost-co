@@ -151,6 +151,8 @@ model Campaign {
   title                 String
   description           String
   category              String
+  budgetRupees          Int          @default(0)
+  rupeesPerThousandViews Int         @default(0)
   rewardPerMillionViews Int          @default(100)
   rules                 String[]
   status                String       @default("Active")

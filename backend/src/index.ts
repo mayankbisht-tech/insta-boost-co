@@ -3,11 +3,14 @@ import cors from 'cors';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import fs from 'fs';
 import helmet from 'helmet';
+import { createServer } from 'http';
 import morgan from 'morgan';
 import multer, { type FileFilterCallback, type StorageEngine } from 'multer';
 import path from 'path';
+import { Server as SocketIOServer } from 'socket.io';
 import { fileURLToPath } from 'url';
 import { env } from './config/env.js';
+import { setSocketServer } from './lib/realtime.js';
 import { adminRouter } from './routes/admin.js';
 import { authRouter } from './routes/auth.js';
 import { campaignsRouter } from './routes/campaigns.js';
@@ -17,6 +20,7 @@ import { profileRouter } from './routes/profile.js';
 import { submissionsRouter } from './routes/submissions.js';
 
 const app = express();
+const httpServer = createServer(app);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Create uploads directory if it doesn't exist
@@ -127,6 +131,27 @@ app.use('/api/profile', profileRouter);
 app.use('/api/admin/campaigns', campaignUploadMiddleware);
 app.use('/api/admin', adminRouter);
 
-app.listen(env.PORT, env.HOST, () => {
+const io = new SocketIOServer(httpServer, {
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      const normalizedOrigin = origin.replace(/\/$/, '');
+      callback(null, isAllowedOrigin(normalizedOrigin));
+    },
+    credentials: true,
+  },
+});
+
+io.on('connection', socket => {
+  socket.emit('system:connected', { ok: true, at: new Date().toISOString() });
+});
+
+setSocketServer(io);
+
+httpServer.listen(env.PORT, env.HOST, () => {
   console.log(`Backend listening on http://${env.HOST}:${env.PORT}`);
 });

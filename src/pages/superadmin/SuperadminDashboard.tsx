@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import { CampaignBudgetCard, type CampaignBudget } from '@/components/CampaignBudgetCard';
+import { getRealtimeSocket } from '@/lib/realtime';
 import { getInstagramProfileUrl } from '@/lib/utils';
 
 interface SuperadminOverview {
@@ -61,22 +63,32 @@ interface SuperadminUser {
   instagram_verification_request: VerificationRequest | null;
 }
 
+interface Campaign extends CampaignBudget {
+  created_at: string;
+  reward_per_million_views: number;
+  rules: string[];
+}
+
 const statusOptions: Array<SuperadminUser['account_status']> = ['active', 'paused', 'suspended', 'banned'];
 
 const SuperadminDashboard = () => {
   const [overview, setOverview] = useState<SuperadminOverview | null>(null);
   const [users, setUsers] = useState<SuperadminUser[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
+
   const loadData = async () => {
     try {
-      const [overviewData, usersData] = await Promise.all([
+      const [overviewData, usersData, campaignsData] = await Promise.all([
         api.get<SuperadminOverview>('/api/admin/superadmin/overview'),
         api.get<SuperadminUser[]>('/api/admin/superadmin/users'),
+        api.get<Campaign[]>('/api/campaigns'),
       ]);
       setOverview(overviewData);
       setUsers(usersData);
+      setCampaigns(campaignsData.filter(campaign => campaign.status === 'Active'));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to load superadmin dashboard.');
     } finally {
@@ -86,6 +98,42 @@ const SuperadminDashboard = () => {
 
   useEffect(() => {
     void loadData();
+  }, []);
+
+  useEffect(() => {
+    const socket = getRealtimeSocket();
+
+    const onBudgetUpdate = (payload: CampaignBudget) => {
+      setCampaigns(previous => {
+        const found = previous.some(campaign => campaign.id === payload.id);
+        if (!found && payload.status === 'Active') {
+          return [{
+            ...payload,
+            reward_per_million_views: payload.rupees_per_thousand_views * 1000,
+            rules: [],
+            created_at: new Date().toISOString(),
+          }, ...previous];
+        }
+
+        return previous
+          .map(campaign => (
+            campaign.id === payload.id
+              ? {
+                  ...campaign,
+                  ...payload,
+                  reward_per_million_views: payload.rupees_per_thousand_views * 1000,
+                }
+              : campaign
+          ))
+          .filter(campaign => campaign.status === 'Active');
+      });
+    };
+
+    socket.on('campaign:budget-updated', onBudgetUpdate);
+
+    return () => {
+      socket.off('campaign:budget-updated', onBudgetUpdate);
+    };
   }, []);
 
   const filteredUsers = useMemo(() => {
@@ -257,6 +305,26 @@ const SuperadminDashboard = () => {
                 <p className="mt-2 text-2xl font-bold">{overview?.averageViewsPerReel.toLocaleString() ?? 0}</p>
               </div>
             </div>
+          </section>
+
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="font-display text-xl font-bold">Active Campaign Budget Tracker</h2>
+                <p className="text-sm text-muted-foreground">Live budget consumption updates are shared with admin, superadmin, and creator dashboards.</p>
+              </div>
+              <Badge variant="secondary">{campaigns.length} active</Badge>
+            </div>
+
+            {campaigns.length === 0 ? (
+              <div className="glass-card p-6 text-sm text-muted-foreground">No active campaigns right now.</div>
+            ) : (
+              <div className="grid gap-4 lg:grid-cols-2">
+                {campaigns.map(campaign => (
+                  <CampaignBudgetCard key={campaign.id} campaign={campaign} compact />
+                ))}
+              </div>
+            )}
           </section>
 
           <section className="glass-card p-5 space-y-4">

@@ -12,7 +12,7 @@
     "prisma:push": "prisma db push"
   },
   "dependencies": {
-    "@prisma/client": "^6.6.0",
+    "@prisma/client": "^6.19.3",
     "@types/multer": "^2.1.0",
     "argon2": "^0.41.1",
     "cookie-parser": "^1.4.7",
@@ -23,6 +23,7 @@
     "morgan": "^1.10.0",
     "multer": "^2.1.1",
     "nodemailer": "^8.0.4",
+    "socket.io": "^4.8.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -32,7 +33,7 @@
     "@types/morgan": "^1.9.10",
     "@types/node": "^22.16.5",
     "@types/nodemailer": "^7.0.11",
-    "prisma": "^6.6.0",
+    "prisma": "^6.19.3",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   }
