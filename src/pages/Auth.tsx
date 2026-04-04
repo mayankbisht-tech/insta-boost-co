@@ -241,7 +241,7 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
         animate="animate"
       >
         <img
-          src="/4.png"
+          src="/3.png"
           alt="Go Clips"
           className="h-[200vh] w-auto object-contain opacity-90"
           loading="eager"
