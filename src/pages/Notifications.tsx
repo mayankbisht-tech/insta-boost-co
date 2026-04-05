@@ -64,7 +64,7 @@ const Notifications = () => {
               className={`glass-card p-4 ${!n.read ? 'border-l-2 border-l-primary' : ''}`}
             >
               <p className="text-sm">{n.message}</p>
-              <p className="text-xs text-muted-foreground mt-1">{new Date(n.created_at).toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-1">{n.created_at ? new Date(n.created_at).toLocaleString() : 'N/A'}</p>
             </motion.div>
           ))}
         </div>

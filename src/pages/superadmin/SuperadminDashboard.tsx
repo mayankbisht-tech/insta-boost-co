@@ -603,7 +603,7 @@ const SuperadminDashboard = () => {
                               ) : (
                                 <p className="font-medium">@{user.instagram_username}</p>
                               )}
-                              <p className="text-muted-foreground">{user.followers_count.toLocaleString()} followers</p>
+                              <p className="text-muted-foreground">{(user.followers_count ?? 0).toLocaleString()} followers</p>
                             </div>
                           ) : (
                             <span className="text-muted-foreground">Not linked</span>

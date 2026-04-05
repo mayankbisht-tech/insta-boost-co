@@ -62,6 +62,7 @@ const upload = multer({
 const allowedOrigins = [
   ...env.FRONTEND_ORIGIN,
   'https://goclips.netlify.app',
+  'https://insta-boost-co.vercel.app',
   'http://localhost:8080',
   'http://localhost:5173',
 ]

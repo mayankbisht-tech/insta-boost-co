@@ -151,9 +151,9 @@ const Submissions = () => {
                   </a>
 
                   <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 xl:grid-cols-4">
-                    <p>Uploaded: {new Date(submission.reel_uploaded_at).toLocaleString()}</p>
-                    <p>Submission window closed: {new Date(submission.submission_closes_at).toLocaleString()}</p>
-                    <p>Submitted: {new Date(submission.submitted_at).toLocaleString()}</p>
+                    <p>Uploaded: {submission.reel_uploaded_at ? new Date(submission.reel_uploaded_at).toLocaleString() : 'N/A'}</p>
+                    <p>Submission window closed: {submission.submission_closes_at ? new Date(submission.submission_closes_at).toLocaleString() : 'N/A'}</p>
+                    <p>Submitted: {submission.submitted_at ? new Date(submission.submitted_at).toLocaleString() : 'N/A'}</p>
                     <p>{submission.analytics_synced_at ? `Analytics synced ${new Date(submission.analytics_synced_at).toLocaleString()}` : 'Analytics not synced yet'}</p>
                   </div>
 
@@ -169,25 +169,25 @@ const Submissions = () => {
                     <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                       <Eye className="h-3.5 w-3.5" /> Views
                     </div>
-                    <p className="mt-2 text-xl font-semibold">{submission.views.toLocaleString()}</p>
+                    <p className="mt-2 text-xl font-semibold">{(submission.views ?? 0).toLocaleString()}</p>
                   </div>
                   <div className="rounded-xl border border-border/70 bg-background/60 p-3">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                       <PlayCircle className="h-3.5 w-3.5" /> Plays
                     </div>
-                    <p className="mt-2 text-xl font-semibold">{submission.play_count.toLocaleString()}</p>
+                    <p className="mt-2 text-xl font-semibold">{(submission.play_count ?? 0).toLocaleString()}</p>
                   </div>
                   <div className="rounded-xl border border-border/70 bg-background/60 p-3">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                       <Heart className="h-3.5 w-3.5" /> Likes
                     </div>
-                    <p className="mt-2 text-xl font-semibold">{submission.likes_count.toLocaleString()}</p>
+                    <p className="mt-2 text-xl font-semibold">{(submission.likes_count ?? 0).toLocaleString()}</p>
                   </div>
                   <div className="rounded-xl border border-border/70 bg-background/60 p-3">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                       <MessageCircle className="h-3.5 w-3.5" /> Comments
                     </div>
-                    <p className="mt-2 text-xl font-semibold">{submission.comments_count.toLocaleString()}</p>
+                    <p className="mt-2 text-xl font-semibold">{(submission.comments_count ?? 0).toLocaleString()}</p>
                   </div>
                 </div>
               </div>

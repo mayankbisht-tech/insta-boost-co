@@ -84,13 +84,13 @@ const Leaderboard = () => {
                   <td className="py-3 px-4 text-right">
                     <span className="flex items-center justify-end gap-1 text-muted-foreground">
                       <Eye className="h-3.5 w-3.5" />
-                      {entry.views.toLocaleString()}
+                      {(entry.views ?? 0).toLocaleString()}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-right">
                     <span className="flex items-center justify-end gap-1 text-success font-medium">
                       <DollarSign className="h-3.5 w-3.5" />
-                      {entry.earnings.toFixed(2)}
+                      {(entry.earnings ?? 0).toFixed(2)}
                     </span>
                   </td>
                 </motion.tr>
