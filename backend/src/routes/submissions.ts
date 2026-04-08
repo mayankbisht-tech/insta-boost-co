@@ -105,7 +105,15 @@ submissionsRouter.post('/', async (req, res) => {
         { normalizedReelUrl },
       ],
     },
-    include: { user: true },
+    include: {
+      user: {
+        include: {
+          instagramAccounts: {
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      },
+    },
   });
 
   if (duplicateSubmission) {
@@ -171,9 +179,20 @@ submissionsRouter.post('/', async (req, res) => {
   }
 
   const scrapedOwner = normalizeInstagramUsername(analyticsSnapshot?.ownerUsername);
-  const accountOwner = normalizeInstagramUsername(req.auth!.user.instagramUsername);
+  const approvedOwners = req.auth!.user.instagramAccounts
+    .filter(account => account.connectionStatus === 'approved')
+    .map(account => normalizeInstagramUsername(account.instagramUsername))
+    .filter((username): username is string => Boolean(username));
+  const legacyApprovedOwner =
+    req.auth!.user.instagramConnectionStatus === 'approved'
+      ? normalizeInstagramUsername(req.auth!.user.instagramUsername)
+      : null;
+  const allowedOwners = Array.from(new Set([
+    ...approvedOwners,
+    ...(legacyApprovedOwner ? [legacyApprovedOwner] : []),
+  ]));
 
-  if (scrapedOwner && accountOwner && scrapedOwner !== accountOwner) {
+  if (scrapedOwner && allowedOwners.length > 0 && !allowedOwners.includes(scrapedOwner)) {
     return res.status(400).json({
       error: `This reel belongs to @${scrapedOwner}, so it cannot be submitted from your connected account.`,
     });

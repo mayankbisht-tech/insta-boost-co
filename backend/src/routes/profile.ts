@@ -33,7 +33,17 @@ profileRouter.patch('/instagram', async (req, res) => {
 
   const existingOwner = await prisma.user.findFirst({
     where: {
-      instagramUserId: normalizedInstagramId,
+      OR: [
+        {
+          instagramAccounts: {
+            some: {
+              instagramUserId: normalizedInstagramId,
+            },
+          },
+        },
+        { instagramUserId: normalizedInstagramId },
+        { instagramUsername: { equals: username, mode: 'insensitive' } },
+      ],
       NOT: { id: req.auth!.user.id },
     },
     select: { id: true },
@@ -41,6 +51,18 @@ profileRouter.patch('/instagram', async (req, res) => {
 
   if (existingOwner) {
     return res.status(409).json({ error: 'This Instagram account is already linked.' });
+  }
+
+  const existingRequest = await prisma.instagramVerificationRequest.findFirst({
+    where: {
+      instagramUserId: normalizedInstagramId,
+      NOT: { userId: req.auth!.user.id },
+    },
+    select: { id: true },
+  });
+
+  if (existingRequest) {
+    return res.status(409).json({ error: 'This Instagram account is already being verified by another user.' });
   }
 
   const user = await startInstagramVerification({
@@ -105,6 +127,10 @@ profileRouter.delete('/instagram', async (req, res) => {
       where: { userId: req.auth!.user.id },
     });
 
+    await tx.instagramAccount.deleteMany({
+      where: { userId: req.auth!.user.id },
+    });
+
     return tx.user.update({
       where: { id: req.auth!.user.id },
       data: {
@@ -118,7 +144,12 @@ profileRouter.delete('/instagram', async (req, res) => {
         instagramReviewReviewedAt: null,
         instagramReviewNotes: null,
       },
-      include: { roles: true },
+      include: {
+        roles: true,
+        instagramAccounts: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
     });
   });
 

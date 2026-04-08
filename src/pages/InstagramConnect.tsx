@@ -58,8 +58,7 @@ const InstagramConnect = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
-
-  const isVerified = profile?.instagram_connection_status === 'approved' || request?.status === 'verified';
+  const connectedAccounts = profile?.instagram_accounts ?? [];
 
   const loadRequest = async () => {
     try {
@@ -74,9 +73,9 @@ const InstagramConnect = () => {
 
   useEffect(() => {
     if (!user) return;
-    setInstagramUsername(profile?.instagram_username ?? '');
+    setInstagramUsername('');
     void loadRequest();
-  }, [user, profile?.instagram_username]);
+  }, [user]);
 
   const handleGenerateCode = async () => {
     const trimmedUsername = instagramUsername.trim();
@@ -93,6 +92,7 @@ const InstagramConnect = () => {
       });
       await refreshProfile();
       await loadRequest();
+      setInstagramUsername('');
       toast.success(`Verification code generated: ${response.verification_code}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to connect Instagram.');
@@ -149,38 +149,61 @@ const InstagramConnect = () => {
           </div>
         </div>
 
+        {connectedAccounts.length > 0 && (
+          <div className="glass-card p-5">
+            <h2 className="font-display text-lg font-semibold">Connected Accounts</h2>
+            <div className="mt-4 space-y-3">
+              {connectedAccounts.map(account => (
+                <div key={account.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 p-4">
+                  <div>
+                    <p className="font-semibold">@{account.instagram_username}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                      <Badge className={statusTone[account.instagram_connection_status] || ''}>
+                        {account.instagram_connection_status}
+                      </Badge>
+                      <span>{account.followers_count.toLocaleString()} followers</span>
+                      {account.verification_code && <span>Code: {account.verification_code}</span>}
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Added {new Date(account.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          {!isVerified && (
-            <div className="glass-card p-5">
-              <h2 className="font-display text-lg font-semibold">Setup</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Enter only your Instagram username. Follower count will be fetched from Apify during verification.
-              </p>
+          <div className="glass-card p-5">
+            <h2 className="font-display text-lg font-semibold">Setup</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Enter another Instagram username to connect more accounts. Follower count will be fetched from Apify during verification.
+            </p>
 
-              <div className="mt-5 space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="instagram-username">Instagram Username</Label>
-                  <Input
-                    id="instagram-username"
-                    value={instagramUsername}
-                    onChange={event => setInstagramUsername(event.target.value)}
-                    placeholder="@yourhandle"
-                  />
-                </div>
+            <div className="mt-5 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="instagram-username">Instagram Username</Label>
+                <Input
+                  id="instagram-username"
+                  value={instagramUsername}
+                  onChange={event => setInstagramUsername(event.target.value)}
+                  placeholder="@yourhandle"
+                />
+              </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={() => void handleGenerateCode()} disabled={saving}>
-                    <ShieldCheck className="mr-2 h-4 w-4" />
-                    {saving ? 'Generating...' : 'Generate Verification Code'}
-                  </Button>
-                  <Button variant="outline" onClick={() => void handleVerify()} disabled={checking || !request}>
-                    <RefreshCcw className="mr-2 h-4 w-4" />
-                    {checking ? 'Checking...' : 'Verify Now'}
-                  </Button>
-                </div>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => void handleGenerateCode()} disabled={saving}>
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  {saving ? 'Generating...' : 'Generate Verification Code'}
+                </Button>
+                <Button variant="outline" onClick={() => void handleVerify()} disabled={checking || !request}>
+                  <RefreshCcw className="mr-2 h-4 w-4" />
+                  {checking ? 'Checking...' : 'Verify Now'}
+                </Button>
               </div>
             </div>
-          )}
+          </div>
 
           <div className="glass-card p-5">
             <h2 className="font-display text-lg font-semibold">Verification Request</h2>

@@ -61,8 +61,30 @@ model User {
   adminLoginActivities      AdminLoginActivity[]
   notifications             Notification[]
   submissions               Submission[]
+  instagramAccounts         InstagramAccount[]
   instagramVerificationRequest InstagramVerificationRequest? @relation("InstagramVerificationUser")
   reviewedInstagramVerifications InstagramVerificationRequest[] @relation("InstagramVerificationReviewer")
+}
+
+model InstagramAccount {
+  id                String                      @id @default(cuid())
+  userId            String
+  instagramUsername String
+  instagramUserId   String                      @unique
+  connectionStatus  InstagramConnectionStatus   @default(code_generated)
+  instagramVerified Boolean                     @default(false)
+  verificationCode  String?
+  followersCount    Int                         @default(0)
+  reviewSubmittedAt DateTime?
+  reviewReviewedAt  DateTime?
+  reviewNotes       String?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  user              User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, instagramUserId])
+  @@index([userId, createdAt])
+  @@index([userId, connectionStatus])
 }
 
 model UserRole {

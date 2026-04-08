@@ -137,14 +137,23 @@ adminRouter.get('/overview', async (_req, res) => {
 });
 
 adminRouter.get('/users', async (_req, res) => {
+  const rawQuery = typeof _req.query.q === 'string' ? _req.query.q.trim() : '';
   const users = await prisma.user.findMany({
-    where: {
-      OR: [
-        { instagramConnectionStatus: 'approved' },
-        { roles: { some: { role: { in: [AppRole.admin, AppRole.superadmin] } } } },
-      ],
+    where: rawQuery
+      ? {
+          OR: [
+            { name: { contains: rawQuery, mode: 'insensitive' } },
+            { email: { contains: rawQuery, mode: 'insensitive' } },
+            { instagramUsername: { contains: rawQuery, mode: 'insensitive' } },
+          ],
+        }
+      : undefined,
+    include: {
+      roles: true,
+      instagramAccounts: {
+        orderBy: { createdAt: 'desc' },
+      },
     },
-    include: { roles: true },
     orderBy: { createdAt: 'desc' },
   });
 
@@ -465,6 +474,9 @@ adminRouter.get('/superadmin/users', requireSuperadmin, async (_req, res) => {
   const users = await prisma.user.findMany({
     include: {
       roles: true,
+      instagramAccounts: {
+        orderBy: { createdAt: 'desc' },
+      },
       instagramVerificationRequest: true,
     },
     orderBy: { createdAt: 'desc' },
@@ -494,6 +506,9 @@ adminRouter.patch('/superadmin/users/:id/status', requireSuperadmin, async (req,
     where: { id: targetUserId },
     include: {
       roles: true,
+      instagramAccounts: {
+        orderBy: { createdAt: 'desc' },
+      },
       instagramVerificationRequest: true,
     },
   });

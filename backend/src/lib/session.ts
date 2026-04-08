@@ -55,6 +55,9 @@ export const resolveSession = async (token: string | undefined) => {
       user: {
         include: {
           roles: true,
+          instagramAccounts: {
+            orderBy: { createdAt: 'desc' },
+          },
         },
       },
     },

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, Users as UsersIcon } from 'lucide-react';
 import AdminLayout from '@/components/AdminLayout';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { getInstagramProfileUrl } from '@/lib/utils';
 
@@ -20,13 +21,28 @@ interface UserProfile {
 const AdminUsers = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    api.get<UserProfile[]>('/api/admin/users').then(data => {
-      if (data) setUsers(data as UserProfile[]);
-      setLoading(false);
-    });
-  }, []);
+    let active = true;
+    setLoading(true);
+
+    const query = search.trim();
+    const path = query ? `/api/admin/users?q=${encodeURIComponent(query)}` : '/api/admin/users';
+
+    api.get<UserProfile[]>(path)
+      .then(data => {
+        if (!active) return;
+        setUsers((data as UserProfile[]) ?? []);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [search]);
 
   return (
     <AdminLayout>
@@ -43,6 +59,16 @@ const AdminUsers = () => {
           </motion.div>
         </div>
 
+        <div className="mb-6">
+          <Input
+            value={search}
+            onChange={event => setSearch(event.target.value)}
+            placeholder="Search users by name, email, or Instagram"
+            className="max-w-md"
+            aria-label="Search users"
+          />
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="space-y-4 text-center">
@@ -57,7 +83,7 @@ const AdminUsers = () => {
             className="stat-card py-12 text-center"
           >
             <UsersIcon className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-muted-foreground">No users found</p>
+            <p className="text-muted-foreground">{search.trim() ? 'No users match your search' : 'No users found'}</p>
           </motion.div>
         ) : (
           <motion.div

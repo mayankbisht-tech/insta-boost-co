@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "npm run prisma:push && node dist/index.js",
     "seed": "tsx src/scripts/seed.ts",
+    "backfill:instagram-accounts": "tsx src/scripts/backfillInstagramAccounts.ts",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push"
   },

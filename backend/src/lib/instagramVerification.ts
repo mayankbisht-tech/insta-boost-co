@@ -73,6 +73,31 @@ export const startInstagramVerification = async (params: {
       },
     });
 
+    await tx.instagramAccount.upsert({
+      where: { instagramUserId: params.instagramUserId },
+      update: {
+        userId: params.userId,
+        instagramUsername: params.instagramUsername,
+        connectionStatus: 'code_generated',
+        instagramVerified: false,
+        verificationCode: params.verificationCode,
+        followersCount: 0,
+        reviewSubmittedAt: null,
+        reviewReviewedAt: null,
+        reviewNotes: 'Verification code generated. Run the check after updating your Instagram bio.',
+      },
+      create: {
+        userId: params.userId,
+        instagramUsername: params.instagramUsername,
+        instagramUserId: params.instagramUserId,
+        connectionStatus: 'code_generated',
+        instagramVerified: false,
+        verificationCode: params.verificationCode,
+        followersCount: 0,
+        reviewNotes: 'Verification code generated. Run the check after updating your Instagram bio.',
+      },
+    });
+
     return tx.user.update({
       where: { id: params.userId },
       data: {
@@ -86,7 +111,12 @@ export const startInstagramVerification = async (params: {
         instagramReviewReviewedAt: null,
         instagramReviewNotes: 'Verification code generated. Run the check after updating your Instagram bio.',
       },
-      include: { roles: true },
+      include: {
+        roles: true,
+        instagramAccounts: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
     });
   });
 };
@@ -150,6 +180,43 @@ export const runInstagramVerificationCheck = async (params: {
       },
     });
 
+    await tx.instagramAccount.upsert({
+      where: { instagramUserId: request.instagramUserId },
+      update: {
+        userId: params.userId,
+        instagramUsername: request.instagramUsername,
+        connectionStatus: userStatus.instagramConnectionStatus,
+        instagramVerified: userStatus.instagramVerified,
+        verificationCode: request.verificationCode,
+        followersCount: followers ?? request.followersCount,
+        reviewSubmittedAt: now,
+        reviewReviewedAt: now,
+        reviewNotes:
+          status === 'failed'
+            ? 'Verification code was not found in the Instagram bio.'
+            : status === 'expired'
+            ? 'Verification window expired.'
+            : 'Instagram account verified automatically.',
+      },
+      create: {
+        userId: params.userId,
+        instagramUsername: request.instagramUsername,
+        instagramUserId: request.instagramUserId,
+        connectionStatus: userStatus.instagramConnectionStatus,
+        instagramVerified: userStatus.instagramVerified,
+        verificationCode: request.verificationCode,
+        followersCount: followers ?? request.followersCount,
+        reviewSubmittedAt: now,
+        reviewReviewedAt: now,
+        reviewNotes:
+          status === 'failed'
+            ? 'Verification code was not found in the Instagram bio.'
+            : status === 'expired'
+            ? 'Verification window expired.'
+            : 'Instagram account verified automatically.',
+      },
+    });
+
     await tx.user.update({
       where: { id: params.userId },
       data: {
@@ -197,6 +264,10 @@ export const overrideInstagramVerificationStatus = async (params: {
   const userStatus = toUserConnection(params.status);
 
   await prisma.$transaction(async tx => {
+    const request = await tx.instagramVerificationRequest.findUnique({
+      where: { userId: params.userId },
+    });
+
     await tx.instagramVerificationRequest.update({
       where: { userId: params.userId },
       data: {
@@ -208,6 +279,35 @@ export const overrideInstagramVerificationStatus = async (params: {
         reviewNotes: params.notes ?? null,
       },
     });
+
+    if (request) {
+      await tx.instagramAccount.upsert({
+        where: { instagramUserId: request.instagramUserId },
+        update: {
+          userId: params.userId,
+          instagramUsername: request.instagramUsername,
+          connectionStatus: params.status === 'pending' ? 'code_generated' : userStatus.instagramConnectionStatus,
+          instagramVerified: userStatus.instagramVerified,
+          verificationCode: request.verificationCode,
+          followersCount: request.followersCount,
+          reviewSubmittedAt: params.status === 'pending' ? now : request.submittedAt,
+          reviewReviewedAt: params.status === 'pending' ? null : now,
+          reviewNotes: params.status === 'pending' ? null : (params.notes ?? null),
+        },
+        create: {
+          userId: params.userId,
+          instagramUsername: request.instagramUsername,
+          instagramUserId: request.instagramUserId,
+          connectionStatus: params.status === 'pending' ? 'code_generated' : userStatus.instagramConnectionStatus,
+          instagramVerified: userStatus.instagramVerified,
+          verificationCode: request.verificationCode,
+          followersCount: request.followersCount,
+          reviewSubmittedAt: params.status === 'pending' ? now : request.submittedAt,
+          reviewReviewedAt: params.status === 'pending' ? null : now,
+          reviewNotes: params.status === 'pending' ? null : (params.notes ?? null),
+        },
+      });
+    }
 
     await tx.user.update({
       where: { id: params.userId },

@@ -24,6 +24,19 @@ interface Profile {
   instagram_review_submitted_at: string | null;
   instagram_review_reviewed_at: string | null;
   instagram_review_notes: string | null;
+  instagram_accounts: Array<{
+    id: string;
+    instagram_username: string;
+    instagram_user_id: string;
+    instagram_connection_status: 'not_connected' | 'code_generated' | 'approval_pending' | 'approved' | 'rejected';
+    instagram_verified: boolean;
+    verification_code: string | null;
+    followers_count: number;
+    instagram_review_submitted_at: string | null;
+    instagram_review_reviewed_at: string | null;
+    instagram_review_notes: string | null;
+    created_at: string;
+  }>;
   created_at: string;
   roles: string[];
 }
