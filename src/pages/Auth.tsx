@@ -236,14 +236,14 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
     <div className="relative min-h-screen overflow-hidden bg-background">
       {/* Logo on the right side - full screen height */}
       <motion.div
-        className="absolute right-0 top-0 h-screen w-1/2 flex items-center justify-center pointer-events-none overflow-hidden"
+        className="pointer-events-none absolute right-0 top-0 hidden h-screen w-1/2 items-center justify-center overflow-hidden md:flex"
         variants={floatingVariants}
         animate="animate"
       >
         <img
           src="/3.png"
           alt="Go Clips"
-          className="h-[200vh] w-auto object-contain opacity-90"
+          className="h-[150vh] w-auto object-contain opacity-90 lg:h-[200vh]"
           loading="eager"
           onError={(e) => {
             console.log('Image failed to load');
@@ -253,11 +253,11 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
       </motion.div>
 
       {/* Bottom blur effect */}
-      <div className="absolute bottom-0 left-0 h-1/3 w-1/2 bg-gradient-to-t from-background via-background/50 to-transparent pointer-events-none z-10" />
-      <div className="absolute bottom-0 right-0 h-4/5 w-1/2 bg-gradient-to-t from-background via-background/50 to-transparent pointer-events-none z-10" />
+      <div className="pointer-events-none absolute bottom-0 left-0 z-10 h-1/3 w-full bg-gradient-to-t from-background via-background/50 to-transparent md:w-1/2" />
+      <div className="pointer-events-none absolute bottom-0 right-0 z-10 hidden h-4/5 w-1/2 bg-gradient-to-t from-background via-background/50 to-transparent md:block" />
 
       {/* GoClips text on the left side - rotated -90 degrees */}
-      <div className="absolute top-1/2 -translate-y-1/2 z-0" style={{ left: '-8rem' }}>
+      <div className="absolute top-1/2 z-0 hidden -translate-y-1/2 md:block" style={{ left: '-8rem' }}>
         <div
           style={{
             transform: 'rotate(-90deg)',
@@ -277,22 +277,22 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
           onClick={() => navigate('/')}
           whileHover={{ scale: 1.1, x: -5 }}
           whileTap={{ scale: 0.95 }}
-          className="absolute top-6 left-6 p-2 rounded-full bg-primary/20 hover:bg-primary/30 text-primary transition-colors"
+          className="absolute left-4 top-4 rounded-full bg-primary/20 p-2 text-primary transition-colors hover:bg-primary/30 sm:left-6 sm:top-6"
           title="Back to Landing"
         >
-          <ArrowLeft className="w-6 h-6" />
+          <ArrowLeft className="h-5 w-5 sm:h-6 sm:w-6" />
         </motion.button>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="w-full max-w-md"
+          className="w-full max-w-md pt-12 sm:pt-0"
           variants={containerVariants}
         >
         
 
-        <motion.div className="glass-card p-8"
+        <motion.div className="glass-card p-5 sm:p-8"
           variants={itemVariants}
           whileHover={{ scale: 1.02 }}
           transition={{ duration: 0.3 }}

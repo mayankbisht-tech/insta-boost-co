@@ -132,7 +132,7 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -156,11 +156,11 @@ const Dashboard = () => {
           transition={{ delay: 0.2 }}
           className="glass-card p-5 lg:w-1/2"
         >
-          <div className="flex items-center gap-2 mb-8">
-            <DollarSign className="h-8 w-8 text-success" />
-            <span className="text-2xl text-muted-foreground">Total Earnings</span>
+          <div className="mb-6 flex items-center gap-2 sm:mb-8">
+            <DollarSign className="h-7 w-7 text-success sm:h-8 sm:w-8" />
+            <span className="text-xl text-muted-foreground sm:text-2xl">Total Earnings</span>
           </div>
-          <p className="font-display text-3xl font-bold text-success">₹ {overview.total_earnings.toFixed(2)}</p>
+          <p className="font-display text-2xl font-bold text-success sm:text-3xl">₹ {overview.total_earnings.toFixed(2)}</p>
         </motion.div>
 
         <motion.div
@@ -202,8 +202,8 @@ const Dashboard = () => {
               className="space-y-3"
             >
               <CampaignBudgetCard campaign={campaign} />
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col items-start gap-2 px-1 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge className={categoryColors[campaign.category] || 'bg-muted text-muted-foreground'}>
                     {campaign.category}
                   </Badge>
@@ -211,7 +211,7 @@ const Dashboard = () => {
                     <Badge className="bg-warning/10 text-warning border border-warning/20">Top Paying</Badge>
                   )}
                 </div>
-                <Button asChild size="sm" variant="outline" className="text-xs">
+                <Button asChild size="sm" variant="outline" className="w-full text-xs sm:w-auto">
                   <Link to={`/campaign/${campaign.id}`}>View Details</Link>
                 </Button>
               </div>

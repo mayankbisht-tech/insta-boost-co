@@ -43,9 +43,7 @@ const Landing = () => {
         className="flex items-center justify-between px-6 py-6 sm:px-8 sm:py-8"
       >
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center text-white font-bold">
-            ▶
-          </div>
+          <img src="/3.png" alt="GoClips logo" className="h-8 w-8 object-contain" />
           <span className="font-display text-xl font-bold text-foreground">GoClips</span>
         </div>
 
@@ -91,9 +89,11 @@ const Landing = () => {
           >
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-full blur-2xl opacity-30" />
-              <div className="h-24 w-24 sm:h-32 sm:w-32 relative z-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-5xl sm:text-6xl font-bold text-primary-foreground">
-                ▶
-              </div>
+              <img
+                src="/3.png"
+                alt="GoClips logo"
+                className="h-24 w-24 sm:h-32 sm:w-32 relative z-10 object-contain"
+              />
             </div>
           </motion.div>
 

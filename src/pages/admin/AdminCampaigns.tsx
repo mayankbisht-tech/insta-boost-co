@@ -143,7 +143,7 @@ const AdminCampaigns = () => {
   return (
     <AdminLayout>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
-        <div className="flex items-center justify-between mb-8">
+        <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <h1 className="admin-header">Campaign Management</h1>
             <p className="text-muted-foreground mt-2">Create and manage your marketing campaigns</p>
@@ -151,7 +151,7 @@ const AdminCampaigns = () => {
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button 
               onClick={openCreate}
-              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white shadow-lg hover:shadow-xl transition-all"
+              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
             >
               <Plus className="h-4 w-4 mr-2" /> New Campaign
             </Button>
@@ -265,7 +265,7 @@ const AdminCampaigns = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="grid grid-cols-2 gap-4"
+                className="grid grid-cols-1 gap-4 sm:grid-cols-2"
               >
                 <div>
                   <Label className="text-sm font-semibold">Category</Label>
@@ -374,7 +374,7 @@ const AdminCampaigns = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="flex gap-3 pt-4"
+                className="flex flex-col-reverse gap-3 pt-4 sm:flex-row"
               >
                 <motion.div className="flex-1" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Button 
@@ -388,7 +388,7 @@ const AdminCampaigns = () => {
                 <Button 
                   variant="outline" 
                   onClick={() => setDialogOpen(false)}
-                  className="hover:bg-secondary/50 transition-colors"
+                  className="hover:bg-secondary/50 transition-colors w-full sm:w-auto"
                 >
                   Cancel
                 </Button>

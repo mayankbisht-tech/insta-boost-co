@@ -308,7 +308,7 @@ const SuperadminDashboard = () => {
           </section>
 
           <section className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
               <div>
                 <h2 className="font-display text-xl font-bold">Active Campaign Budget Tracker</h2>
                 <p className="text-sm text-muted-foreground">Live budget consumption updates are shared with admin, superadmin, and creator dashboards.</p>
@@ -328,7 +328,7 @@ const SuperadminDashboard = () => {
           </section>
 
           <section className="glass-card p-5 space-y-4">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
               <div>
                   <h2 className="font-display text-xl font-bold">Instagram Verification Overview</h2>
                   <p className="text-sm text-muted-foreground">
@@ -555,7 +555,7 @@ const SuperadminDashboard = () => {
                 value={search}
                 onChange={event => setSearch(event.target.value)}
                 placeholder="Search by name, email, role, or Instagram"
-                className="max-w-sm"
+                className="w-full max-w-sm"
               />
             </div>
 

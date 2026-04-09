@@ -8,33 +8,33 @@ const SuperadminLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
-        <div className="container flex min-h-16 items-center justify-between gap-4 py-3">
-          <div>
+        <div className="container flex min-h-16 flex-col items-start justify-between gap-3 py-3 sm:flex-row sm:items-center sm:gap-4">
+          <div className="min-w-0">
             <div className="flex items-center gap-2 text-primary">
               <ShieldCheck className="h-5 w-5" />
-              <span className="font-display text-xl font-bold">Go Clips Superadmin</span>
+              <span className="font-display text-base font-bold sm:text-xl">Go Clips Superadmin</span>
             </div>
             <p className="text-xs text-muted-foreground">Manual verification, admin oversight, and account controls</p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
             <Link
               to="/admin"
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs sm:text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <Users className="h-4 w-4" />
               Admin Panel
             </Link>
             <Link
               to="/dashboard"
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs sm:text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
               Creator View
             </Link>
             <button
               onClick={signOut}
-              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-destructive"
+              className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs sm:text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-destructive"
             >
               <LogOut className="h-4 w-4" />
               Sign Out

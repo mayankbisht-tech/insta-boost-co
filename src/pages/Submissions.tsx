@@ -73,9 +73,9 @@ const Submissions = () => {
   return (
     <DashboardLayout>
       <h1 className="font-display text-xl font-bold mb-5">My Submissions</h1>
-      <div className="flex flex-wrap gap-3 mb-5">
+      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap">
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-full lg:w-[140px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -88,7 +88,7 @@ const Submissions = () => {
         </Select>
 
         <Select value={filterCampaign} onValueChange={setFilterCampaign}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full lg:w-[180px]">
             <SelectValue placeholder="Campaign" />
           </SelectTrigger>
           <SelectContent>
@@ -100,7 +100,7 @@ const Submissions = () => {
         </Select>
 
         <Select value={filterDate} onValueChange={setFilterDate}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-full lg:w-[140px]">
             <SelectValue placeholder="Date" />
           </SelectTrigger>
           <SelectContent>
@@ -164,7 +164,7 @@ const Submissions = () => {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[420px]">
+                <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-4 lg:w-auto lg:min-w-[420px]">
                   <div className="rounded-xl border border-border/70 bg-background/60 p-3">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                       <Eye className="h-3.5 w-3.5" /> Views
@@ -192,7 +192,7 @@ const Submissions = () => {
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-4">
+              <div className="mt-4 flex flex-col gap-3 border-t border-border/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <p className="text-sm text-muted-foreground">
                     {submission.status === 'Rejected' || submission.status === 'Flagged'
@@ -200,7 +200,7 @@ const Submissions = () => {
                       : 'Analytics updates are managed by admin only.'}
                   </p>
                 </div>
-                <p className={`text-lg font-semibold ${submission.earnings > 0 ? 'text-success' : 'text-foreground'}`}>
+                <p className={`text-left text-lg font-semibold sm:text-right ${submission.earnings > 0 ? 'text-success' : 'text-foreground'}`}>
                   ${Number(submission.earnings || 0).toFixed(2)}
                 </p>
               </div>

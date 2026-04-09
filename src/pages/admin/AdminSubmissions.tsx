@@ -159,8 +159,8 @@ const AdminSubmissions = () => {
           </motion.p>
         )}
 
-        <div className="flex flex-wrap gap-3 mb-8">
-          <motion.div whileHover={{ scale: 1.02 }} className="flex-[2] min-w-[260px]">
+        <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <motion.div whileHover={{ scale: 1.02 }} className="md:col-span-2 xl:col-span-2">
             <Input
               value={searchUser}
               onChange={event => setSearchUser(event.target.value)}
@@ -168,7 +168,7 @@ const AdminSubmissions = () => {
               className="bg-secondary/50 border-border/50 focus:border-primary"
             />
           </motion.div>
-          <motion.div whileHover={{ scale: 1.02 }} className="flex-1 min-w-[200px]">
+          <motion.div whileHover={{ scale: 1.02 }}>
             <Select value={filterCampaign} onValueChange={setFilterCampaign}>
               <SelectTrigger className="bg-secondary/50 border-border/50 focus:border-primary"><SelectValue placeholder="Campaign" /></SelectTrigger>
               <SelectContent>
@@ -177,7 +177,7 @@ const AdminSubmissions = () => {
               </SelectContent>
             </Select>
           </motion.div>
-          <motion.div whileHover={{ scale: 1.02 }} className="flex-1 min-w-[150px]">
+          <motion.div whileHover={{ scale: 1.02 }}>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="bg-secondary/50 border-border/50 focus:border-primary"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
@@ -243,7 +243,7 @@ const AdminSubmissions = () => {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:min-w-[420px]">
+                <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-4 xl:w-auto xl:min-w-[420px]">
                   <div className="rounded-lg border border-border/70 p-3">
                     <div className="flex items-center gap-1 text-xs text-muted-foreground"><Eye className="h-3.5 w-3.5" /> Views</div>
                     <p className="mt-2 text-xl font-semibold">{submission.views.toLocaleString()}</p>
@@ -293,7 +293,7 @@ const AdminSubmissions = () => {
                   <span className="text-sm font-medium text-success">${Number(submission.earnings || 0).toFixed(2)}</span>
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1">
                   <Button size="sm" variant="ghost" className="text-success hover:text-success hover:bg-success/10 h-8"
                     onClick={() => void updateStatus(submission.id, 'Approved')} disabled={submission.status === 'Approved'}>
                     <CheckCircle className="h-4 w-4" />
