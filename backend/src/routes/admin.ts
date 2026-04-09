@@ -1,9 +1,10 @@
-import { AppRole, type InstagramVerificationRequest, type User, type UserRole } from '@prisma/client';
+import { AppRole, type InstagramVerificationRequest, type PendingAdminCredential, type User, type UserRole } from '@prisma/client';
 import { Router, type Request } from 'express';
 import { z } from 'zod';
 import { getApifyRunOverview } from '../lib/apify.js';
 import { consumeRefreshQuota, getRefreshQuota, syncSubmissionAnalytics } from '../lib/analyticsRefresh.js';
 import { createNotification } from '../lib/notifications.js';
+import { hashPassword } from '../lib/password.js';
 import { normalizeVerificationStatus, overrideInstagramVerificationStatus, runInstagramVerificationCheck } from '../lib/instagramVerification.js';
 import { prisma } from '../lib/prisma.js';
 import { emitCampaignBudgetUpdate } from '../lib/realtime.js';
@@ -21,6 +22,11 @@ type CampaignUploadRequest = Request & {
 type UserWithRolesAndVerification = User & {
   roles: UserRole[];
   instagramVerificationRequest: InstagramVerificationRequest | null;
+};
+
+type PendingAdminCredentialWithIssuer = PendingAdminCredential & {
+  issuedBy: Pick<User, 'id' | 'name' | 'email'>;
+  claimedBy: Pick<User, 'id' | 'name' | 'email'> | null;
 };
 
 const campaignSchema = z.object({
@@ -58,6 +64,12 @@ const submissionViewsSchema = z.object({
   views: z.coerce.number().int().min(0),
 });
 
+const pendingAdminCredentialSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  email: z.string().trim().email().transform(value => value.toLowerCase()),
+  password: z.string().min(6).max(120),
+});
+
 const hasManagementRole = (roles: UserRole[]) =>
   roles.some(role => role.role === AppRole.admin || role.role === AppRole.superadmin);
 
@@ -84,6 +96,26 @@ const toSuperadminUserPayload = (user: UserWithRolesAndVerification) => ({
         followers_match: user.instagramVerificationRequest.followersMatch ?? null,
         reviewed_at: user.instagramVerificationRequest.reviewedAt?.toISOString() ?? null,
         review_notes: user.instagramVerificationRequest.reviewNotes ?? null,
+      }
+    : null,
+});
+
+const toPendingAdminCredentialPayload = (credential: PendingAdminCredentialWithIssuer) => ({
+  id: credential.id,
+  name: credential.name,
+  email: credential.email,
+  created_at: credential.createdAt.toISOString(),
+  claimed_at: credential.claimedAt?.toISOString() ?? null,
+  issued_by: {
+    id: credential.issuedBy.id,
+    name: credential.issuedBy.name,
+    email: credential.issuedBy.email,
+  },
+  claimed_by: credential.claimedBy
+    ? {
+        id: credential.claimedBy.id,
+        name: credential.claimedBy.name,
+        email: credential.claimedBy.email,
       }
     : null,
 });
@@ -418,7 +450,7 @@ adminRouter.patch('/submissions/:id/sync-analytics', async (req, res) => {
 });
 
 adminRouter.get('/superadmin/overview', requireSuperadmin, async (_req, res) => {
-  const [users, submissions, campaigns, pendingVerifications, apifyRunOverview] = await Promise.all([
+  const [users, submissions, campaigns, pendingVerifications, pendingAdminCredentials, apifyRunOverview] = await Promise.all([
     prisma.user.findMany({
       include: { roles: true },
     }),
@@ -436,6 +468,7 @@ adminRouter.get('/superadmin/overview', requireSuperadmin, async (_req, res) => 
       },
     }),
     prisma.instagramVerificationRequest.count({ where: { status: { in: ['pending', 'submitted'] } } }),
+    prisma.pendingAdminCredential.count({ where: { claimedAt: null } }),
     getApifyRunOverview().catch(() => null),
   ]);
 
@@ -457,6 +490,7 @@ adminRouter.get('/superadmin/overview', requireSuperadmin, async (_req, res) => 
     pausedUsers: paused,
     blockedUsers: blocked,
     pendingVerifications,
+    pendingAdminCredentials,
     connectedCreators,
     platformViews: totalViews,
     platformEarnings: Number(totalEarnings.toFixed(2)),
@@ -468,6 +502,71 @@ adminRouter.get('/superadmin/overview', requireSuperadmin, async (_req, res) => 
     apifyRunStartedAt: apifyRunOverview?.startedAt ?? null,
     apifyRunFinishedAt: apifyRunOverview?.finishedAt ?? null,
   });
+});
+
+adminRouter.get('/superadmin/admin-credentials', requireSuperadmin, async (_req, res) => {
+  const credentials = await prisma.pendingAdminCredential.findMany({
+    include: {
+      issuedBy: {
+        select: { id: true, name: true, email: true },
+      },
+      claimedBy: {
+        select: { id: true, name: true, email: true },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  res.json(credentials.map(toPendingAdminCredentialPayload));
+});
+
+adminRouter.post('/superadmin/admin-credentials', requireSuperadmin, async (req, res) => {
+  const parsed = pendingAdminCredentialSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid admin credential data.' });
+  }
+
+  const existingUser = await prisma.user.findUnique({
+    where: { email: parsed.data.email },
+    include: { roles: true },
+  });
+
+  if (existingUser?.roles.some(role => role.role === AppRole.superadmin)) {
+    return res.status(409).json({ error: 'That email already belongs to a superadmin account.' });
+  }
+
+  if (existingUser?.roles.some(role => role.role === AppRole.admin)) {
+    return res.status(409).json({ error: 'That email already has admin access.' });
+  }
+
+  const passwordHash = await hashPassword(parsed.data.password);
+
+  const credential = await prisma.pendingAdminCredential.upsert({
+    where: { email: parsed.data.email },
+    update: {
+      name: parsed.data.name,
+      passwordHash,
+      issuedByUserId: req.auth!.user.id,
+      claimedAt: null,
+      claimedByUserId: null,
+    },
+    create: {
+      name: parsed.data.name,
+      email: parsed.data.email,
+      passwordHash,
+      issuedByUserId: req.auth!.user.id,
+    },
+    include: {
+      issuedBy: {
+        select: { id: true, name: true, email: true },
+      },
+      claimedBy: {
+        select: { id: true, name: true, email: true },
+      },
+    },
+  });
+
+  res.status(201).json(toPendingAdminCredentialPayload(credential));
 });
 
 adminRouter.get('/superadmin/users', requireSuperadmin, async (_req, res) => {

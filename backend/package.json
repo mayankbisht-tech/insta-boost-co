@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "npm run prisma:push && node dist/index.js",
+    "start": "npm run prisma:migrate:deploy && node dist/index.js",
     "seed": "tsx src/scripts/seed.ts",
     "backfill:instagram-accounts": "tsx src/scripts/backfillInstagramAccounts.ts",
     "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push"
+    "prisma:push": "prisma db push",
+    "prisma:migrate:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

@@ -1,10 +1,7 @@
-import { useLocation } from 'react-router-dom';
-import Auth from './Auth';
+import { Navigate } from 'react-router-dom';
 
 const AdminAuth = () => {
-  useLocation();
-
-  return <Auth initialRole="admin" />;
+  return <Navigate to="/auth" replace />;
 };
 
 export default AdminAuth;

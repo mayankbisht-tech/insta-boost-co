@@ -5,11 +5,12 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const Landing = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin, isSuperadmin } = useAuth();
 
   // Redirect if already logged in
   if (user) {
-    navigate('/dashboard', { replace: true });
+    const destination = isSuperadmin ? '/superadmin' : isAdmin ? '/admin' : '/dashboard';
+    navigate(destination, { replace: true });
     return null;
   }
 
@@ -35,12 +36,12 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
-      {/* Header with buttons */}
+      {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex items-center justify-between px-6 py-6 sm:px-8 sm:py-8"
+        className="flex items-center px-6 py-6 sm:px-8 sm:py-8"
       >
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center text-white font-bold">
@@ -48,31 +49,6 @@ const Landing = () => {
           </div>
           <span className="font-display text-xl font-bold text-foreground">GoClips</span>
         </div>
-
-        <motion.div
-          className="flex items-center gap-3 sm:gap-4"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              onClick={() => navigate('/auth', { state: { rolePreSelected: true } })}
-              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-semibold px-6 sm:px-8 py-2 sm:py-2.5 rounded-lg shadow-lg hover:shadow-xl transition-all"
-            >
-              User
-            </Button>
-          </motion.div>
-
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              onClick={() => navigate('/auth/admin', { state: { rolePreSelected: true } })}
-              className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold px-6 sm:px-8 py-2 sm:py-2.5 rounded-lg shadow-lg hover:shadow-xl transition-all"
-            >
-              Admin
-            </Button>
-          </motion.div>
-        </motion.div>
       </motion.header>
 
       {/* Main content */}
@@ -102,29 +78,18 @@ const Landing = () => {
           </motion.h1>
 
           <motion.p variants={itemVariants} className="text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Earn money from your Instagram Reels and track your progress.
+            Log in once and we&apos;ll send you to the right dashboard based on your account access.
           </motion.p>
 
           {/* CTA Section */}
-          <motion.div variants={itemVariants} className="pt-6 space-y-4">
+          <motion.div variants={itemVariants} className="pt-6">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
-                onClick={() => navigate('/auth', { state: { rolePreSelected: true } })}
+                onClick={() => navigate('/auth')}
                 size="lg"
                 className="w-full max-w-sm bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-semibold text-lg px-8 py-3 rounded-xl shadow-xl hover:shadow-2xl transition-all"
               >
-                Get Started as Creator
-              </Button>
-            </motion.div>
-
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                onClick={() => navigate('/auth/admin', { state: { rolePreSelected: true } })}
-                variant="outline"
-                size="lg"
-                className="w-full max-w-sm border-2 border-accent text-accent hover:bg-accent/10 font-semibold text-lg px-8 py-3 rounded-xl transition-all"
-              >
-                Admin Portal
+                Get Started
               </Button>
             </motion.div>
           </motion.div>

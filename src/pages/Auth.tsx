@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,17 +9,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft } from 'lucide-react';
 
 type SignUpStep = 'email' | 'otp' | 'details';
-type AuthRole = 'user' | 'admin';
-
-type AuthProps = {
-  initialRole?: AuthRole;
-};
-
-type AuthLocationState = {
-  rolePreSelected?: boolean;
-};
-
-const Auth = ({ initialRole = 'user' }: AuthProps) => {
+const Auth = () => {
   const navigate = useNavigate();
   const {
     user,
@@ -30,16 +20,8 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
     sendSignUpOtp,
     verifySignUpOtp,
     completeSignUp,
-    signInAdmin,
-    sendAdminSignUpOtp,
-    verifyAdminSignUpOtp,
-    completeAdminSignUp,
   } = useAuth();
 
-  const location = useLocation();
-  const rolePreSelected = (location.state as AuthLocationState | null)?.rolePreSelected === true;
-
-  const [role, setRole] = useState<AuthRole>(initialRole);
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,12 +35,6 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
   if (user && isSuperadmin) return <Navigate to="/superadmin" replace />;
   if (user && isAdmin) return <Navigate to="/admin" replace />;
   if (user) return <Navigate to="/dashboard" replace />;
-
-  const roleLabel = role === 'admin' ? 'Admin' : 'User';
-  const roleDescription =
-    role === 'admin'
-      ? 'Manage campaigns, submissions, creators, and admin workflows from the admin portal.'
-      : 'Earn money from your Instagram Reels and track your progress.';
 
   const resetForm = () => {
     setEmail('');
@@ -75,13 +51,6 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
     resetForm();
   };
 
-  const switchRole = (nextRole: AuthRole) => {
-    if (nextRole === role) return;
-    setRole(nextRole);
-    setIsLogin(true);
-    resetForm();
-  };
-
   const goBackOneStep = () => {
     if (signUpStep === 'details') {
       setPassword('');
@@ -94,36 +63,12 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
     setSignUpStep('email');
   };
 
-  const sendOtp = async () => {
-    return role === 'admin'
-      ? sendAdminSignUpOtp(email.trim(), name.trim())
-      : sendSignUpOtp(email.trim(), name.trim());
-  };
-
-  const verifyOtp = async () => {
-    return role === 'admin'
-      ? verifyAdminSignUpOtp(email.trim(), otp.trim())
-      : verifySignUpOtp(email.trim(), otp.trim());
-  };
-
-  const completeSignup = async () => {
-    return role === 'admin'
-      ? completeAdminSignUp(email.trim(), name.trim(), password)
-      : completeSignUp(email.trim(), name.trim(), password);
-  };
-
-  const signInForRole = async () => {
-    return role === 'admin'
-      ? signInAdmin(email.trim(), password)
-      : signIn(email.trim(), password);
-  };
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
     if (isLogin) {
-      const { error } = await signInForRole();
+      const { error } = await signIn(email.trim(), password);
       if (error) toast.error(error.message);
       setSubmitting(false);
       return;
@@ -136,7 +81,7 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
         return;
       }
 
-      const { error, data } = await sendOtp();
+      const { error, data } = await sendSignUpOtp(email.trim(), name.trim());
 
       if (error) {
         toast.error(error.message);
@@ -160,7 +105,7 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
         return;
       }
 
-      const { error } = await verifyOtp();
+      const { error } = await verifySignUpOtp(email.trim(), otp.trim());
 
       if (error) {
         toast.error(error.message);
@@ -185,7 +130,7 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
       return;
     }
 
-    const { error } = await completeSignup();
+    const { error } = await completeSignUp(email.trim(), name.trim(), password);
 
     if (error) {
       toast.error(error.message);
@@ -193,7 +138,7 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
       return;
     }
 
-    toast.success(`${roleLabel} account created successfully.`);
+    toast.success('Account created successfully.');
     setSubmitting(false);
   };
 
@@ -298,7 +243,7 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
           transition={{ duration: 0.3 }}
         >
           <motion.div className="mb-4 text-center" variants={itemVariants}>
-            <h2 className="font-display text-2xl font-bold gradient-text">{roleLabel} Portal</h2>
+            <h2 className="font-display text-2xl font-bold gradient-text">Go Clips Portal</h2>
           </motion.div>
 
           <motion.div className="mb-6 flex rounded-lg bg-muted p-1" variants={itemVariants}>
@@ -472,12 +417,12 @@ const Auth = ({ initialRole = 'user' }: AuthProps) => {
                 {submitting
                   ? 'Loading...'
                   : isLogin
-                    ? `Log In as ${roleLabel}`
-                    : signUpStep === 'email'
-                      ? 'Get OTP'
+                    ? 'Log In'
+                      : signUpStep === 'email'
+                        ? 'Get OTP'
                       : signUpStep === 'otp'
                         ? 'Verify OTP'
-                        : `Create ${roleLabel} Account`}
+                        : 'Create Account'}
               </motion.button>
             </motion.div>
 

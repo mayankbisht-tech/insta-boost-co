@@ -18,6 +18,7 @@ interface SuperadminOverview {
   pausedUsers: number;
   blockedUsers: number;
   pendingVerifications: number;
+  pendingAdminCredentials: number;
   connectedCreators: number;
   platformViews: number;
   platformEarnings: number;
@@ -69,26 +70,53 @@ interface Campaign extends CampaignBudget {
   rules: string[];
 }
 
+interface PendingAdminCredential {
+  id: string;
+  name: string;
+  email: string;
+  created_at: string;
+  claimed_at: string | null;
+  issued_by: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  claimed_by: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+}
+
 const statusOptions: Array<SuperadminUser['account_status']> = ['active', 'paused', 'suspended', 'banned'];
 
 const SuperadminDashboard = () => {
   const [overview, setOverview] = useState<SuperadminOverview | null>(null);
   const [users, setUsers] = useState<SuperadminUser[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [pendingAdminCredentials, setPendingAdminCredentials] = useState<PendingAdminCredential[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
+  const [creatingAdmin, setCreatingAdmin] = useState(false);
+  const [adminInviteForm, setAdminInviteForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+  });
 
   const loadData = async () => {
     try {
-      const [overviewData, usersData, campaignsData] = await Promise.all([
+      const [overviewData, usersData, campaignsData, pendingAdminCredentialsData] = await Promise.all([
         api.get<SuperadminOverview>('/api/admin/superadmin/overview'),
         api.get<SuperadminUser[]>('/api/admin/superadmin/users'),
         api.get<Campaign[]>('/api/campaigns'),
+        api.get<PendingAdminCredential[]>('/api/admin/superadmin/admin-credentials'),
       ]);
       setOverview(overviewData);
       setUsers(usersData);
       setCampaigns(campaignsData.filter(campaign => campaign.status === 'Active'));
+      setPendingAdminCredentials(pendingAdminCredentialsData);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to load superadmin dashboard.');
     } finally {
@@ -155,6 +183,29 @@ const SuperadminDashboard = () => {
   const allVerificationUsers = filteredUsers.filter(
     user => user.instagram_verification_request !== null,
   );
+
+  const createAdminCredential = async () => {
+    if (!adminInviteForm.name.trim() || !adminInviteForm.email.trim() || !adminInviteForm.password.trim()) {
+      toast.error('Name, email, and password are required.');
+      return;
+    }
+
+    setCreatingAdmin(true);
+    try {
+      await api.post('/api/admin/superadmin/admin-credentials', {
+        name: adminInviteForm.name.trim(),
+        email: adminInviteForm.email.trim().toLowerCase(),
+        password: adminInviteForm.password,
+      });
+      toast.success('Admin credentials created. Share them directly with the admin.');
+      setAdminInviteForm({ name: '', email: '', password: '' });
+      await loadData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create admin credentials.');
+    } finally {
+      setCreatingAdmin(false);
+    }
+  };
 
   const updateAccountStatus = async (userId: string, status: SuperadminUser['account_status']) => {
     setBusyUserId(userId);
@@ -262,6 +313,15 @@ const SuperadminDashboard = () => {
             <Card className="glass-card border-border/60">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  Pending Admin Credentials
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-3xl font-bold">{overview?.pendingAdminCredentials ?? 0}</CardContent>
+            </Card>
+            <Card className="glass-card border-border/60">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
                   <UserCheck className="h-4 w-4 text-primary" />
                   Creators
                 </CardTitle>
@@ -284,6 +344,76 @@ const SuperadminDashboard = () => {
                 </p>
               </CardContent>
             </Card>
+          </section>
+
+          <section className="glass-card p-5 space-y-4">
+            <div>
+              <h2 className="font-display text-xl font-bold">Admin Credential Issuer</h2>
+              <p className="text-sm text-muted-foreground">
+                Superadmin can generate an email and password for a future admin. The admin role is granted only when that person logs in successfully for the first time.
+              </p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <Input
+                value={adminInviteForm.name}
+                onChange={event => setAdminInviteForm(previous => ({ ...previous, name: event.target.value }))}
+                placeholder="Admin full name"
+              />
+              <Input
+                type="email"
+                value={adminInviteForm.email}
+                onChange={event => setAdminInviteForm(previous => ({ ...previous, email: event.target.value }))}
+                placeholder="admin@example.com"
+              />
+              <Input
+                type="password"
+                value={adminInviteForm.password}
+                onChange={event => setAdminInviteForm(previous => ({ ...previous, password: event.target.value }))}
+                placeholder="Temporary password"
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <Button onClick={() => void createAdminCredential()} disabled={creatingAdmin}>
+                {creatingAdmin ? 'Creating...' : 'Create Admin Credentials'}
+              </Button>
+            </div>
+
+            {pendingAdminCredentials.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No issued admin credentials yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px] text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-muted-foreground">
+                      <th className="py-3 pr-4 font-medium">Name</th>
+                      <th className="py-3 pr-4 font-medium">Email</th>
+                      <th className="py-3 pr-4 font-medium">Issued By</th>
+                      <th className="py-3 pr-4 font-medium">Issued At</th>
+                      <th className="py-3 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingAdminCredentials.map(credential => (
+                      <tr key={credential.id} className="border-b border-border/70">
+                        <td className="py-4 pr-4 font-medium">{credential.name}</td>
+                        <td className="py-4 pr-4">{credential.email}</td>
+                        <td className="py-4 pr-4 text-muted-foreground">{credential.issued_by.email}</td>
+                        <td className="py-4 pr-4 text-muted-foreground">
+                          {new Date(credential.created_at).toLocaleString()}
+                        </td>
+                        <td className="py-4">
+                          <Badge variant={credential.claimed_at ? 'secondary' : 'outline'}>
+                            {credential.claimed_at ? `Claimed by ${credential.claimed_by?.email ?? 'admin'}` : 'Pending first login'}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
 
           <section className="glass-card p-5">

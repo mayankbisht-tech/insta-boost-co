@@ -12,13 +12,20 @@ Standalone backend for authentication, OTP signup, sessions, and PostgreSQL data
 6. Optionally set SMTP and Apify values
 7. Install dependencies with `npm install`
 8. Generate Prisma client with `npm run prisma:generate`
-9. Push schema with `npm run prisma:push`
-10. Start development server with `npm run dev`
+9. Create or apply Prisma migrations for schema changes
+10. Apply migrations locally with `npm run prisma:migrate:deploy` if you already have migration files
+11. Start development server with `npm run dev`
 
 ## Production start
 
 1. Build with `npm run build`
 2. Start with `npm run start`
+
+## Database workflow
+
+- Use migration files under `prisma/migrations` for schema changes
+- Deploy schema changes with `npm run prisma:migrate:deploy`
+- Avoid using `npm run prisma:push` in production because it bypasses migration history
 
 ## Auth routes
 

@@ -59,11 +59,30 @@ model User {
   roles                     UserRole[]
   sessions                  Session[]
   adminLoginActivities      AdminLoginActivity[]
+  issuedAdminCredentials    PendingAdminCredential[] @relation("PendingAdminCredentialIssuer")
+  claimedAdminCredentials   PendingAdminCredential[] @relation("PendingAdminCredentialClaimant")
   notifications             Notification[]
   submissions               Submission[]
   instagramAccounts         InstagramAccount[]
   instagramVerificationRequest InstagramVerificationRequest? @relation("InstagramVerificationUser")
   reviewedInstagramVerifications InstagramVerificationRequest[] @relation("InstagramVerificationReviewer")
+}
+
+model PendingAdminCredential {
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  name               String
+  passwordHash       String
+  issuedByUserId     String
+  claimedByUserId    String?  @unique
+  claimedAt          DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  issuedBy           User     @relation("PendingAdminCredentialIssuer", fields: [issuedByUserId], references: [id], onDelete: Cascade)
+  claimedBy          User?    @relation("PendingAdminCredentialClaimant", fields: [claimedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([issuedByUserId, createdAt])
+  @@index([claimedAt])
 }
 
 model InstagramAccount {
