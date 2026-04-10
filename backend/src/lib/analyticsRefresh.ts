@@ -1,6 +1,7 @@
 import type { Submission, User, UserRole } from '@prisma/client';
 import { refreshApifyAnalyticsForReelUrl } from './apify.js';
 import { prisma } from './prisma.js';
+import { calculateSubmissionEarnings } from './submissionEarnings.js';
 
 type SubmissionWithRelations = Submission & {
   campaign: {
@@ -119,7 +120,11 @@ export const syncSubmissionAnalytics = async (submission: SubmissionWithRelation
       analyticsSource: analytics.source,
       analyticsSyncedAt: new Date(),
       apifyDatasetItemId: analytics.datasetItemId,
-      earnings: calculateEarnings(analytics.views, submission.campaign.rewardPerMillionViews),
+      earnings: calculateSubmissionEarnings(
+        analytics.views,
+        submission.campaign.rewardPerMillionViews,
+        submission.status,
+      ),
     },
     include: {
       campaign: true,

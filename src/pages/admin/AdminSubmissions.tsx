@@ -49,6 +49,7 @@ const AdminSubmissions = () => {
   const [campaigns, setCampaigns] = useState<{ id: string; title: string }[]>([]);
   const [filterCampaign, setFilterCampaign] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [searchUser, setSearchUser] = useState('');
   const [loading, setLoading] = useState(true);
   const [editingViews, setEditingViews] = useState<Record<string, string>>({});
   const [syncingId, setSyncingId] = useState<string | null>(null);
@@ -121,6 +122,21 @@ const AdminSubmissions = () => {
   const filtered = submissions.filter(submission => {
     if (filterCampaign !== 'all' && submission.campaign_id !== filterCampaign) return false;
     if (filterStatus !== 'all' && submission.status !== filterStatus) return false;
+
+    const search = searchUser.trim().toLowerCase();
+    if (search) {
+      const matchesUser = [
+        submission.profiles?.instagram_username,
+        submission.profiles?.name,
+        submission.profiles?.email,
+        submission.user_id,
+      ]
+        .filter(Boolean)
+        .some(value => String(value).toLowerCase().includes(search));
+
+      if (!matchesUser) return false;
+    }
+
     return true;
   });
 
@@ -144,6 +160,15 @@ const AdminSubmissions = () => {
         )}
 
         <div className="flex flex-wrap gap-3 mb-8">
+          <motion.div whileHover={{ scale: 1.02 }} className="flex-[2] min-w-[260px]">
+            <Input
+              value={searchUser}
+              onChange={event => setSearchUser(event.target.value)}
+              placeholder="Search submissions by username, name, email, or user ID"
+              className="bg-secondary/50 border-border/50 focus:border-primary"
+              aria-label="Search submissions by user"
+            />
+          </motion.div>
           <motion.div whileHover={{ scale: 1.02 }} className="flex-1 min-w-[200px]">
             <Select value={filterCampaign} onValueChange={setFilterCampaign}>
               <SelectTrigger className="bg-secondary/50 border-border/50 focus:border-primary"><SelectValue placeholder="Campaign" /></SelectTrigger>

@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Megaphone, FileCheck, Users, LogOut, ArrowLeft, Zap } from 'lucide-react';
+import { LayoutDashboard, Megaphone, FileCheck, Users, LogOut, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 
@@ -16,22 +16,17 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background lg:flex">
       {/* Sidebar */}
       <motion.aside 
         initial={{ x: -20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="w-64 bg-gradient-to-b from-sidebar via-sidebar to-sidebar/80 border-r border-sidebar-border flex flex-col shrink-0"
+        className="hidden shrink-0 flex-col border-r border-sidebar-border bg-gradient-to-b from-sidebar via-sidebar to-sidebar/80 lg:flex lg:w-64"
       >
         <div className="p-6 border-b border-sidebar-border/50">
           <Link to="/admin" className="font-display text-2xl font-bold gradient-text flex items-center gap-2">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            >
-              <Zap className="h-6 w-6" />
-            </motion.div>
+            <img src="/3.png" alt="Go Clips logo" className="h-6 w-6 object-contain" />
             Go Clips
           </Link>
           <p className="text-xs text-sidebar-foreground/60 mt-1">Admin Panel</p>
@@ -104,8 +99,54 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </motion.aside>
 
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="border-b border-border bg-card lg:hidden">
+          <div className="container space-y-3 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <Link to="/admin" className="flex items-center gap-2 font-display text-lg font-bold gradient-text">
+                <img src="/3.png" alt="Go Clips logo" className="h-6 w-6 object-contain" />
+                Go Clips
+              </Link>
+              <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-destructive">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <nav className="flex gap-2 overflow-x-auto pb-1">
+              {adminNav.map(item => {
+                const isActive = (item.path === '/admin' ? location.pathname === '/admin' : location.pathname.startsWith(item.path));
+
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex shrink-0 items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground'
+                    }`}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {isSuperadmin && (
+              <Link
+                to="/superadmin"
+                className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <Users className="h-4 w-4" />
+                Superadmin Panel
+              </Link>
+            )}
+          </div>
+        </header>
+
       {/* Main */}
-      <main className="flex-1 p-8 overflow-auto">
+      <main className="flex-1 overflow-x-hidden p-4 sm:p-6 lg:overflow-auto lg:p-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -114,6 +155,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
           {children}
         </motion.div>
       </main>
+      </div>
     </div>
   );
 };

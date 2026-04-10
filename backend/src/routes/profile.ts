@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.js';
+import { isApifyProfileConfigured } from '../lib/apify.js';
 import { prisma } from '../lib/prisma.js';
 import { startInstagramVerification, runInstagramVerificationCheck, normalizeVerificationStatus } from '../lib/instagramVerification.js';
 import { toFrontendProfile } from '../lib/serializers.js';
@@ -9,7 +10,6 @@ export const profileRouter = Router();
 
 const instagramSchema = z.object({
   instagram_username: z.string().trim().min(1),
-  followers_count: z.coerce.number().int().min(0),
 });
 
 const generateVerificationCode = () =>
@@ -27,9 +27,23 @@ profileRouter.patch('/instagram', async (req, res) => {
   const normalizedInstagramId = username.toLowerCase();
   const verificationCode = generateVerificationCode();
 
+  if (!isApifyProfileConfigured()) {
+    return res.status(400).json({ error: 'Instagram verification is not configured on the backend yet.' });
+  }
+
   const existingOwner = await prisma.user.findFirst({
     where: {
-      instagramUserId: normalizedInstagramId,
+      OR: [
+        {
+          instagramAccounts: {
+            some: {
+              instagramUserId: normalizedInstagramId,
+            },
+          },
+        },
+        { instagramUserId: normalizedInstagramId },
+        { instagramUsername: { equals: username, mode: 'insensitive' } },
+      ],
       NOT: { id: req.auth!.user.id },
     },
     select: { id: true },
@@ -39,11 +53,22 @@ profileRouter.patch('/instagram', async (req, res) => {
     return res.status(409).json({ error: 'This Instagram account is already linked.' });
   }
 
+  const existingRequest = await prisma.instagramVerificationRequest.findFirst({
+    where: {
+      instagramUserId: normalizedInstagramId,
+      NOT: { userId: req.auth!.user.id },
+    },
+    select: { id: true },
+  });
+
+  if (existingRequest) {
+    return res.status(409).json({ error: 'This Instagram account is already being verified by another user.' });
+  }
+
   const user = await startInstagramVerification({
     userId: req.auth!.user.id,
     instagramUsername: username,
     instagramUserId: normalizedInstagramId,
-    followersCount: parsed.data.followers_count,
     verificationCode,
   });
 
@@ -56,7 +81,7 @@ profileRouter.patch('/instagram', async (req, res) => {
 profileRouter.post('/instagram/verify', async (req, res) => {
   const result = await runInstagramVerificationCheck({
     userId: req.auth!.user.id,
-    allowEarlyCheck: false,
+    allowEarlyCheck: true,
   });
 
   if (!result.ok) {
@@ -102,6 +127,10 @@ profileRouter.delete('/instagram', async (req, res) => {
       where: { userId: req.auth!.user.id },
     });
 
+    await tx.instagramAccount.deleteMany({
+      where: { userId: req.auth!.user.id },
+    });
+
     return tx.user.update({
       where: { id: req.auth!.user.id },
       data: {
@@ -115,7 +144,12 @@ profileRouter.delete('/instagram', async (req, res) => {
         instagramReviewReviewedAt: null,
         instagramReviewNotes: null,
       },
-      include: { roles: true },
+      include: {
+        roles: true,
+        instagramAccounts: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
     });
   });
 

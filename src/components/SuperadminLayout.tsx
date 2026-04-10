@@ -8,7 +8,7 @@ const SuperadminLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
-        <div className="container flex min-h-16 items-center justify-between gap-4 py-3">
+        <div className="container flex flex-col gap-4 py-4 lg:min-h-16 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex items-center gap-2 text-primary">
               <ShieldCheck className="h-5 w-5" />
@@ -17,7 +17,7 @@ const SuperadminLayout = ({ children }: { children: React.ReactNode }) => {
             <p className="text-xs text-muted-foreground">Manual verification, admin oversight, and account controls</p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               to="/admin"
               className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -43,7 +43,7 @@ const SuperadminLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </header>
 
-      <main className="container py-6">{children}</main>
+      <main className="container px-4 py-4 sm:px-6 sm:py-6">{children}</main>
     </div>
   );
 };

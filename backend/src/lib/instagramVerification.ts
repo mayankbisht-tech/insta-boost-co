@@ -1,6 +1,7 @@
 import { InstagramVerificationStatus } from '@prisma/client';
 import { env } from '../config/env.js';
 import { findApifyProfileByUsername, isApifyProfileConfigured } from './apify.js';
+import { createNotification } from './notifications.js';
 import { prisma } from './prisma.js';
 import { addMinutes } from '../utils/time.js';
 
@@ -11,6 +12,10 @@ const toUserConnection = (status: InstagramVerificationStatus) => {
 
   if (status === 'pending') {
     return { instagramConnectionStatus: 'approval_pending' as const, instagramVerified: false };
+  }
+
+  if (status === 'draft') {
+    return { instagramConnectionStatus: 'code_generated' as const, instagramVerified: false };
   }
 
   return { instagramConnectionStatus: 'rejected' as const, instagramVerified: false };
@@ -31,7 +36,6 @@ export const startInstagramVerification = async (params: {
   userId: string;
   instagramUsername: string;
   instagramUserId: string;
-  followersCount: number;
   verificationCode: string;
 }) => {
   const now = new Date();
@@ -43,10 +47,10 @@ export const startInstagramVerification = async (params: {
       update: {
         instagramUsername: params.instagramUsername,
         instagramUserId: params.instagramUserId,
-        followersCount: params.followersCount,
+        followersCount: 0,
         verificationCode: params.verificationCode,
-        status: 'pending',
-        submittedAt: now,
+        status: 'draft',
+        submittedAt: null,
         expiresAt,
         checkedAt: null,
         checkedBio: null,
@@ -61,28 +65,58 @@ export const startInstagramVerification = async (params: {
         userId: params.userId,
         instagramUsername: params.instagramUsername,
         instagramUserId: params.instagramUserId,
-        followersCount: params.followersCount,
+        followersCount: 0,
         verificationCode: params.verificationCode,
-        status: 'pending',
-        submittedAt: now,
+        status: 'draft',
+        submittedAt: null,
         expiresAt,
+      },
+    });
+
+    await tx.instagramAccount.upsert({
+      where: { instagramUserId: params.instagramUserId },
+      update: {
+        userId: params.userId,
+        instagramUsername: params.instagramUsername,
+        connectionStatus: 'code_generated',
+        instagramVerified: false,
+        verificationCode: params.verificationCode,
+        followersCount: 0,
+        reviewSubmittedAt: null,
+        reviewReviewedAt: null,
+        reviewNotes: 'Verification code generated. Run the check after updating your Instagram bio.',
+      },
+      create: {
+        userId: params.userId,
+        instagramUsername: params.instagramUsername,
+        instagramUserId: params.instagramUserId,
+        connectionStatus: 'code_generated',
+        instagramVerified: false,
+        verificationCode: params.verificationCode,
+        followersCount: 0,
+        reviewNotes: 'Verification code generated. Run the check after updating your Instagram bio.',
       },
     });
 
     return tx.user.update({
       where: { id: params.userId },
       data: {
-        instagramConnectionStatus: 'approval_pending',
+        instagramConnectionStatus: 'code_generated',
         instagramUserId: params.instagramUserId,
         instagramUsername: params.instagramUsername,
-        followersCount: params.followersCount,
+        followersCount: 0,
         verificationCode: params.verificationCode,
         instagramVerified: false,
-        instagramReviewSubmittedAt: now,
+        instagramReviewSubmittedAt: null,
         instagramReviewReviewedAt: null,
-        instagramReviewNotes: null,
+        instagramReviewNotes: 'Verification code generated. Run the check after updating your Instagram bio.',
       },
-      include: { roles: true },
+      include: {
+        roles: true,
+        instagramAccounts: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
     });
   });
 };
@@ -112,19 +146,15 @@ export const runInstagramVerificationCheck = async (params: {
     return { ok: true, status: 'verified' };
   }
 
-  if (request.expiresAt && now < request.expiresAt && !params.allowEarlyCheck) {
-    return { ok: false, error: 'Please wait until the verification window closes.', nextCheckAt: request.expiresAt };
-  }
-
   const profile = await findApifyProfileByUsername(request.instagramUsername);
 
   const bio = profile?.bio ?? null;
   const followers = profile?.followers ?? null;
   const bioContainsToken = bio ? bio.includes(request.verificationCode) : false;
-  const followersMatch = followers !== null ? followers === request.followersCount : false;
+  const followersMatch = followers !== null;
 
   let status: InstagramVerificationStatus = 'failed';
-  if (bioContainsToken && followersMatch) {
+  if (bioContainsToken) {
     status = 'verified';
   } else if (request.expiresAt && now > request.expiresAt) {
     status = 'expired';
@@ -137,6 +167,8 @@ export const runInstagramVerificationCheck = async (params: {
       where: { userId: params.userId },
       data: {
         status,
+        submittedAt: now,
+        followersCount: followers ?? request.followersCount,
         checkedAt: now,
         checkedBio: bio,
         checkedFollowers: followers,
@@ -148,22 +180,74 @@ export const runInstagramVerificationCheck = async (params: {
       },
     });
 
+    await tx.instagramAccount.upsert({
+      where: { instagramUserId: request.instagramUserId },
+      update: {
+        userId: params.userId,
+        instagramUsername: request.instagramUsername,
+        connectionStatus: userStatus.instagramConnectionStatus,
+        instagramVerified: userStatus.instagramVerified,
+        verificationCode: request.verificationCode,
+        followersCount: followers ?? request.followersCount,
+        reviewSubmittedAt: now,
+        reviewReviewedAt: now,
+        reviewNotes:
+          status === 'failed'
+            ? 'Verification code was not found in the Instagram bio.'
+            : status === 'expired'
+            ? 'Verification window expired.'
+            : 'Instagram account verified automatically.',
+      },
+      create: {
+        userId: params.userId,
+        instagramUsername: request.instagramUsername,
+        instagramUserId: request.instagramUserId,
+        connectionStatus: userStatus.instagramConnectionStatus,
+        instagramVerified: userStatus.instagramVerified,
+        verificationCode: request.verificationCode,
+        followersCount: followers ?? request.followersCount,
+        reviewSubmittedAt: now,
+        reviewReviewedAt: now,
+        reviewNotes:
+          status === 'failed'
+            ? 'Verification code was not found in the Instagram bio.'
+            : status === 'expired'
+            ? 'Verification window expired.'
+            : 'Instagram account verified automatically.',
+      },
+    });
+
     await tx.user.update({
       where: { id: params.userId },
       data: {
         instagramConnectionStatus: userStatus.instagramConnectionStatus,
         instagramVerified: userStatus.instagramVerified,
         followersCount: followers ?? request.followersCount,
+        instagramReviewSubmittedAt: now,
         instagramReviewReviewedAt: now,
         instagramReviewNotes:
           status === 'failed'
-            ? 'Bio token or follower count did not match.'
+            ? 'Verification code was not found in the Instagram bio.'
             : status === 'expired'
             ? 'Verification window expired.'
-            : null,
+            : 'Instagram account verified automatically.',
       },
     });
   });
+
+  if (status === 'verified') {
+    await createNotification(params.userId, 'Instagram account verified successfully. You can now submit reels directly.');
+  } else if (status === 'failed') {
+    await createNotification(
+      params.userId,
+      'Instagram verification failed because the verification code was not found in the Instagram bio.',
+    );
+  } else if (status === 'expired') {
+    await createNotification(
+      params.userId,
+      'Instagram verification expired. Generate a new code and try again.',
+    );
+  }
 
   return { ok: true, status };
 };
@@ -180,6 +264,10 @@ export const overrideInstagramVerificationStatus = async (params: {
   const userStatus = toUserConnection(params.status);
 
   await prisma.$transaction(async tx => {
+    const request = await tx.instagramVerificationRequest.findUnique({
+      where: { userId: params.userId },
+    });
+
     await tx.instagramVerificationRequest.update({
       where: { userId: params.userId },
       data: {
@@ -191,6 +279,35 @@ export const overrideInstagramVerificationStatus = async (params: {
         reviewNotes: params.notes ?? null,
       },
     });
+
+    if (request) {
+      await tx.instagramAccount.upsert({
+        where: { instagramUserId: request.instagramUserId },
+        update: {
+          userId: params.userId,
+          instagramUsername: request.instagramUsername,
+          connectionStatus: params.status === 'pending' ? 'code_generated' : userStatus.instagramConnectionStatus,
+          instagramVerified: userStatus.instagramVerified,
+          verificationCode: request.verificationCode,
+          followersCount: request.followersCount,
+          reviewSubmittedAt: params.status === 'pending' ? now : request.submittedAt,
+          reviewReviewedAt: params.status === 'pending' ? null : now,
+          reviewNotes: params.status === 'pending' ? null : (params.notes ?? null),
+        },
+        create: {
+          userId: params.userId,
+          instagramUsername: request.instagramUsername,
+          instagramUserId: request.instagramUserId,
+          connectionStatus: params.status === 'pending' ? 'code_generated' : userStatus.instagramConnectionStatus,
+          instagramVerified: userStatus.instagramVerified,
+          verificationCode: request.verificationCode,
+          followersCount: request.followersCount,
+          reviewSubmittedAt: params.status === 'pending' ? now : request.submittedAt,
+          reviewReviewedAt: params.status === 'pending' ? null : now,
+          reviewNotes: params.status === 'pending' ? null : (params.notes ?? null),
+        },
+      });
+    }
 
     await tx.user.update({
       where: { id: params.userId },

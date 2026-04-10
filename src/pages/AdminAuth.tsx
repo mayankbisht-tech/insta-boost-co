@@ -1,11 +1,7 @@
-import { useLocation } from 'react-router-dom';
-import Auth from './Auth';
+import { Navigate } from 'react-router-dom';
 
 const AdminAuth = () => {
-  const location = useLocation();
-  const rolePreSelected = (location.state as any)?.rolePreSelected === true;
-
-  return <Auth initialRole="admin" />;
+  return <Navigate to="/auth" replace />;
 };
 
 export default AdminAuth;

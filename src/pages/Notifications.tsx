@@ -20,14 +20,25 @@ const Notifications = () => {
 
   useEffect(() => {
     if (!user) return;
-    api
-      .get<Notification[]>('/api/notifications')
-      .then(data => {
-        if (data) setNotifications(data);
-        setLoading(false);
-      });
 
-    api.patch('/api/notifications/read-all').catch(() => undefined);
+    const loadNotifications = async () => {
+      try {
+        const data = await api.get<Notification[]>('/api/notifications');
+        if (data) {
+          setNotifications(data);
+        }
+
+        await api.patch('/api/notifications/read-all');
+        setNotifications(current => current.map(notification => ({ ...notification, read: true })));
+        window.dispatchEvent(new Event('notifications:read-all'));
+      } catch {
+        setNotifications([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void loadNotifications();
   }, [user]);
 
   return (
@@ -53,7 +64,7 @@ const Notifications = () => {
               className={`glass-card p-4 ${!n.read ? 'border-l-2 border-l-primary' : ''}`}
             >
               <p className="text-sm">{n.message}</p>
-              <p className="text-xs text-muted-foreground mt-1">{new Date(n.created_at).toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-1">{n.created_at ? new Date(n.created_at).toLocaleString() : 'N/A'}</p>
             </motion.div>
           ))}
         </div>

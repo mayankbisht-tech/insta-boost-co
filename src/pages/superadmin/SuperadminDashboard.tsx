@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import { CampaignBudgetCard, type CampaignBudget } from '@/components/CampaignBudgetCard';
+import { getRealtimeSocket } from '@/lib/realtime';
 import { getInstagramProfileUrl } from '@/lib/utils';
 
 interface SuperadminOverview {
@@ -16,6 +18,7 @@ interface SuperadminOverview {
   pausedUsers: number;
   blockedUsers: number;
   pendingVerifications: number;
+  pendingAdminCredentials: number;
   connectedCreators: number;
   platformViews: number;
   platformEarnings: number;
@@ -61,24 +64,59 @@ interface SuperadminUser {
   instagram_verification_request: VerificationRequest | null;
 }
 
+interface Campaign extends CampaignBudget {
+  created_at: string;
+  reward_per_million_views: number;
+  rules: string[];
+}
+
+interface PendingAdminCredential {
+  id: string;
+  name: string;
+  email: string;
+  created_at: string;
+  claimed_at: string | null;
+  issued_by: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  claimed_by: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+}
+
 const statusOptions: Array<SuperadminUser['account_status']> = ['active', 'paused', 'suspended', 'banned'];
 
 const SuperadminDashboard = () => {
   const [overview, setOverview] = useState<SuperadminOverview | null>(null);
   const [users, setUsers] = useState<SuperadminUser[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [pendingAdminCredentials, setPendingAdminCredentials] = useState<PendingAdminCredential[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
-  const [noteByUserId, setNoteByUserId] = useState<Record<string, string>>({});
+  const [creatingAdmin, setCreatingAdmin] = useState(false);
+  const [adminInviteForm, setAdminInviteForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+  });
 
   const loadData = async () => {
     try {
-      const [overviewData, usersData] = await Promise.all([
+      const [overviewData, usersData, campaignsData, pendingAdminCredentialsData] = await Promise.all([
         api.get<SuperadminOverview>('/api/admin/superadmin/overview'),
         api.get<SuperadminUser[]>('/api/admin/superadmin/users'),
+        api.get<Campaign[]>('/api/campaigns'),
+        api.get<PendingAdminCredential[]>('/api/admin/superadmin/admin-credentials'),
       ]);
       setOverview(overviewData);
       setUsers(usersData);
+      setCampaigns(campaignsData.filter(campaign => campaign.status === 'Active'));
+      setPendingAdminCredentials(pendingAdminCredentialsData);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to load superadmin dashboard.');
     } finally {
@@ -88,6 +126,42 @@ const SuperadminDashboard = () => {
 
   useEffect(() => {
     void loadData();
+  }, []);
+
+  useEffect(() => {
+    const socket = getRealtimeSocket();
+
+    const onBudgetUpdate = (payload: CampaignBudget) => {
+      setCampaigns(previous => {
+        const found = previous.some(campaign => campaign.id === payload.id);
+        if (!found && payload.status === 'Active') {
+          return [{
+            ...payload,
+            reward_per_million_views: payload.rupees_per_thousand_views * 1000,
+            rules: [],
+            created_at: new Date().toISOString(),
+          }, ...previous];
+        }
+
+        return previous
+          .map(campaign => (
+            campaign.id === payload.id
+              ? {
+                  ...campaign,
+                  ...payload,
+                  reward_per_million_views: payload.rupees_per_thousand_views * 1000,
+                }
+              : campaign
+          ))
+          .filter(campaign => campaign.status === 'Active');
+      });
+    };
+
+    socket.on('campaign:budget-updated', onBudgetUpdate);
+
+    return () => {
+      socket.off('campaign:budget-updated', onBudgetUpdate);
+    };
   }, []);
 
   const filteredUsers = useMemo(() => {
@@ -109,6 +183,29 @@ const SuperadminDashboard = () => {
   const allVerificationUsers = filteredUsers.filter(
     user => user.instagram_verification_request !== null,
   );
+
+  const createAdminCredential = async () => {
+    if (!adminInviteForm.name.trim() || !adminInviteForm.email.trim() || !adminInviteForm.password.trim()) {
+      toast.error('Name, email, and password are required.');
+      return;
+    }
+
+    setCreatingAdmin(true);
+    try {
+      await api.post('/api/admin/superadmin/admin-credentials', {
+        name: adminInviteForm.name.trim(),
+        email: adminInviteForm.email.trim().toLowerCase(),
+        password: adminInviteForm.password,
+      });
+      toast.success('Admin credentials created. Share them directly with the admin.');
+      setAdminInviteForm({ name: '', email: '', password: '' });
+      await loadData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create admin credentials.');
+    } finally {
+      setCreatingAdmin(false);
+    }
+  };
 
   const updateAccountStatus = async (userId: string, status: SuperadminUser['account_status']) => {
     setBusyUserId(userId);
@@ -137,32 +234,14 @@ const SuperadminDashboard = () => {
   };
 
   const triggerVerification = async (userId: string) => {
-    setBusyUserId(userId);
-    try {
-      await api.patch(`/api/admin/superadmin/verifications/${userId}/trigger`);
-      toast.success('Verification check triggered.');
-      await loadData();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to trigger verification.');
-    } finally {
-      setBusyUserId(null);
-    }
+    void userId;
+    toast('Instagram verification is now handled directly by the creator.');
   };
 
   const overrideVerification = async (userId: string, status: VerificationRequest['status']) => {
-    setBusyUserId(userId);
-    try {
-      await api.patch(`/api/admin/superadmin/verifications/${userId}/status`, {
-        status,
-        notes: noteByUserId[userId]?.trim() || undefined,
-      });
-      toast.success(`Verification set to ${status}.`);
-      await loadData();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update verification.');
-    } finally {
-      setBusyUserId(null);
-    }
+    void userId;
+    void status;
+    toast('Manual verification overrides have been removed. Creators now verify automatically.');
   };
 
   return (
@@ -217,7 +296,7 @@ const SuperadminDashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <ShieldCheck className="h-4 w-4 text-primary" />
-                  Pending Verifications
+                  Creator Verification Requests
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-3xl font-bold">{overview?.pendingVerifications ?? 0}</CardContent>
@@ -230,6 +309,15 @@ const SuperadminDashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-3xl font-bold">{overview?.totalAdmins ?? 0}</CardContent>
+            </Card>
+            <Card className="glass-card border-border/60">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  Pending Admin Credentials
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-3xl font-bold">{overview?.pendingAdminCredentials ?? 0}</CardContent>
             </Card>
             <Card className="glass-card border-border/60">
               <CardHeader>
@@ -258,6 +346,76 @@ const SuperadminDashboard = () => {
             </Card>
           </section>
 
+          <section className="glass-card p-5 space-y-4">
+            <div>
+              <h2 className="font-display text-xl font-bold">Admin Credential Issuer</h2>
+              <p className="text-sm text-muted-foreground">
+                Superadmin can generate an email and password for a future admin. The admin role is granted only when that person logs in successfully for the first time.
+              </p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <Input
+                value={adminInviteForm.name}
+                onChange={event => setAdminInviteForm(previous => ({ ...previous, name: event.target.value }))}
+                placeholder="Admin full name"
+              />
+              <Input
+                type="email"
+                value={adminInviteForm.email}
+                onChange={event => setAdminInviteForm(previous => ({ ...previous, email: event.target.value }))}
+                placeholder="admin@example.com"
+              />
+              <Input
+                type="password"
+                value={adminInviteForm.password}
+                onChange={event => setAdminInviteForm(previous => ({ ...previous, password: event.target.value }))}
+                placeholder="Temporary password"
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <Button onClick={() => void createAdminCredential()} disabled={creatingAdmin}>
+                {creatingAdmin ? 'Creating...' : 'Create Admin Credentials'}
+              </Button>
+            </div>
+
+            {pendingAdminCredentials.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No issued admin credentials yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px] text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-muted-foreground">
+                      <th className="py-3 pr-4 font-medium">Name</th>
+                      <th className="py-3 pr-4 font-medium">Email</th>
+                      <th className="py-3 pr-4 font-medium">Issued By</th>
+                      <th className="py-3 pr-4 font-medium">Issued At</th>
+                      <th className="py-3 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingAdminCredentials.map(credential => (
+                      <tr key={credential.id} className="border-b border-border/70">
+                        <td className="py-4 pr-4 font-medium">{credential.name}</td>
+                        <td className="py-4 pr-4">{credential.email}</td>
+                        <td className="py-4 pr-4 text-muted-foreground">{credential.issued_by.email}</td>
+                        <td className="py-4 pr-4 text-muted-foreground">
+                          {new Date(credential.created_at).toLocaleString()}
+                        </td>
+                        <td className="py-4">
+                          <Badge variant={credential.claimed_at ? 'secondary' : 'outline'}>
+                            {credential.claimed_at ? `Claimed by ${credential.claimed_by?.email ?? 'admin'}` : 'Pending first login'}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
           <section className="glass-card p-5">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div>
@@ -279,14 +437,34 @@ const SuperadminDashboard = () => {
             </div>
           </section>
 
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="font-display text-xl font-bold">Active Campaign Budget Tracker</h2>
+                <p className="text-sm text-muted-foreground">Live budget consumption updates are shared with admin, superadmin, and creator dashboards.</p>
+              </div>
+              <Badge variant="secondary">{campaigns.length} active</Badge>
+            </div>
+
+            {campaigns.length === 0 ? (
+              <div className="glass-card p-6 text-sm text-muted-foreground">No active campaigns right now.</div>
+            ) : (
+              <div className="grid gap-4 lg:grid-cols-2">
+                {campaigns.map(campaign => (
+                  <CampaignBudgetCard key={campaign.id} campaign={campaign} compact />
+                ))}
+              </div>
+            )}
+          </section>
+
           <section className="glass-card p-5 space-y-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="font-display text-xl font-bold">Instagram Review Queue</h2>
-                <p className="text-sm text-muted-foreground">
-                  Compare the username, follower count, and verification code with the Instagram bio before approving.
-                </p>
-              </div>
+                  <h2 className="font-display text-xl font-bold">Instagram Verification Overview</h2>
+                  <p className="text-sm text-muted-foreground">
+                  Verification is now creator-managed. This section is read-only so the team can monitor outcomes without approving accounts manually.
+                  </p>
+                </div>
               <Badge variant="secondary">{pendingVerifications.length} queued</Badge>
             </div>
 
@@ -379,48 +557,41 @@ const SuperadminDashboard = () => {
                         </div>
                       </div>
 
-                      <textarea
-                        value={noteByUserId[user.id] ?? ''}
-                        onChange={event => setNoteByUserId(current => ({ ...current, [user.id]: event.target.value }))}
-                        placeholder="Optional review note"
-                        className="min-h-24 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                      />
-
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          onClick={() => void triggerVerification(user.id)}
-                          disabled={busyUserId === user.id}
-                        >
-                          Trigger Apify Check
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => void overrideVerification(user.id, 'verified')}
-                          disabled={busyUserId === user.id}
-                        >
-                          Mark Verified
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => void overrideVerification(user.id, 'failed')}
-                          disabled={busyUserId === user.id}
-                        >
-                          Mark Failed
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => void overrideVerification(user.id, 'expired')}
-                          disabled={busyUserId === user.id}
-                        >
-                          Mark Expired
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          onClick={() => void overrideVerification(user.id, 'pending')}
-                          disabled={busyUserId === user.id}
-                        >
-                          Reset Pending
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            onClick={() => void triggerVerification(user.id)}
+                            disabled
+                          >
+                            Creator Managed
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => void overrideVerification(user.id, 'verified')}
+                            disabled
+                          >
+                            Auto Verify Only
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => void overrideVerification(user.id, 'failed')}
+                            disabled
+                          >
+                            No Manual Fail
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => void overrideVerification(user.id, 'expired')}
+                            disabled
+                          >
+                            No Manual Expire
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() => void overrideVerification(user.id, 'pending')}
+                            disabled
+                          >
+                            No Manual Reset
+                          </Button>
                       </div>
                     </div>
                   );
@@ -433,7 +604,7 @@ const SuperadminDashboard = () => {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="font-display text-xl font-bold">Verification Statuses</h2>
-                <p className="text-sm text-muted-foreground">View all users with verification states.</p>
+                <p className="text-sm text-muted-foreground">View all users with verification states and automatic check results.</p>
               </div>
               <Badge variant="secondary">{allVerificationUsers.length} total</Badge>
             </div>
@@ -493,21 +664,8 @@ const SuperadminDashboard = () => {
                               : request?.followers_count?.toLocaleString() ?? '-'}
                           </td>
                           <td className="py-4">
-                            <div className="flex flex-wrap gap-2">
-                              <Button size="sm" variant="outline" onClick={() => void triggerVerification(user.id)} disabled={busyUserId === user.id}>
-                                Trigger
-                              </Button>
-                              <Button size="sm" onClick={() => void overrideVerification(user.id, 'verified')} disabled={busyUserId === user.id}>
-                                Verify
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => void overrideVerification(user.id, 'failed')} disabled={busyUserId === user.id}>
-                                Fail
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => void overrideVerification(user.id, 'expired')} disabled={busyUserId === user.id}>
-                                Expire
-                              </Button>
-                            </div>
-                          </td>
+                              <Badge variant="outline">Creator managed</Badge>
+                            </td>
                         </tr>
                       );
                     })}
@@ -575,7 +733,7 @@ const SuperadminDashboard = () => {
                               ) : (
                                 <p className="font-medium">@{user.instagram_username}</p>
                               )}
-                              <p className="text-muted-foreground">{user.followers_count.toLocaleString()} followers</p>
+                              <p className="text-muted-foreground">{(user.followers_count ?? 0).toLocaleString()} followers</p>
                             </div>
                           ) : (
                             <span className="text-muted-foreground">Not linked</span>

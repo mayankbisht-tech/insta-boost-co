@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { env } from '../config/env.js';
-import { getApifyAnalyticsByReelCode } from '../lib/apify.js';
-import { consumeRefreshQuota, getRefreshQuota, syncSubmissionAnalytics } from '../lib/analyticsRefresh.js';
+import { refreshApifyAnalyticsForReelUrl } from '../lib/apify.js';
 import { prisma } from '../lib/prisma.js';
+import { emitCampaignBudgetUpdate } from '../lib/realtime.js';
 import { extractInstagramReelCode, normalizeInstagramReelUrl, normalizeInstagramUsername } from '../lib/reels.js';
 import { toSubmissionPayload } from '../lib/serializers.js';
+import { calculateSubmissionEarnings, resolveSubmissionEarnings } from '../lib/submissionEarnings.js';
 import { requireAuth } from '../middleware/auth.js';
 import { addMinutes } from '../utils/time.js';
 
@@ -13,11 +14,8 @@ export const submissionsRouter = Router();
 
 const createSubmissionSchema = z.object({
   campaign_id: z.string().min(1),
-  reel_url: z.string().trim().url(),
+  reel_url: z.string().trim().min(1),
 });
-
-const calculateEarnings = (views: number, rewardPerMillionViews: number) =>
-  Number(((views / 1_000_000) * rewardPerMillionViews).toFixed(2));
 
 submissionsRouter.use(requireAuth);
 
@@ -28,7 +26,10 @@ submissionsRouter.get('/overview', async (req, res) => {
   });
 
   const totalViews = submissions.reduce((sum, submission) => sum + submission.views, 0);
-  const totalEarnings = submissions.reduce((sum, submission) => sum + Number(submission.earnings), 0);
+  const totalEarnings = submissions.reduce(
+    (sum, submission) => sum + resolveSubmissionEarnings(submission.earnings, submission.status),
+    0,
+  );
   const bestSubmission = submissions.reduce<typeof submissions[number] | null>(
     (best, submission) => (!best || submission.views > best.views ? submission : best),
     null,
@@ -72,15 +73,6 @@ submissionsRouter.get('/', async (req, res) => {
   res.json(submissions.map(toSubmissionPayload));
 });
 
-submissionsRouter.get('/refresh-quota', async (req, res) => {
-  const quota = getRefreshQuota(req.auth!.user);
-  res.json({
-    refresh_limit: quota.refreshLimit,
-    refreshes_remaining: quota.refreshesRemaining,
-    window_resets_at: quota.windowResetsAt,
-  });
-});
-
 submissionsRouter.post('/', async (req, res) => {
   const parsed = createSubmissionSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -113,7 +105,15 @@ submissionsRouter.post('/', async (req, res) => {
         { normalizedReelUrl },
       ],
     },
-    include: { user: true },
+    include: {
+      user: {
+        include: {
+          instagramAccounts: {
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      },
+    },
   });
 
   if (duplicateSubmission) {
@@ -127,7 +127,7 @@ submissionsRouter.post('/', async (req, res) => {
 
   let analyticsResult;
   try {
-    analyticsResult = await getApifyAnalyticsByReelCode(reelCode);
+    analyticsResult = await refreshApifyAnalyticsForReelUrl(parsed.data.reel_url);
   } catch {
     analyticsResult = null;
   }
@@ -169,6 +169,7 @@ submissionsRouter.post('/', async (req, res) => {
       error: 'Reel analytics were found, but the upload time is still unavailable.',
     });
   }
+
   const submissionClosesAt = addMinutes(resolvedUploadedAt, env.REEL_SUBMISSION_WINDOW_MINUTES);
 
   if (submissionClosesAt < new Date()) {
@@ -178,9 +179,20 @@ submissionsRouter.post('/', async (req, res) => {
   }
 
   const scrapedOwner = normalizeInstagramUsername(analyticsSnapshot?.ownerUsername);
-  const accountOwner = normalizeInstagramUsername(req.auth!.user.instagramUsername);
+  const approvedOwners = req.auth!.user.instagramAccounts
+    .filter(account => account.connectionStatus === 'approved')
+    .map(account => normalizeInstagramUsername(account.instagramUsername))
+    .filter((username): username is string => Boolean(username));
+  const legacyApprovedOwner =
+    req.auth!.user.instagramConnectionStatus === 'approved'
+      ? normalizeInstagramUsername(req.auth!.user.instagramUsername)
+      : null;
+  const allowedOwners = Array.from(new Set([
+    ...approvedOwners,
+    ...(legacyApprovedOwner ? [legacyApprovedOwner] : []),
+  ]));
 
-  if (scrapedOwner && accountOwner && scrapedOwner !== accountOwner) {
+  if (scrapedOwner && allowedOwners.length > 0 && !allowedOwners.includes(scrapedOwner)) {
     return res.status(400).json({
       error: `This reel belongs to @${scrapedOwner}, so it cannot be submitted from your connected account.`,
     });
@@ -202,58 +214,22 @@ submissionsRouter.post('/', async (req, res) => {
       analyticsSource: analyticsSnapshot?.source ?? null,
       analyticsSyncedAt: analyticsSnapshot ? new Date() : null,
       apifyDatasetItemId: analyticsSnapshot?.datasetItemId ?? null,
-      earnings: calculateEarnings(analyticsSnapshot?.views ?? 0, campaign.rewardPerMillionViews),
+      earnings: calculateSubmissionEarnings(
+        analyticsSnapshot?.views ?? 0,
+        campaign.rewardPerMillionViews,
+        'Pending',
+      ),
     },
     include: {
       campaign: true,
     },
   });
+
+  await emitCampaignBudgetUpdate(submission.campaignId);
 
   res.status(201).json(toSubmissionPayload(submission));
 });
 
 submissionsRouter.patch('/:id/refresh-analytics', async (req, res) => {
-  const submission = await prisma.submission.findFirst({
-    where: {
-      id: req.params.id,
-      userId: req.auth!.user.id,
-    },
-    include: {
-      campaign: true,
-      user: true,
-    },
-  });
-
-  if (!submission) {
-    return res.status(404).json({ error: 'Submission not found.' });
-  }
-
-  const quotaBeforeRefresh = getRefreshQuota(req.auth!.user);
-  if (quotaBeforeRefresh.refreshesRemaining <= 0) {
-    return res.status(429).json({
-      error: `You have used all ${quotaBeforeRefresh.refreshLimit} analytics refreshes for this hour.`,
-      refresh_limit: quotaBeforeRefresh.refreshLimit,
-      refreshes_remaining: quotaBeforeRefresh.refreshesRemaining,
-      window_resets_at: quotaBeforeRefresh.windowResetsAt,
-    });
-  }
-
-  const result = await syncSubmissionAnalytics(submission);
-  if (!result.ok) {
-    return res.status(result.status).json({
-      error: result.error,
-      refresh_limit: quotaBeforeRefresh.refreshLimit,
-      refreshes_remaining: quotaBeforeRefresh.refreshesRemaining,
-      window_resets_at: quotaBeforeRefresh.windowResetsAt,
-    });
-  }
-
-  const quota = consumeRefreshQuota(req.auth!.user);
-
-  res.json({
-    submission: toSubmissionPayload(result.submission),
-    refresh_limit: quota.refreshLimit,
-    refreshes_remaining: quota.refreshesRemaining,
-    window_resets_at: quota.windowResetsAt,
-  });
+  return res.status(403).json({ error: 'Analytics updates are managed by admin only.' });
 });

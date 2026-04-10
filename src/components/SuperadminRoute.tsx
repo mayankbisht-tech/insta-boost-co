@@ -13,7 +13,7 @@ const SuperadminRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!user) return <Navigate to="/auth/admin" replace />;
+  if (!user) return <Navigate to="/auth" replace />;
   if (profile?.account_status && profile.account_status !== 'active') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">

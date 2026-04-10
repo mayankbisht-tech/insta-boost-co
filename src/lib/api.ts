@@ -26,16 +26,27 @@ export const apiRequest = async <T>(path: string, options: ApiOptions = {}): Pro
   const hasJsonBody = options.body !== undefined && !(options.body instanceof FormData);
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
+    cache: 'no-store',
     credentials: 'include',
     headers: buildHeaders(options.headers, hasJsonBody),
     body: hasJsonBody ? JSON.stringify(options.body) : (options.body as BodyInit | null | undefined),
   });
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data: unknown = null;
+
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { error: text };
+    }
+  }
 
   if (!response.ok) {
-    throw new Error(data?.error || 'Request failed.');
+    const payload = (typeof data === 'object' && data !== null ? data : null) as { error?: string } | null;
+    const message = payload?.error || `Request to ${path} failed with status ${response.status}.`;
+    throw new Error(message);
   }
 
   return data as T;

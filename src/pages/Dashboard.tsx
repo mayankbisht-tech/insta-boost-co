@@ -1,23 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { CampaignBudgetCard, type CampaignBudget } from '@/components/CampaignBudgetCard';
 import { api } from '@/lib/api';
+import { getRealtimeSocket } from '@/lib/realtime';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { TrendingUp, CheckCircle, XCircle, Clock, DollarSign, BarChart3, Eye, Radar } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, DollarSign, Eye } from 'lucide-react';
 
-interface Campaign {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
+interface Campaign extends CampaignBudget {
   reward_per_million_views: number;
   rules: string[];
-  status: string;
   created_at: string;
-  image_url: string | null;
 }
 
 interface SubmissionOverview {
@@ -77,26 +73,53 @@ const Dashboard = () => {
     void fetchData();
   }, [user]);
 
+  useEffect(() => {
+    const socket = getRealtimeSocket();
+
+    const onBudgetUpdate = (payload: CampaignBudget) => {
+      setCampaigns(previous => {
+        const found = previous.some(campaign => campaign.id === payload.id);
+        if (!found) {
+          return [{
+            ...payload,
+            reward_per_million_views: payload.rupees_per_thousand_views * 1000,
+            rules: [],
+            created_at: new Date().toISOString(),
+          }, ...previous];
+        }
+
+        return previous.map(campaign => (
+          campaign.id === payload.id
+            ? {
+                ...campaign,
+                ...payload,
+              }
+            : campaign
+        ));
+      });
+    };
+
+    socket.on('campaign:budget-updated', onBudgetUpdate);
+
+    return () => {
+      socket.off('campaign:budget-updated', onBudgetUpdate);
+    };
+  }, []);
+
   const statCards = [
     { label: 'Total Submissions', value: overview.total_submissions, icon: Eye, color: 'text-primary' },
-    {label: 'Total Views', value: overview.total_views.toLocaleString(), icon: TrendingUp, color: 'text-primary'},
     { label: 'Approved', value: overview.approved, icon: CheckCircle, color: 'text-success' },
     { label: 'Rejected', value: overview.rejected, icon: XCircle, color: 'text-destructive' },
-    { label: 'Pending', value: overview.pending, icon: Clock, color: 'text-warning'},
+    { label: 'Pending', value: overview.pending, icon: Clock, color: 'text-warning' },
   ];
 
   const topCampaign = campaigns.reduce((top, campaign) =>
     campaign.reward_per_million_views > (top?.reward_per_million_views || 0) ? campaign : top,
   campaigns[0]);
 
-  const averageRewardPerMillionViews = campaigns.length
-    ? campaigns.reduce((sum, campaign) => sum + campaign.reward_per_million_views, 0) / campaigns.length
-    : 0;
-  const estimatedEarnings = (overview.total_views / 1_000_000) * averageRewardPerMillionViews;
-
   return (
     <DashboardLayout>
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 xl:grid-cols-4">
         {statCards.map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -114,25 +137,25 @@ const Dashboard = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+      <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card p-5">
-          <div className="flex items-center gap-2 mb-1">
-            <DollarSign className="h-4 w-4 text-success" />
-            <span className="text-sm text-muted-foreground">Total Earnings</span>
+          <div className="flex items-center gap-2 mb-4">
+            <DollarSign className="h-8 w-8 text-success" />
+            <span className="text-xl text-muted-foreground">Total Earnings</span>
           </div>
-          <p className="font-display text-3xl font-bold text-success">₹ {overview.total_earnings.toFixed(2)}</p>
+          <p className="font-display text-4xl font-bold text-success">₹ {overview.total_earnings.toFixed(2)}</p>
         </motion.div>
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass-card p-5">
-          <div className="flex items-center gap-2 mb-1">
-            <Radar className="h-4 w-4 text-info" />
-            <span className="text-sm text-muted-foreground">Estimated Earnings</span>
+
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }} className="glass-card p-5">
+          <h2 className="font-display text-lg font-semibold">Creator Snapshot</h2>
+          <div className="mt-4 space-y-4 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-border/70 bg-background/50 p-4">
+              <p className="text-xs uppercase tracking-[0.18em]">Connected Instagram</p>
+              <p className="mt-2 text-base font-semibold text-foreground">
+                {user ? (overview.total_submissions > 0 ? 'Ready for reel submissions' : 'Verified and ready to start') : 'Sign in required'}
+              </p>
+            </div>
           </div>
-          <p className="font-display text-3xl font-bold text-info">₹ {estimatedEarnings.toFixed(2)}</p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {campaigns.length
-              ? `Based on ${overview.total_views.toLocaleString()} views at avg ₹ ${averageRewardPerMillionViews.toFixed(2)}/1M views.`
-              : 'Add campaigns to estimate earnings from your current views.'}
-          </p>
         </motion.div>
       </div>
 
@@ -147,27 +170,18 @@ const Dashboard = () => {
           <p className="text-muted-foreground">No campaigns available.</p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {campaigns.map((campaign, i) => (
             <motion.div
               key={campaign.id}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + i * 0.04 }}
-              className="glass-card overflow-hidden flex flex-col group transition-shadow duration-200"
+              className="space-y-3"
             >
-              {campaign.image_url && (
-                <div className="h-40 overflow-hidden">
-                  <img
-                    src={campaign.image_url}
-                    alt={campaign.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                  />
-                </div>
-              )}
-              <div className="p-5 flex flex-col flex-1">
-                <div className="flex items-center gap-2 mb-3">
+              <CampaignBudgetCard campaign={campaign} />
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
                   <Badge className={categoryColors[campaign.category] || 'bg-muted text-muted-foreground'}>
                     {campaign.category}
                   </Badge>
@@ -175,23 +189,9 @@ const Dashboard = () => {
                     <Badge className="bg-warning/10 text-warning border border-warning/20">Top Paying</Badge>
                   )}
                 </div>
-
-                <h3 className="font-display text-base font-semibold mb-1.5 group-hover:text-primary transition-colors">
-                  {campaign.title}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4 line-clamp-2 flex-1">
-                  {campaign.description}
-                </p>
-
-                <div className="flex items-center justify-between pt-3 border-t border-border">
-                  <div className="flex items-center gap-1 text-primary">
-                    <TrendingUp className="h-3.5 w-3.5" />
-                    <span className="text-sm font-semibold">₹ {campaign.reward_per_million_views}/1M</span>
-                  </div>
-                  <Button asChild size="sm" variant="outline" className="text-xs">
-                    <Link to={`/campaign/${campaign.id}`}>View Details</Link>
-                  </Button>
-                </div>
+                <Button asChild size="sm" variant="outline" className="text-xs">
+                  <Link to={`/campaign/${campaign.id}`}>View Details</Link>
+                </Button>
               </div>
             </motion.div>
           ))}

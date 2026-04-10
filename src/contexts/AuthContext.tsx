@@ -24,6 +24,19 @@ interface Profile {
   instagram_review_submitted_at: string | null;
   instagram_review_reviewed_at: string | null;
   instagram_review_notes: string | null;
+  instagram_accounts: Array<{
+    id: string;
+    instagram_username: string;
+    instagram_user_id: string;
+    instagram_connection_status: 'not_connected' | 'code_generated' | 'approval_pending' | 'approved' | 'rejected';
+    instagram_verified: boolean;
+    verification_code: string | null;
+    followers_count: number;
+    instagram_review_submitted_at: string | null;
+    instagram_review_reviewed_at: string | null;
+    instagram_review_notes: string | null;
+    created_at: string;
+  }>;
   created_at: string;
   roles: string[];
 }
@@ -40,12 +53,10 @@ interface AuthContextType {
   sendSignUpOtp: (email: string, name: string) => Promise<{ error: Error | null; data: SignUpOtpResponse | null }>;
   verifySignUpOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
   completeSignUp: (email: string, name: string, password: string) => Promise<{ error: Error | null }>;
-  sendAdminSignUpOtp: (email: string, name: string) => Promise<{ error: Error | null; data: SignUpOtpResponse | null }>;
-  verifyAdminSignUpOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
-  completeAdminSignUp: (email: string, name: string, password: string) => Promise<{ error: Error | null }>;
-
+  sendPasswordResetOtp: (email: string) => Promise<{ error: Error | null; data: PasswordResetOtpResponse | null }>;
+  verifyPasswordResetOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
+  completePasswordReset: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signInAdmin: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -53,6 +64,12 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface SignUpOtpResponse {
+  error?: string;
+  message?: string;
+  devOtp?: string;
+}
+
+interface PasswordResetOtpResponse {
   error?: string;
   message?: string;
   devOtp?: string;
@@ -155,15 +172,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error: null };
   };
 
-  const sendAdminSignUpOtp = async (email: string, name: string) => {
-    return invokeSignUpOtp('/api/auth/admin/signup/send-otp', {
+  // ================= PASSWORD RESET =================
+
+  const sendPasswordResetOtp = async (email: string) => {
+    return invokeSignUpOtp('/api/auth/password-reset/send-otp', {
       email: email.trim().toLowerCase(),
-      name: name.trim(),
     });
   };
 
-  const verifyAdminSignUpOtp = async (email: string, token: string) => {
-    const result = await invokeSignUpOtp('/api/auth/admin/signup/verify-otp', {
+  const verifyPasswordResetOtp = async (email: string, token: string) => {
+    const result = await invokeSignUpOtp('/api/auth/password-reset/verify-otp', {
       email: email.trim().toLowerCase(),
       otp: token.trim().toUpperCase(),
     });
@@ -171,20 +189,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error: result.error };
   };
 
-  const completeAdminSignUp = async (email: string, name: string, password: string) => {
-    const signUpResult = await invokeSignUpOtp('/api/auth/admin/signup/complete', {
+  const completePasswordReset = async (email: string, password: string) => {
+    const result = await invokeSignUpOtp('/api/auth/password-reset/complete', {
       email: email.trim().toLowerCase(),
-      name: name.trim(),
       password,
     });
 
-    if (signUpResult.error) {
-      return signUpResult;
-    }
-
-    const signInResult = await signInAdmin(email, password);
-    if (signInResult.error) {
-      return signInResult;
+    if (result.error) {
+      return result;
     }
 
     await refreshProfile();
@@ -202,21 +214,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await refreshProfile();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed.';
-      return { error: new Error(message) };
-    }
-
-    return { error: null };
-  };
-
-  const signInAdmin = async (email: string, password: string) => {
-    try {
-      await api.post('/api/auth/admin/login', {
-        email: email.trim().toLowerCase(),
-        password,
-      });
-      await refreshProfile();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Admin login failed.';
       return { error: new Error(message) };
     }
 
@@ -249,11 +246,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         sendSignUpOtp,
         verifySignUpOtp,
         completeSignUp,
-        sendAdminSignUpOtp,
-        verifyAdminSignUpOtp,
-        completeAdminSignUp,
+        sendPasswordResetOtp,
+        verifyPasswordResetOtp,
+        completePasswordReset,
         signIn,
-        signInAdmin,
         signOut,
         refreshProfile,
       }}

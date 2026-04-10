@@ -3,11 +3,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { motion } from 'framer-motion';
-import { toast } from 'sonner';
-import { ExternalLink, Eye, FileVideo, Heart, MessageCircle, PlayCircle, RefreshCcw } from 'lucide-react';
+import { ExternalLink, Eye, FileVideo, Heart, MessageCircle, PlayCircle } from 'lucide-react';
 
 interface Submission {
   id: string;
@@ -28,16 +26,6 @@ interface Submission {
   campaigns?: { title: string } | null;
 }
 
-interface RefreshQuota {
-  refresh_limit: number;
-  refreshes_remaining: number;
-  window_resets_at: string | null;
-}
-
-interface RefreshAnalyticsResponse extends RefreshQuota {
-  submission: Submission;
-}
-
 const statusColors: Record<string, string> = {
   Pending: 'bg-warning/10 text-warning border border-warning/20',
   Approved: 'bg-success/10 text-success border border-success/20',
@@ -53,8 +41,6 @@ const Submissions = () => {
   const [filterCampaign, setFilterCampaign] = useState('all');
   const [filterDate, setFilterDate] = useState('all');
   const [loading, setLoading] = useState(true);
-  const [quota, setQuota] = useState<RefreshQuota | null>(null);
-  const [syncingId, setSyncingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -69,34 +55,8 @@ const Submissions = () => {
       setLoading(false);
     };
 
-    const fetchQuota = async () => {
-      const data = await api.get<RefreshQuota>('/api/submissions/refresh-quota');
-      setQuota(data);
-    };
-
     void fetchData();
-    void fetchQuota();
   }, [user]);
-
-  const refreshAnalytics = async (id: string) => {
-    setSyncingId(id);
-    try {
-      const response = await api.patch<RefreshAnalyticsResponse>(`/api/submissions/${id}/refresh-analytics`);
-      setSubmissions(current =>
-        current.map(submission => (submission.id === id ? response.submission : submission)),
-      );
-      setQuota({
-        refresh_limit: response.refresh_limit,
-        refreshes_remaining: response.refreshes_remaining,
-        window_resets_at: response.window_resets_at,
-      });
-      toast.success(`Analytics updated. ${response.refreshes_remaining} refreshes left this hour.`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to refresh analytics.');
-    } finally {
-      setSyncingId(null);
-    }
-  };
 
   const filtered = useMemo(() => submissions.filter(submission => {
     if (filterStatus !== 'all' && submission.status !== filterStatus) return false;
@@ -113,12 +73,6 @@ const Submissions = () => {
   return (
     <DashboardLayout>
       <h1 className="font-display text-xl font-bold mb-5">My Submissions</h1>
-      {quota && (
-        <p className="mb-5 text-sm text-muted-foreground">
-          Analytics refreshes left this hour: {quota.refreshes_remaining}/{quota.refresh_limit}
-          {quota.window_resets_at ? `, resets ${new Date(quota.window_resets_at).toLocaleTimeString()}` : ''}
-        </p>
-      )}
       <div className="flex flex-wrap gap-3 mb-5">
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-[140px]">
@@ -197,9 +151,9 @@ const Submissions = () => {
                   </a>
 
                   <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 xl:grid-cols-4">
-                    <p>Uploaded: {new Date(submission.reel_uploaded_at).toLocaleString()}</p>
-                    <p>Submission window closed: {new Date(submission.submission_closes_at).toLocaleString()}</p>
-                    <p>Submitted: {new Date(submission.submitted_at).toLocaleString()}</p>
+                    <p>Uploaded: {submission.reel_uploaded_at ? new Date(submission.reel_uploaded_at).toLocaleString() : 'N/A'}</p>
+                    <p>Submission window closed: {submission.submission_closes_at ? new Date(submission.submission_closes_at).toLocaleString() : 'N/A'}</p>
+                    <p>Submitted: {submission.submitted_at ? new Date(submission.submitted_at).toLocaleString() : 'N/A'}</p>
                     <p>{submission.analytics_synced_at ? `Analytics synced ${new Date(submission.analytics_synced_at).toLocaleString()}` : 'Analytics not synced yet'}</p>
                   </div>
 
@@ -215,43 +169,40 @@ const Submissions = () => {
                     <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                       <Eye className="h-3.5 w-3.5" /> Views
                     </div>
-                    <p className="mt-2 text-xl font-semibold">{submission.views.toLocaleString()}</p>
+                    <p className="mt-2 text-xl font-semibold">{(submission.views ?? 0).toLocaleString()}</p>
                   </div>
                   <div className="rounded-xl border border-border/70 bg-background/60 p-3">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                       <PlayCircle className="h-3.5 w-3.5" /> Plays
                     </div>
-                    <p className="mt-2 text-xl font-semibold">{submission.play_count.toLocaleString()}</p>
+                    <p className="mt-2 text-xl font-semibold">{(submission.play_count ?? 0).toLocaleString()}</p>
                   </div>
                   <div className="rounded-xl border border-border/70 bg-background/60 p-3">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                       <Heart className="h-3.5 w-3.5" /> Likes
                     </div>
-                    <p className="mt-2 text-xl font-semibold">{submission.likes_count.toLocaleString()}</p>
+                    <p className="mt-2 text-xl font-semibold">{(submission.likes_count ?? 0).toLocaleString()}</p>
                   </div>
                   <div className="rounded-xl border border-border/70 bg-background/60 p-3">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                       <MessageCircle className="h-3.5 w-3.5" /> Comments
                     </div>
-                    <p className="mt-2 text-xl font-semibold">{submission.comments_count.toLocaleString()}</p>
+                    <p className="mt-2 text-xl font-semibold">{(submission.comments_count ?? 0).toLocaleString()}</p>
                   </div>
                 </div>
               </div>
 
               <div className="mt-4 flex items-center justify-between border-t border-border/70 pt-4">
                 <div className="flex items-center gap-3">
-                  <p className="text-sm text-muted-foreground">Basic analytics for users stay high level and easy to scan.</p>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void refreshAnalytics(submission.id)}
-                    disabled={syncingId === submission.id || Boolean(quota && quota.refreshes_remaining <= 0)}
-                  >
-                    <RefreshCcw className="mr-2 h-3.5 w-3.5" />
-                    {syncingId === submission.id ? 'Updating...' : 'Update'}
-                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    {submission.status === 'Rejected' || submission.status === 'Flagged'
+                      ? 'This reel is not earning right now because its status is rejected or flagged.'
+                      : 'Analytics updates are managed by admin only.'}
+                  </p>
                 </div>
-                <p className="text-lg font-semibold text-success">${Number(submission.earnings || 0).toFixed(2)}</p>
+                <p className={`text-lg font-semibold ${submission.earnings > 0 ? 'text-success' : 'text-foreground'}`}>
+                  ${Number(submission.earnings || 0).toFixed(2)}
+                </p>
               </div>
             </motion.div>
           ))}

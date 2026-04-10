@@ -1,9 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LayoutDashboard, FileVideo, Instagram, Bell, LogOut, Menu, X, Shield } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { api } from '@/lib/api';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -11,15 +12,48 @@ const navItems = [
   { path: '/instagram', label: 'Instagram', icon: Instagram },
 ];
 
+type Notification = {
+  id: string;
+  read: boolean;
+};
+
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
-  const { profile, signOut, isAdmin, isSuperadmin } = useAuth();
+  const { user, profile, signOut, isAdmin, isSuperadmin } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const refreshUnreadCount = async () => {
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
+
+    try {
+      const data = await api.get<Notification[]>('/api/notifications');
+      setUnreadCount(data.filter(item => !item.read).length);
+    } catch {
+      setUnreadCount(0);
+    }
+  };
+
+  useEffect(() => {
+    void refreshUnreadCount();
+  }, [user, location.pathname]);
+
+  useEffect(() => {
+    const handleNotificationsRead = () => {
+      setUnreadCount(0);
+    };
+
+    window.addEventListener('notifications:read-all', handleNotificationsRead);
+    return () => window.removeEventListener('notifications:read-all', handleNotificationsRead);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-card border-b border-border">
-        <div className="container flex h-14 items-center justify-between">
+      <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur">
+        <div className="container flex flex-wrap items-center justify-between gap-3 py-3">
           <div className="flex items-center gap-3">
             <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
               {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -46,14 +80,19 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {isAdmin && (
-              <Link to={isSuperadmin ? "/superadmin" : "/admin"} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors">
+              <Link to={isSuperadmin ? "/superadmin" : "/admin"} className="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20 sm:px-3">
                 <Shield className="h-3.5 w-3.5" /> {isSuperadmin ? 'Superadmin' : 'Admin'}
               </Link>
             )}
-            <Link to="/notifications" className="relative p-2 rounded-lg hover:bg-muted transition-colors">
+            <Link to="/notifications" className="relative rounded-lg p-2 transition-colors hover:bg-muted">
               <Bell className="h-4 w-4 text-muted-foreground" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </Link>
             <span className="hidden sm:block text-sm text-muted-foreground">
               {profile?.name || profile?.email}
@@ -92,7 +131,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         )}
       </AnimatePresence>
 
-      <main className="container py-6">{children}</main>
+      <main className="container px-4 py-4 sm:px-6 sm:py-6">{children}</main>
     </div>
   );
 };
