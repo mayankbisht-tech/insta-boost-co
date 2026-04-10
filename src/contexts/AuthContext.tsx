@@ -232,9 +232,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsAdmin(isAdminUser);
       setIsSuperadmin(isSuperadminUser);
 
-      // Refresh the full profile in the background so route guards can use it once ready.
-      void refreshProfile();
-
       return { error: null, data: data ?? null };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed.';
