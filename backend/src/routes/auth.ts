@@ -2,7 +2,7 @@ import { AppRole, Prisma } from '@prisma/client';
 import { Router, type NextFunction, type Request, type RequestHandler, type Response } from 'express';
 import { z } from 'zod';
 import { env } from '../config/env.js';
-import { canSendEmail, sendSignupOtpEmail } from '../lib/email.js';
+import { canSendEmail, sendPasswordResetOtpEmail, sendSignupOtpEmail } from '../lib/email.js';
 import { generateOtp, hashOtp } from '../lib/otp.js';
 import { hashPassword, verifyPassword } from '../lib/password.js';
 import { prisma } from '../lib/prisma.js';
@@ -31,6 +31,20 @@ const verifyOtpSchema = z.object({
 const completeSignupSchema = z.object({
   email: emailSchema,
   name: z.string().trim().min(1).max(120),
+  password: passwordSchema,
+});
+
+const passwordResetSendSchema = z.object({
+  email: emailSchema,
+});
+
+const passwordResetVerifySchema = z.object({
+  email: emailSchema,
+  otp: z.string().trim().min(env.OTP_LENGTH).max(env.OTP_LENGTH).transform(value => value.toUpperCase()),
+});
+
+const passwordResetCompleteSchema = z.object({
+  email: emailSchema,
   password: passwordSchema,
 });
 
@@ -87,9 +101,21 @@ const publicUser = (user: {
 const hasAdminAccess = (roles: { role: AppRole }[]) =>
   roles.some(role => role.role === AppRole.admin || role.role === AppRole.superadmin);
 
+const isMissingTableError = (error: unknown, table: string) =>
+  error instanceof Prisma.PrismaClientKnownRequestError &&
+  error.code === 'P2021' &&
+  typeof error.meta?.table === 'string' &&
+  error.meta.table === `public.${table}`;
+
 const findPendingAdminCredential = (email: string) =>
   prisma.pendingAdminCredential.findUnique({
     where: { email },
+  }).catch(error => {
+    if (isMissingTableError(error, 'PendingAdminCredential')) {
+      return null;
+    }
+
+    throw error;
   });
 
 const claimPendingAdminCredential = async (params: {
@@ -160,6 +186,22 @@ const claimPendingAdminCredential = async (params: {
   });
 };
 
+const getOtpValidationError = (record: { expiresAt: Date; attempts: number; otpHash: string }, otp: string) => {
+  if (record.expiresAt.getTime() < Date.now()) {
+    return 'OTP expired. Request a new OTP.';
+  }
+
+  if (record.attempts >= 5) {
+    return 'Too many invalid attempts. Request a new OTP.';
+  }
+
+  if (hashOtp(otp) !== record.otpHash) {
+    return 'Invalid OTP.';
+  }
+
+  return null;
+};
+
 authRouter.post('/signup/send-otp', asyncHandler(async (req, res) => {
   const parsed = sendOtpSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -217,6 +259,158 @@ authRouter.post('/signup/send-otp', asyncHandler(async (req, res) => {
   return res.json({
     message: 'OTP generated for local development.',
     devOtp: otp,
+  });
+}));
+
+authRouter.post('/password-reset/send-otp', asyncHandler(async (req, res) => {
+  const parsed = passwordResetSendSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid password reset data.', details: parsed.error.flatten().fieldErrors });
+  }
+
+  const { email } = parsed.data;
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user) {
+    return res.json({ message: 'If an account exists for this email, a password reset OTP has been sent.' });
+  }
+
+  const existingOtp = await prisma.passwordResetOtp.findUnique({ where: { email } });
+  if (
+    existingOtp &&
+    Date.now() - existingOtp.updatedAt.getTime() < env.OTP_RESEND_COOLDOWN_SECONDS * 1000
+  ) {
+    return res.status(429).json({ error: 'Please wait before requesting another OTP.' });
+  }
+
+  const otp = generateOtp(env.OTP_LENGTH);
+  await prisma.passwordResetOtp.upsert({
+    where: { email },
+    update: {
+      otpHash: hashOtp(otp),
+      expiresAt: addMinutes(new Date(), env.OTP_TTL_MINUTES),
+      verifiedAt: null,
+      attempts: 0,
+    },
+    create: {
+      email,
+      otpHash: hashOtp(otp),
+      expiresAt: addMinutes(new Date(), env.OTP_TTL_MINUTES),
+    },
+  });
+
+  const allowDevOtp = isLocalOrigin(req.get('origin'));
+
+  if (canSendEmail) {
+    await sendPasswordResetOtpEmail(email, otp, env.OTP_TTL_MINUTES);
+    return res.json({ message: 'If an account exists for this email, a password reset OTP has been sent.' });
+  }
+
+  if (!allowDevOtp) {
+    return res.status(500).json({ error: 'Email provider is not configured.' });
+  }
+
+  return res.json({
+    message: 'Password reset OTP generated for local development.',
+    devOtp: otp,
+  });
+}));
+
+authRouter.post('/password-reset/verify-otp', asyncHandler(async (req, res) => {
+  const parsed = passwordResetVerifySchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid OTP data.', details: parsed.error.flatten().fieldErrors });
+  }
+
+  const { email, otp } = parsed.data;
+  const record = await prisma.passwordResetOtp.findUnique({ where: { email } });
+
+  if (!record) {
+    return res.status(404).json({ error: 'OTP not found. Request a new OTP.' });
+  }
+
+  const validationError = getOtpValidationError(record, otp);
+  if (validationError) {
+    if (validationError === 'Invalid OTP.') {
+      await prisma.passwordResetOtp.update({
+        where: { id: record.id },
+        data: { attempts: { increment: 1 } },
+      });
+    }
+
+    return res.status(validationError === 'Invalid OTP.' ? 400 : validationError.includes('Too many') ? 429 : 400).json({ error: validationError });
+  }
+
+  await prisma.passwordResetOtp.update({
+    where: { id: record.id },
+    data: { verifiedAt: new Date() },
+  });
+
+  return res.json({ message: 'OTP verified successfully.' });
+}));
+
+authRouter.post('/password-reset/complete', asyncHandler(async (req, res) => {
+  const parsed = passwordResetCompleteSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid password reset completion data.', details: parsed.error.flatten().fieldErrors });
+  }
+
+  const { email, password } = parsed.data;
+  const record = await prisma.passwordResetOtp.findUnique({ where: { email } });
+
+  if (!record) {
+    return res.status(404).json({ error: 'OTP verification record not found.' });
+  }
+
+  if (!record.verifiedAt) {
+    return res.status(400).json({ error: 'Verify your OTP first.' });
+  }
+
+  if (record.expiresAt.getTime() < Date.now()) {
+    return res.status(400).json({ error: 'OTP expired. Request a new OTP.' });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: { roles: true },
+  });
+
+  if (!user) {
+    return res.status(404).json({ error: 'User account not found.' });
+  }
+
+  const passwordHash = await hashPassword(password);
+
+  const updatedUser = await prisma.$transaction(async tx => {
+    await tx.user.update({
+      where: { email },
+      data: { passwordHash },
+    });
+
+    await tx.passwordResetOtp.delete({
+      where: { id: record.id },
+    });
+
+    await tx.session.deleteMany({
+      where: { userId: user.id },
+    });
+
+    return tx.user.findUniqueOrThrow({
+      where: { email },
+      include: { roles: true },
+    });
+  });
+
+  const sessionToken = await createSession(updatedUser.id, {
+    userAgent: req.get('user-agent'),
+    ipAddress: req.ip,
+  });
+
+  attachSessionCookie(res, sessionToken);
+
+  return res.json({
+    message: 'Password reset successfully.',
+    user: publicUser(updatedUser),
   });
 }));
 

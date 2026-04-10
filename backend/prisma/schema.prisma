@@ -138,6 +138,17 @@ model AdminSignupOtp {
   updatedAt  DateTime @updatedAt
 }
 
+model PasswordResetOtp {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  otpHash    String
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  attempts   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
 model AdminLoginActivity {
   id        String   @id @default(cuid())
   userId    String?

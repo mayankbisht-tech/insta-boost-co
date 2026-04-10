@@ -40,3 +40,28 @@ export const sendSignupOtpEmail = async (to: string, otp: string, ttlMinutes: nu
     throw new Error('Failed to send OTP email: provider did not return a message id.');
   }
 };
+
+export const sendPasswordResetOtpEmail = async (to: string, otp: string, ttlMinutes: number) => {
+  if (!transporter || !env.OTP_FROM_EMAIL) {
+    throw new Error('Email provider is not configured');
+  }
+
+  const info = await transporter.sendMail({
+    from: env.OTP_FROM_EMAIL,
+    to,
+    subject: 'Your password reset OTP',
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+        <h2>Reset your Go Clips password</h2>
+        <p>Use this OTP to verify your password reset request:</p>
+        <p style="font-size: 24px; font-weight: 700; letter-spacing: 4px;">${otp}</p>
+        <p>This code expires in ${ttlMinutes} minutes.</p>
+      </div>
+    `,
+    text: `Your Go Clips password reset code is ${otp}. This code expires in ${ttlMinutes} minutes.`,
+  });
+
+  if (!info.messageId) {
+    throw new Error('Failed to send OTP email: provider did not return a message id.');
+  }
+};

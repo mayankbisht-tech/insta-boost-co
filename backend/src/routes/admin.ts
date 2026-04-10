@@ -75,6 +75,48 @@ const hasManagementRole = (roles: UserRole[]) =>
 
 const isCreator = (roles: UserRole[]) => roles.every(role => role.role === AppRole.user);
 
+const isMissingTableError = (error: unknown, table: string) =>
+  error instanceof Error &&
+  'code' in error &&
+  (error as { code?: string }).code === 'P2021' &&
+  'meta' in error &&
+  typeof (error as { meta?: { table?: unknown } }).meta?.table === 'string' &&
+  (error as { meta?: { table?: string } }).meta?.table === `public.${table}`;
+
+const safePendingAdminCredentialCount = async () => {
+  try {
+    return await prisma.pendingAdminCredential.count({ where: { claimedAt: null } });
+  } catch (error) {
+    if (isMissingTableError(error, 'PendingAdminCredential')) {
+      return 0;
+    }
+
+    throw error;
+  }
+};
+
+const safePendingAdminCredentialFindMany = async () => {
+  try {
+    return await prisma.pendingAdminCredential.findMany({
+      include: {
+        issuedBy: {
+          select: { id: true, name: true, email: true },
+        },
+        claimedBy: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  } catch (error) {
+    if (isMissingTableError(error, 'PendingAdminCredential')) {
+      return [];
+    }
+
+    throw error;
+  }
+};
+
 const toSuperadminUserPayload = (user: UserWithRolesAndVerification) => ({
   ...toFrontendProfile(user),
   is_creator: isCreator(user.roles),
@@ -468,7 +510,7 @@ adminRouter.get('/superadmin/overview', requireSuperadmin, async (_req, res) => 
       },
     }),
     prisma.instagramVerificationRequest.count({ where: { status: { in: ['pending', 'submitted'] } } }),
-    prisma.pendingAdminCredential.count({ where: { claimedAt: null } }),
+    safePendingAdminCredentialCount(),
     getApifyRunOverview().catch(() => null),
   ]);
 
@@ -505,68 +547,68 @@ adminRouter.get('/superadmin/overview', requireSuperadmin, async (_req, res) => 
 });
 
 adminRouter.get('/superadmin/admin-credentials', requireSuperadmin, async (_req, res) => {
-  const credentials = await prisma.pendingAdminCredential.findMany({
-    include: {
-      issuedBy: {
-        select: { id: true, name: true, email: true },
-      },
-      claimedBy: {
-        select: { id: true, name: true, email: true },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  const credentials = await safePendingAdminCredentialFindMany();
 
   res.json(credentials.map(toPendingAdminCredentialPayload));
 });
 
 adminRouter.post('/superadmin/admin-credentials', requireSuperadmin, async (req, res) => {
-  const parsed = pendingAdminCredentialSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid admin credential data.' });
-  }
+  try {
+    const parsed = pendingAdminCredentialSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid admin credential data.' });
+    }
 
-  const existingUser = await prisma.user.findUnique({
-    where: { email: parsed.data.email },
-    include: { roles: true },
-  });
+    const existingUser = await prisma.user.findUnique({
+      where: { email: parsed.data.email },
+      include: { roles: true },
+    });
 
-  if (existingUser?.roles.some(role => role.role === AppRole.superadmin)) {
-    return res.status(409).json({ error: 'That email already belongs to a superadmin account.' });
-  }
+    if (existingUser?.roles.some(role => role.role === AppRole.superadmin)) {
+      return res.status(409).json({ error: 'That email already belongs to a superadmin account.' });
+    }
 
-  if (existingUser?.roles.some(role => role.role === AppRole.admin)) {
-    return res.status(409).json({ error: 'That email already has admin access.' });
-  }
+    if (existingUser?.roles.some(role => role.role === AppRole.admin)) {
+      return res.status(409).json({ error: 'That email already has admin access.' });
+    }
 
-  const passwordHash = await hashPassword(parsed.data.password);
+    const passwordHash = await hashPassword(parsed.data.password);
 
-  const credential = await prisma.pendingAdminCredential.upsert({
-    where: { email: parsed.data.email },
-    update: {
-      name: parsed.data.name,
-      passwordHash,
-      issuedByUserId: req.auth!.user.id,
-      claimedAt: null,
-      claimedByUserId: null,
-    },
-    create: {
-      name: parsed.data.name,
-      email: parsed.data.email,
-      passwordHash,
-      issuedByUserId: req.auth!.user.id,
-    },
-    include: {
-      issuedBy: {
-        select: { id: true, name: true, email: true },
+    const credential = await prisma.pendingAdminCredential.upsert({
+      where: { email: parsed.data.email },
+      update: {
+        name: parsed.data.name,
+        passwordHash,
+        issuedByUserId: req.auth!.user.id,
+        claimedAt: null,
+        claimedByUserId: null,
       },
-      claimedBy: {
-        select: { id: true, name: true, email: true },
+      create: {
+        name: parsed.data.name,
+        email: parsed.data.email,
+        passwordHash,
+        issuedByUserId: req.auth!.user.id,
       },
-    },
-  });
+      include: {
+        issuedBy: {
+          select: { id: true, name: true, email: true },
+        },
+        claimedBy: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
 
-  res.status(201).json(toPendingAdminCredentialPayload(credential));
+    res.status(201).json(toPendingAdminCredentialPayload(credential));
+  } catch (error) {
+    if (isMissingTableError(error, 'PendingAdminCredential')) {
+      return res.status(503).json({
+        error: 'Pending admin credential storage is unavailable. Apply the database migrations and restart the backend.',
+      });
+    }
+
+    throw error;
+  }
 });
 
 adminRouter.get('/superadmin/users', requireSuperadmin, async (_req, res) => {

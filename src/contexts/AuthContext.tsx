@@ -53,6 +53,9 @@ interface AuthContextType {
   sendSignUpOtp: (email: string, name: string) => Promise<{ error: Error | null; data: SignUpOtpResponse | null }>;
   verifySignUpOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
   completeSignUp: (email: string, name: string, password: string) => Promise<{ error: Error | null }>;
+  sendPasswordResetOtp: (email: string) => Promise<{ error: Error | null; data: PasswordResetOtpResponse | null }>;
+  verifyPasswordResetOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
+  completePasswordReset: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -61,6 +64,12 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface SignUpOtpResponse {
+  error?: string;
+  message?: string;
+  devOtp?: string;
+}
+
+interface PasswordResetOtpResponse {
   error?: string;
   message?: string;
   devOtp?: string;
@@ -163,6 +172,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error: null };
   };
 
+  // ================= PASSWORD RESET =================
+
+  const sendPasswordResetOtp = async (email: string) => {
+    return invokeSignUpOtp('/api/auth/password-reset/send-otp', {
+      email: email.trim().toLowerCase(),
+    });
+  };
+
+  const verifyPasswordResetOtp = async (email: string, token: string) => {
+    const result = await invokeSignUpOtp('/api/auth/password-reset/verify-otp', {
+      email: email.trim().toLowerCase(),
+      otp: token.trim().toUpperCase(),
+    });
+
+    return { error: result.error };
+  };
+
+  const completePasswordReset = async (email: string, password: string) => {
+    const result = await invokeSignUpOtp('/api/auth/password-reset/complete', {
+      email: email.trim().toLowerCase(),
+      password,
+    });
+
+    if (result.error) {
+      return result;
+    }
+
+    await refreshProfile();
+    return { error: null };
+  };
+
   // ================= LOGIN =================
 
   const signIn = async (email: string, password: string) => {
@@ -206,6 +246,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         sendSignUpOtp,
         verifySignUpOtp,
         completeSignUp,
+        sendPasswordResetOtp,
+        verifyPasswordResetOtp,
+        completePasswordReset,
         signIn,
         signOut,
         refreshProfile,
