@@ -220,7 +220,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email: email.trim().toLowerCase(),
         password,
       });
-      await refreshProfile();
+
+      const roles = data?.user.roles ?? [];
+      const isAdminUser = roles.includes('admin') || roles.includes('superadmin');
+      const isSuperadminUser = roles.includes('superadmin');
+
+      setUser({
+        id: data.user.id,
+        email: data.user.email,
+      });
+      setIsAdmin(isAdminUser);
+      setIsSuperadmin(isSuperadminUser);
+
+      // Refresh the full profile in the background so route guards can use it once ready.
+      void refreshProfile();
+
       return { error: null, data: data ?? null };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed.';
