@@ -56,7 +56,7 @@ interface AuthContextType {
   sendPasswordResetOtp: (email: string) => Promise<{ error: Error | null; data: PasswordResetOtpResponse | null }>;
   verifyPasswordResetOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
   completePasswordReset: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; data: LoginResponse | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -73,6 +73,15 @@ interface PasswordResetOtpResponse {
   error?: string;
   message?: string;
   devOtp?: string;
+}
+
+interface LoginResponse {
+  message?: string;
+  user: {
+    id: string;
+    email: string;
+    roles: string[];
+  };
 }
 
 interface AuthPayload {
@@ -207,17 +216,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      await api.post('/api/auth/login', {
+      const data = await api.post<LoginResponse>('/api/auth/login', {
         email: email.trim().toLowerCase(),
         password,
       });
       await refreshProfile();
+      return { error: null, data: data ?? null };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed.';
-      return { error: new Error(message) };
+      return { error: new Error(message), data: null };
     }
-
-    return { error: null };
   };
 
   const signOut = async () => {

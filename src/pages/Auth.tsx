@@ -107,8 +107,18 @@ const Auth = () => {
     setSubmitting(true);
 
     if (mode === 'login') {
-      const { error } = await signIn(email.trim(), password);
+      const { error, data } = await signIn(email.trim(), password);
       if (error) toast.error(error.message);
+      if (!error) {
+        const roles = data?.user.roles ?? [];
+        if (roles.includes('superadmin')) {
+          navigate('/superadmin', { replace: true });
+        } else if (roles.includes('admin')) {
+          navigate('/admin', { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
+      }
       setSubmitting(false);
       return;
     }
