@@ -71,7 +71,7 @@ campaignsRouter.get('/:id/leaderboard', async (req, res) => {
     campaign_title: campaign.title,
     entries: submissions.map((submission, index) => ({
       rank: index + 1,
-      username: submission.user?.instagramUsername || submission.user?.name || 'Anonymous',
+      username: submission.user?.username || submission.user?.name || 'Anonymous',
       views: submission.views,
       earnings: resolveSubmissionEarnings(submission.earnings, submission.status),
     })),

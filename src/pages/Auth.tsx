@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -35,24 +35,23 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [otp, setOtp] = useState('');
   const [signUpStep, setSignUpStep] = useState<SignUpStep>('email');
   const [forgotStep, setForgotStep] = useState<ForgotStep>('email');
   const [submitting, setSubmitting] = useState(false);
-
-  if (loading) return null;
-  if (user && isSuperadmin) return <Navigate to="/superadmin" replace />;
-  if (user && isAdmin) return <Navigate to="/admin" replace />;
-  if (user) return <Navigate to="/dashboard" replace />;
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
 
   const resetForm = () => {
     setEmail('');
     setPassword('');
     setConfirmPassword('');
     setName('');
+    setUsername('');
     setOtp('');
     setSignUpStep('email');
     setForgotStep('email');
+    setUsernameStatus('idle');
   };
 
   const switchMode = (nextMode: AuthMode) => {
@@ -131,7 +130,26 @@ const Auth = () => {
           return;
         }
 
-        const { error, data } = await sendSignUpOtp(email.trim(), name.trim());
+        const trimmedUsername = username.trim();
+        if (!trimmedUsername) {
+          toast.error('Username is required.');
+          setSubmitting(false);
+          return;
+        }
+
+        if (!/^[a-zA-Z0-9]{3,20}$/.test(trimmedUsername)) {
+          toast.error('Username must be 3-20 characters and contain only letters or numbers.');
+          setSubmitting(false);
+          return;
+        }
+
+        if (usernameStatus === 'taken') {
+          toast.error('That username is already taken.');
+          setSubmitting(false);
+          return;
+        }
+
+        const { error, data } = await sendSignUpOtp(email.trim(), name.trim(), trimmedUsername);
 
         if (error) {
           toast.error(error.message);
@@ -180,7 +198,7 @@ const Auth = () => {
         return;
       }
 
-      const { error } = await completeSignUp(email.trim(), name.trim(), password);
+      const { error } = await completeSignUp(email.trim(), name.trim(), username.trim(), password);
 
       if (error) {
         toast.error(error.message);
@@ -307,6 +325,51 @@ const Auth = () => {
   const isLogin = mode === 'login';
   const isSignup = mode === 'signup';
   const isForgot = mode === 'forgot';
+  const usernameHelperText = (() => {
+    if (!username.trim()) return 'Pick a unique username (3-20 letters or numbers).';
+    if (usernameStatus === 'checking') return 'Checking availability...';
+    if (usernameStatus === 'taken') return 'That username is already taken.';
+    if (usernameStatus === 'available') return 'Username is available.';
+    if (usernameStatus === 'invalid') return 'Use 3-20 letters or numbers only.';
+    return 'Pick a unique username (3-20 letters or numbers).';
+  })();
+
+  useEffect(() => {
+    if (!isSignup || signUpStep !== 'email') {
+      setUsernameStatus('idle');
+      return;
+    }
+
+    const trimmed = username.trim();
+    if (!trimmed) {
+      setUsernameStatus('idle');
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9]{3,20}$/.test(trimmed)) {
+      setUsernameStatus('invalid');
+      return;
+    }
+
+    setUsernameStatus('checking');
+    const handle = window.setTimeout(async () => {
+      try {
+        const data = await api.get<{ username: string; available: boolean }>(
+          `/api/auth/username-available?username=${encodeURIComponent(trimmed)}`
+        );
+        setUsernameStatus(data.available ? 'available' : 'taken');
+      } catch {
+        setUsernameStatus('idle');
+      }
+    }, 400);
+
+    return () => window.clearTimeout(handle);
+  }, [isSignup, signUpStep, username]);
+
+  if (loading) return null;
+  if (user && isSuperadmin) return <Navigate to="/superadmin" replace />;
+  if (user && isAdmin) return <Navigate to="/admin" replace />;
+  if (user) return <Navigate to="/dashboard" replace />;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
@@ -464,6 +527,30 @@ const Auth = () => {
                     </motion.div>
                   </motion.div>
                   <motion.div variants={itemVariants}>
+                    <Label htmlFor="signup-username">Username</Label>
+                    <motion.div whileFocus={{ scale: 1.02 }} whileHover={{ scale: 1.01 }}>
+                      <Input
+                        id="signup-username"
+                        value={username}
+                        onChange={e => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                        placeholder="yourname"
+                        required
+                        className="mt-1"
+                      />
+                    </motion.div>
+                    <p
+                      className={`mt-2 text-xs ${
+                        usernameStatus === 'available'
+                          ? 'text-success'
+                          : usernameStatus === 'taken' || usernameStatus === 'invalid'
+                            ? 'text-destructive'
+                            : 'text-muted-foreground'
+                      }`}
+                    >
+                      {usernameHelperText}
+                    </p>
+                  </motion.div>
+                  <motion.div variants={itemVariants}>
                     <Label htmlFor="signup-email">Email</Label>
                     <motion.div whileFocus={{ scale: 1.02 }} whileHover={{ scale: 1.01 }}>
                       <Input
@@ -492,6 +579,10 @@ const Auth = () => {
                     <Input id="verified-name" value={name} disabled className="mt-1" />
                   </motion.div>
                   <motion.div variants={itemVariants}>
+                    <Label htmlFor="verified-username">Username</Label>
+                    <Input id="verified-username" value={username} disabled className="mt-1" />
+                  </motion.div>
+                  <motion.div variants={itemVariants}>
                     <Label htmlFor="otp">OTP</Label>
                     <motion.div whileFocus={{ scale: 1.02 }} whileHover={{ scale: 1.01 }}>
                       <Input
@@ -512,6 +603,10 @@ const Auth = () => {
                   <motion.div variants={itemVariants}>
                     <Label htmlFor="signup-verified-email">Verified Email</Label>
                     <Input id="signup-verified-email" type="email" value={email} disabled className="mt-1" />
+                  </motion.div>
+                  <motion.div variants={itemVariants}>
+                    <Label htmlFor="signup-verified-username">Username</Label>
+                    <Input id="signup-verified-username" value={username} disabled className="mt-1" />
                   </motion.div>
                   <motion.div variants={itemVariants}>
                     <Label htmlFor="signup-password">Password</Label>

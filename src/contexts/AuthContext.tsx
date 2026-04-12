@@ -11,6 +11,7 @@ interface User {
 interface Profile {
   id: string;
   user_id: string;
+  username: string | null;
   name: string;
   email: string;
   account_status: Exclude<AccountStatus, null>;
@@ -50,9 +51,9 @@ interface AuthContextType {
   isInstagramConnected: boolean;
   accountStatus: AccountStatus;
 
-  sendSignUpOtp: (email: string, name: string) => Promise<{ error: Error | null; data: SignUpOtpResponse | null }>;
+  sendSignUpOtp: (email: string, name: string, username: string) => Promise<{ error: Error | null; data: SignUpOtpResponse | null }>;
   verifySignUpOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
-  completeSignUp: (email: string, name: string, password: string) => Promise<{ error: Error | null }>;
+  completeSignUp: (email: string, name: string, username: string, password: string) => Promise<{ error: Error | null }>;
   sendPasswordResetOtp: (email: string) => Promise<{ error: Error | null; data: PasswordResetOtpResponse | null }>;
   verifyPasswordResetOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
   completePasswordReset: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -143,10 +144,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // SEND OTP
-  const sendSignUpOtp = async (email: string, name: string) => {
+  const sendSignUpOtp = async (email: string, name: string, username: string) => {
     return invokeSignUpOtp('/api/auth/signup/send-otp', {
       email: email.trim().toLowerCase(),
       name: name.trim(),
+      username: username.trim().toLowerCase(),
     });
   };
 
@@ -161,10 +163,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // COMPLETE PROFILE
-  const completeSignUp = async (email: string, name: string, password: string) => {
+  const completeSignUp = async (email: string, name: string, username: string, password: string) => {
     const signUpResult = await invokeSignUpOtp('/api/auth/signup/complete', {
       email: email.trim().toLowerCase(),
       name: name.trim(),
+      username: username.trim().toLowerCase(),
       password,
     });
 
@@ -231,6 +234,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       setIsAdmin(isAdminUser);
       setIsSuperadmin(isSuperadminUser);
+      await refreshProfile();
 
       return { error: null, data: data ?? null };
     } catch (error) {

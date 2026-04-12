@@ -218,6 +218,7 @@ adminRouter.get('/users', async (_req, res) => {
           OR: [
             { name: { contains: rawQuery, mode: 'insensitive' } },
             { email: { contains: rawQuery, mode: 'insensitive' } },
+            { username: { contains: rawQuery, mode: 'insensitive' } },
             { instagramUsername: { contains: rawQuery, mode: 'insensitive' } },
           ],
         }

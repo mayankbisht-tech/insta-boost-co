@@ -197,10 +197,6 @@ const InstagramConnect = () => {
                   <ShieldCheck className="mr-2 h-4 w-4" />
                   {saving ? 'Generating...' : 'Generate Verification Code'}
                 </Button>
-                <Button variant="outline" onClick={() => void handleVerify()} disabled={checking || !request}>
-                  <RefreshCcw className="mr-2 h-4 w-4" />
-                  {checking ? 'Checking...' : 'Verify Now'}
-                </Button>
               </div>
             </div>
           </div>
@@ -217,9 +213,17 @@ const InstagramConnect = () => {
               </p>
             ) : (
               <div className="mt-4 space-y-4 text-sm">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge className={statusTone[request.status] || ''}>{request.status}</Badge>
-                  <span className="text-muted-foreground">@{request.instagram_username}</span>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className={statusTone[request.status] || ''}>{request.status}</Badge>
+                    <span className="text-muted-foreground">@{request.instagram_username}</span>
+                  </div>
+                  {(request.status === 'draft' || request.status === 'pending') && (
+                    <Button variant="outline" onClick={() => void handleVerify()} disabled={checking}>
+                      <RefreshCcw className="mr-2 h-4 w-4" />
+                      {checking ? 'Checking...' : 'Verify Now'}
+                    </Button>
+                  )}
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">

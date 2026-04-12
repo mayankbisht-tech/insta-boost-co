@@ -95,7 +95,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               )}
             </Link>
             <span className="hidden sm:block text-sm text-muted-foreground">
-              {profile?.name || profile?.email}
+              {profile?.username ? `@${profile.username}` : profile?.name || profile?.email}
             </span>
             <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-destructive">
               <LogOut className="h-4 w-4" />

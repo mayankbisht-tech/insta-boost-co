@@ -8,6 +8,7 @@ import { hashPassword, verifyPassword } from '../lib/password.js';
 import { prisma } from '../lib/prisma.js';
 import { toAuthPayload } from '../lib/serializers.js';
 import { attachSessionCookie, clearSessionCookie, createSession, resolveSession, revokeSession } from '../lib/session.js';
+import { generateUniqueUsername } from '../lib/username.js';
 import { addMinutes } from '../utils/time.js';
 
 export const authRouter = Router();
@@ -21,6 +22,13 @@ const passwordSchema = z.string().min(6);
 const sendOtpSchema = z.object({
   email: emailSchema,
   name: z.string().trim().min(1).max(120),
+  username: z
+    .string()
+    .trim()
+    .min(3)
+    .max(20)
+    .regex(/^[a-zA-Z0-9]+$/)
+    .transform(value => value.toLowerCase()),
 });
 
 const verifyOtpSchema = z.object({
@@ -31,6 +39,13 @@ const verifyOtpSchema = z.object({
 const completeSignupSchema = z.object({
   email: emailSchema,
   name: z.string().trim().min(1).max(120),
+  username: z
+    .string()
+    .trim()
+    .min(3)
+    .max(20)
+    .regex(/^[a-zA-Z0-9]+$/)
+    .transform(value => value.toLowerCase()),
   password: passwordSchema,
 });
 
@@ -51,6 +66,16 @@ const passwordResetCompleteSchema = z.object({
 const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1),
+});
+
+const usernameQuerySchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .min(3)
+    .max(20)
+    .regex(/^[a-zA-Z0-9]+$/)
+    .transform(value => value.toLowerCase()),
 });
 
 const logAdminLoginActivity = async (params: {
@@ -85,6 +110,7 @@ const isLocalOrigin = (origin: string | undefined) => {
 const publicUser = (user: {
   id: string;
   email: string;
+  username: string | null;
   name: string;
   accountStatus: string;
   instagramConnectionStatus: string;
@@ -92,6 +118,7 @@ const publicUser = (user: {
 }) => ({
   id: user.id,
   email: user.email,
+  username: user.username,
   name: user.name,
   accountStatus: user.accountStatus,
   instagramConnectionStatus: user.instagramConnectionStatus,
@@ -137,21 +164,35 @@ const claimPendingAdminCredential = async (params: {
     let userId = params.existingUserId;
 
     if (userId) {
+      const existingUser = await tx.user.findUnique({
+        where: { id: userId },
+        select: { username: true },
+      });
+
       await tx.user.update({
         where: { id: userId },
         data: {
           passwordHash: pendingCredential.passwordHash,
           accountStatus: 'active',
           name: pendingCredential.name,
+          username: existingUser?.username ?? await generateUniqueUsername(tx, {
+            name: pendingCredential.name,
+            email: pendingCredential.email,
+          }),
         },
       });
     } else {
+      const username = await generateUniqueUsername(tx, {
+        name: pendingCredential.name,
+        email: pendingCredential.email,
+      });
       const createdUser = await tx.user.create({
         data: {
           email: pendingCredential.email,
           name: pendingCredential.name,
           passwordHash: pendingCredential.passwordHash,
           accountStatus: 'active',
+          username,
         },
       });
       userId = createdUser.id;
@@ -208,10 +249,15 @@ authRouter.post('/signup/send-otp', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Invalid signup data.', details: parsed.error.flatten().fieldErrors });
   }
 
-  const { email } = parsed.data;
+  const { email, username } = parsed.data;
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
     return res.status(409).json({ error: 'An account with this email already exists.' });
+  }
+
+  const existingUsername = await prisma.user.findUnique({ where: { username } });
+  if (existingUsername) {
+    return res.status(409).json({ error: 'That username is already taken.' });
   }
 
   const pendingAdminCredential = await findPendingAdminCredential(email);
@@ -458,7 +504,7 @@ authRouter.post('/signup/complete', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Invalid signup completion data.', details: parsed.error.flatten().fieldErrors });
   }
 
-  const { email, name, password } = parsed.data;
+  const { email, name, password, username } = parsed.data;
   const record = await prisma.signupOtp.findUnique({ where: { email } });
 
   if (!record) {
@@ -478,6 +524,11 @@ authRouter.post('/signup/complete', asyncHandler(async (req, res) => {
     return res.status(409).json({ error: 'An account with this email already exists.' });
   }
 
+  const existingUsername = await prisma.user.findUnique({ where: { username } });
+  if (existingUsername) {
+    return res.status(409).json({ error: 'That username is already taken.' });
+  }
+
   const pendingAdminCredential = await findPendingAdminCredential(email);
   if (pendingAdminCredential && !pendingAdminCredential.claimedAt) {
     return res.status(409).json({
@@ -493,6 +544,7 @@ authRouter.post('/signup/complete', asyncHandler(async (req, res) => {
         email,
         name,
         passwordHash,
+        username,
       },
     });
 
@@ -596,6 +648,21 @@ authRouter.post('/logout', asyncHandler(async (req, res) => {
   await revokeSession(req.cookies?.[env.SESSION_COOKIE_NAME]);
   clearSessionCookie(res);
   return res.json({ message: 'Logged out successfully.' });
+}));
+
+authRouter.get('/username-available', asyncHandler(async (req, res) => {
+  const parsed = usernameQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid username.' });
+  }
+
+  const { username } = parsed.data;
+  const existing = await prisma.user.findUnique({ where: { username } });
+
+  return res.json({
+    username,
+    available: !existing,
+  });
 }));
 
 authRouter.get('/me', asyncHandler(async (req, res) => {

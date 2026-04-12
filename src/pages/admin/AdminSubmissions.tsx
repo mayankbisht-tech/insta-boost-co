@@ -27,7 +27,7 @@ interface Submission {
   analytics_synced_at: string | null;
   earnings: number;
   campaigns?: { title: string; reward_per_million_views: number } | null;
-  profiles?: { instagram_username: string | null; name: string; email: string } | null;
+  profiles?: { username: string | null; instagram_username: string | null; name: string; email: string } | null;
 }
 
 interface SyncAnalyticsResponse {
@@ -126,6 +126,7 @@ const AdminSubmissions = () => {
     const search = searchUser.trim().toLowerCase();
     if (search) {
       const matchesUser = [
+        submission.profiles?.username,
         submission.profiles?.instagram_username,
         submission.profiles?.name,
         submission.profiles?.email,
@@ -222,7 +223,7 @@ const AdminSubmissions = () => {
                 <div className="flex-1 min-w-0 space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">
-                      @{submission.profiles?.instagram_username || submission.profiles?.name || 'Unknown'}
+                      @{submission.profiles?.username || submission.profiles?.name || 'Unknown'}
                     </span>
                     <Badge className={statusColors[submission.status] || ''}>{submission.status}</Badge>
                     {submission.analytics_source && <Badge variant="outline">{submission.analytics_source}</Badge>}

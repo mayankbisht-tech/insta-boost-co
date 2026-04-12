@@ -10,6 +10,7 @@ import { getInstagramProfileUrl } from '@/lib/utils';
 interface UserProfile {
   id: string;
   user_id: string;
+  username: string | null;
   name: string;
   email: string;
   instagram_connected: boolean;
@@ -35,6 +36,7 @@ const AdminUsers = () => {
     if (!search) return true;
 
     return [
+      user.username,
       user.name,
       user.email,
       user.instagram_username,
@@ -99,6 +101,7 @@ const AdminUsers = () => {
                 <thead>
                   <tr className="border-b border-border bg-gradient-to-r from-secondary/50 to-transparent">
                     <th className="px-6 py-4 text-left font-display font-semibold text-foreground">Name</th>
+                    <th className="px-6 py-4 text-left font-display font-semibold text-foreground">Username</th>
                     <th className="px-6 py-4 text-left font-display font-semibold text-foreground">Email</th>
                     <th className="px-6 py-4 text-left font-display font-semibold text-foreground">Instagram</th>
                     <th className="px-6 py-4 text-right font-display font-semibold text-foreground">Followers</th>
@@ -118,6 +121,9 @@ const AdminUsers = () => {
                         className="table-row-hover border-b border-border/50 last:border-b-0"
                       >
                         <td className="px-6 py-4 font-semibold text-foreground">{user.name || '-'}</td>
+                        <td className="px-6 py-4 text-muted-foreground text-sm">
+                          {user.username ? `@${user.username}` : '-'}
+                        </td>
                         <td className="px-6 py-4 text-muted-foreground text-sm">{user.email}</td>
                         <td className="px-6 py-4">
                           {user.instagram_connected ? (

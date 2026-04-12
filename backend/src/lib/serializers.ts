@@ -100,6 +100,7 @@ export const toFrontendProfile = (user: UserWithRoles) => {
   return {
     id: user.id,
     user_id: user.id,
+    username: user.username,
     name: user.name,
     email: user.email,
     account_status: user.accountStatus,
@@ -216,6 +217,7 @@ export const toSubmissionPayload = (submission: SubmissionWithRelations) => ({
     : null,
   profiles: submission.user
     ? {
+        username: submission.user.username ?? null,
         instagram_username: getPrimaryInstagramAccount({
           ...submission.user,
           roles: [],
