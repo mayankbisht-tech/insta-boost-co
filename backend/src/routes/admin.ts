@@ -64,6 +64,16 @@ const submissionViewsSchema = z.object({
   views: z.coerce.number().int().min(0),
 });
 
+const paymentProfileDecisionSchema = z.object({
+  status: z.enum(['verified', 'rejected']),
+  notes: z.string().trim().max(500).optional(),
+});
+
+const payoutDecisionSchema = z.object({
+  status: z.enum(['approved', 'rejected']),
+  reason: z.string().trim().max(500).optional(),
+});
+
 const pendingAdminCredentialSchema = z.object({
   name: z.string().trim().min(1).max(120),
   email: z.string().trim().email().transform(value => value.toLowerCase()),
@@ -111,6 +121,72 @@ const safePendingAdminCredentialFindMany = async () => {
   } catch (error) {
     if (isMissingTableError(error, 'PendingAdminCredential')) {
       return [];
+    }
+
+    throw error;
+  }
+};
+
+const safePaymentProfileFindMany = async () => {
+  try {
+    return await prisma.paymentProfile.findMany({
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, username: true },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+  } catch (error) {
+    if (isMissingTableError(error, 'PaymentProfile')) {
+      return [];
+    }
+
+    throw error;
+  }
+};
+
+const safePaymentProfileFindUnique = async (id: string) => {
+  try {
+    return await prisma.paymentProfile.findUnique({
+      where: { id },
+    });
+  } catch (error) {
+    if (isMissingTableError(error, 'PaymentProfile')) {
+      return null;
+    }
+
+    throw error;
+  }
+};
+
+const safePayoutRequestFindMany = async () => {
+  try {
+    return await prisma.payoutRequest.findMany({
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, username: true },
+        },
+      },
+      orderBy: { requestedAt: 'desc' },
+    });
+  } catch (error) {
+    if (isMissingTableError(error, 'PayoutRequest')) {
+      return [];
+    }
+
+    throw error;
+  }
+};
+
+const safePayoutRequestFindUnique = async (id: string) => {
+  try {
+    return await prisma.payoutRequest.findUnique({
+      where: { id },
+    });
+  } catch (error) {
+    if (isMissingTableError(error, 'PayoutRequest')) {
+      return null;
     }
 
     throw error;
@@ -339,6 +415,147 @@ adminRouter.get('/submissions', async (_req, res) => {
   });
 
   res.json(submissions.map(toSubmissionPayload));
+});
+
+adminRouter.get('/payments/profiles', async (_req, res) => {
+  const profiles = await safePaymentProfileFindMany();
+
+  res.json(profiles.map(profile => ({
+    id: profile.id,
+    user: profile.user,
+    upi_id: profile.upiId,
+    full_name: profile.fullName,
+    phone_number: profile.phoneNumber,
+    status: profile.status,
+    reviewed_at: profile.reviewedAt?.toISOString() ?? null,
+    review_notes: profile.reviewNotes ?? null,
+    updated_at: profile.updatedAt.toISOString(),
+    created_at: profile.createdAt.toISOString(),
+  })));
+});
+
+adminRouter.patch('/payments/profiles/:id', async (req, res) => {
+  const parsed = paymentProfileDecisionSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payment verification decision.' });
+  }
+
+  const existing = await safePaymentProfileFindUnique(req.params.id);
+
+  if (!existing) {
+    return res.status(404).json({ error: 'Payment profile not found.' });
+  }
+
+  try {
+    const profile = await prisma.paymentProfile.update({
+      where: { id: req.params.id },
+      data: {
+        status: parsed.data.status,
+        reviewedAt: new Date(),
+        reviewNotes: parsed.data.notes ?? null,
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, username: true },
+        },
+      },
+    });
+
+    res.json({
+      id: profile.id,
+      user: profile.user,
+      upi_id: profile.upiId,
+      full_name: profile.fullName,
+      phone_number: profile.phoneNumber,
+      status: profile.status,
+      reviewed_at: profile.reviewedAt?.toISOString() ?? null,
+      review_notes: profile.reviewNotes ?? null,
+      updated_at: profile.updatedAt.toISOString(),
+      created_at: profile.createdAt.toISOString(),
+    });
+  } catch (error) {
+    if (isMissingTableError(error, 'PaymentProfile')) {
+      return res.status(503).json({
+        error: 'Payment profile storage is unavailable. Apply the database migrations and restart the backend.',
+      });
+    }
+
+    throw error;
+  }
+});
+
+adminRouter.get('/payments/payouts', async (_req, res) => {
+  const payouts = await safePayoutRequestFindMany();
+
+  res.json(payouts.map(payout => ({
+    id: payout.id,
+    user: payout.user,
+    amount: Number(payout.amount),
+    status: payout.status,
+    requested_at: payout.requestedAt.toISOString(),
+    reviewed_at: payout.reviewedAt?.toISOString() ?? null,
+    reviewed_by_admin: payout.reviewedByAdmin ?? null,
+    rejection_reason: payout.rejectionReason ?? null,
+    upi_id: payout.upiIdSnapshot,
+    full_name: payout.fullNameSnapshot,
+    phone_number: payout.phoneSnapshot,
+  })));
+});
+
+adminRouter.patch('/payments/payouts/:id', async (req, res) => {
+  const parsed = payoutDecisionSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payout decision.' });
+  }
+
+  const existing = await safePayoutRequestFindUnique(req.params.id);
+
+  if (!existing) {
+    return res.status(404).json({ error: 'Payout request not found.' });
+  }
+
+  if (existing.status !== 'pending') {
+    return res.status(409).json({ error: 'This payout request has already been processed.' });
+  }
+
+  try {
+    const payout = await prisma.payoutRequest.update({
+      where: { id: req.params.id },
+      data: {
+        status: parsed.data.status,
+        reviewedAt: new Date(),
+        reviewedByAdmin: req.auth!.user.id,
+        rejectionReason: parsed.data.status === 'rejected' ? (parsed.data.reason ?? 'Rejected by admin') : null,
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true, username: true },
+        },
+      },
+    });
+
+    res.json({
+      id: payout.id,
+      user: payout.user,
+      amount: Number(payout.amount),
+      status: payout.status,
+      requested_at: payout.requestedAt.toISOString(),
+      reviewed_at: payout.reviewedAt?.toISOString() ?? null,
+      reviewed_by_admin: payout.reviewedByAdmin ?? null,
+      rejection_reason: payout.rejectionReason ?? null,
+      upi_id: payout.upiIdSnapshot,
+      full_name: payout.fullNameSnapshot,
+      phone_number: payout.phoneSnapshot,
+    });
+  } catch (error) {
+    if (isMissingTableError(error, 'PayoutRequest')) {
+      return res.status(503).json({
+        error: 'Payout request storage is unavailable. Apply the database migrations and restart the backend.',
+      });
+    }
+
+    throw error;
+  }
 });
 
 adminRouter.patch('/submissions/:id/status', async (req, res) => {

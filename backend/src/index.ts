@@ -16,6 +16,7 @@ import { authRouter } from './routes/auth.js';
 import { campaignsRouter } from './routes/campaigns.js';
 import { healthRouter } from './routes/health.js';
 import { notificationsRouter } from './routes/notifications.js';
+import { paymentsRouter } from './routes/payments.js';
 import { profileRouter } from './routes/profile.js';
 import { submissionsRouter } from './routes/submissions.js';
 
@@ -129,6 +130,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/campaigns', campaignsRouter);
 app.use('/api/submissions', submissionsRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/payments', paymentsRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api/admin/campaigns', campaignUploadMiddleware);
 app.use('/api/admin', adminRouter);

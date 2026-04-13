@@ -7,8 +7,9 @@
     "dev": "npm run build && node dist/index.js",
     "build": "tsc -p tsconfig.json",
     "start": "npm run prisma:migrate:deploy && node dist/index.js",
-    "seed": "tsx src/scripts/seed.ts",
-    "backfill:instagram-accounts": "tsx src/scripts/backfillInstagramAccounts.ts",
+    "seed": "npm run build && node dist/scripts/seed.js",
+    "backfill:instagram-accounts": "npm run build && node dist/scripts/backfillInstagramAccounts.js",
+    "clear:upi": "npm run build && node dist/scripts/clearUpiData.js",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:migrate:deploy": "prisma migrate deploy"

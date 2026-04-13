@@ -13,11 +13,13 @@ import CampaignDetail from "./pages/CampaignDetail";
 import Leaderboard from "./pages/Leaderboard";
 import Submissions from "./pages/Submissions";
 import InstagramConnect from "./pages/InstagramConnect";
+import Payments from "./pages/Payments";
 import Notifications from "./pages/Notifications";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminCampaigns from "./pages/admin/AdminCampaigns";
 import AdminSubmissions from "./pages/admin/AdminSubmissions";
 import AdminUsers from "./pages/admin/AdminUsers";
+import AdminPayments from "./pages/admin/AdminPayments";
 import SuperadminDashboard from "./pages/superadmin/SuperadminDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -38,12 +40,14 @@ const App = () => (
             <Route path="/campaign/:id/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
             <Route path="/submissions" element={<ProtectedRoute><Submissions /></ProtectedRoute>} />
             <Route path="/instagram" element={<ProtectedRoute><InstagramConnect /></ProtectedRoute>} />
+            <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
             {/* Admin routes */}
             <Route path="/admin" element={<AdminRoute><AdminOverview /></AdminRoute>} />
             <Route path="/admin/campaigns" element={<AdminRoute><AdminCampaigns /></AdminRoute>} />
             <Route path="/admin/submissions" element={<AdminRoute><AdminSubmissions /></AdminRoute>} />
             <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+            <Route path="/admin/payments" element={<AdminRoute><AdminPayments /></AdminRoute>} />
             <Route path="/superadmin" element={<SuperadminRoute><SuperadminDashboard /></SuperadminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

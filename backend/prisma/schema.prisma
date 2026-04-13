@@ -39,6 +39,18 @@ enum InstagramVerificationStatus {
   rejected
 }
 
+enum PaymentProfileStatus {
+  pending
+  verified
+  rejected
+}
+
+enum PayoutStatus {
+  pending
+  approved
+  rejected
+}
+
 model User {
   id                        String                    @id @default(cuid())
   email                     String                    @unique
@@ -67,6 +79,40 @@ model User {
   instagramAccounts         InstagramAccount[]
   instagramVerificationRequest InstagramVerificationRequest? @relation("InstagramVerificationUser")
   reviewedInstagramVerifications InstagramVerificationRequest[] @relation("InstagramVerificationReviewer")
+  paymentProfile            PaymentProfile?
+  payoutRequests            PayoutRequest[]
+}
+
+model PaymentProfile {
+  id            String               @id @default(cuid())
+  userId        String               @unique
+  upiId         String
+  fullName      String
+  phoneNumber   String
+  status        PaymentProfileStatus @default(pending)
+  reviewedAt    DateTime?
+  reviewNotes   String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PayoutRequest {
+  id             String       @id @default(cuid())
+  userId         String
+  amount         Decimal      @default(0)
+  status         PayoutStatus @default(pending)
+  requestedAt    DateTime     @default(now())
+  reviewedAt     DateTime?
+  reviewedByAdmin String?
+  rejectionReason String?
+  upiIdSnapshot  String
+  fullNameSnapshot String
+  phoneSnapshot  String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, requestedAt])
+  @@index([status, requestedAt])
 }
 
 model PendingAdminCredential {

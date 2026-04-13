@@ -15,6 +15,7 @@ Standalone backend for authentication, OTP signup, sessions, and PostgreSQL data
 9. Create or apply Prisma migrations for schema changes
 10. Apply migrations locally with `npm run prisma:migrate:deploy` if you already have migration files
 11. Start development server with `npm run dev`
+12. Run the seed script with `npm run seed` after the build step compiles the script to `dist/`
 
 ## Production start
 
@@ -26,6 +27,7 @@ Standalone backend for authentication, OTP signup, sessions, and PostgreSQL data
 - Use migration files under `prisma/migrations` for schema changes
 - Deploy schema changes with `npm run prisma:migrate:deploy`
 - Avoid using `npm run prisma:push` in production because it bypasses migration history
+- Maintenance scripts like `npm run seed` and `npm run backfill:instagram-accounts` now execute the compiled files in `dist/` for better Windows compatibility
 
 ## Auth routes
 

@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Megaphone, FileCheck, Users, LogOut, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, Megaphone, FileCheck, Users, LogOut, ArrowLeft, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 
@@ -8,6 +8,7 @@ const adminNav = [
   { path: '/admin', label: 'Overview', icon: LayoutDashboard },
   { path: '/admin/campaigns', label: 'Campaigns', icon: Megaphone },
   { path: '/admin/submissions', label: 'Submissions', icon: FileCheck },
+  { path: '/admin/payments', label: 'Payments', icon: Wallet },
   { path: '/admin/users', label: 'Users', icon: Users },
 ];
 

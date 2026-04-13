@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, FileVideo, Instagram, Bell, LogOut, Menu, X, Shield } from 'lucide-react';
+import { LayoutDashboard, FileVideo, Instagram, Bell, LogOut, Menu, X, Shield, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/submissions', label: 'Submissions', icon: FileVideo },
   { path: '/instagram', label: 'Instagram', icon: Instagram },
+  { path: '/payments', label: 'Payments', icon: Wallet },
 ];
 
 type Notification = {
