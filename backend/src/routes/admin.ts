@@ -31,7 +31,8 @@ type PendingAdminCredentialWithIssuer = PendingAdminCredential & {
 
 const campaignSchema = z.object({
   title: z.string().trim().min(1),
-  description: z.string().trim().min(1),
+  description: z.string().trim().optional().default(''),
+  link: z.string().trim().optional().default(''),
   category: z.string().trim().min(1),
   budget_rupees: z.coerce.number().int().min(0),
   rupees_per_thousand_views: z.coerce.number().int().min(0),
@@ -351,7 +352,7 @@ adminRouter.post('/campaigns', async (req, res) => {
       rewardPerMillionViews: parsed.data.rupees_per_thousand_views * 1000,
       rules: parsed.data.rules,
       status: parsed.data.status,
-      imageUrl: uploadRequest.fileUrl || null,
+      imageUrl: parsed.data.link || uploadRequest.fileUrl || null,
       createdByAdminId: req.auth!.user.id,
     },
   });
@@ -380,14 +381,14 @@ adminRouter.put('/campaigns/:id', async (req, res) => {
     where: { id: req.params.id },
     data: {
       title: parsed.data.title,
-      description: parsed.data.description,
+      description: parsed.data.description || existing.description,
       category: parsed.data.category,
       budgetRupees: parsed.data.budget_rupees,
       rupeesPerThousandViews: parsed.data.rupees_per_thousand_views,
       rewardPerMillionViews: parsed.data.rupees_per_thousand_views * 1000,
       rules: parsed.data.rules,
       status: parsed.data.status,
-      imageUrl: uploadRequest.fileUrl || existing.imageUrl,
+      imageUrl: parsed.data.link || uploadRequest.fileUrl || existing.imageUrl,
       createdByAdminId: req.auth!.user.id,
     },
   });

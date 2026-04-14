@@ -27,7 +27,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
       >
         <div className="p-6 border-b border-sidebar-border/50">
           <Link to="/admin" className="font-display text-2xl font-bold gradient-text flex items-center gap-2">
-            <img src="/3.png" alt="Go Clips logo" className="h-6 w-6 object-contain" />
+            <img src="/3.png" alt="Go Clips logo" className="h-12 w-12 object-contain" />
             Go Clips
           </Link>
           <p className="text-xs text-sidebar-foreground/60 mt-1">Admin Panel</p>
@@ -105,7 +105,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="container space-y-3 py-4">
             <div className="flex items-center justify-between gap-3">
               <Link to="/admin" className="flex items-center gap-2 font-display text-lg font-bold gradient-text">
-                <img src="/3.png" alt="Go Clips logo" className="h-6 w-6 object-contain" />
+                <img src="/3.png" alt="Go Clips logo" className="h-12 w-12 object-contain" />
                 Go Clips
               </Link>
               <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-destructive">

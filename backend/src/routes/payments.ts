@@ -52,6 +52,29 @@ const safeFindPendingPayoutRequest = async (userId: string) => {
   }
 };
 
+const safeFindPayoutHistory = async (userId: string) => {
+  try {
+    return await prisma.payoutRequest.findMany({
+      where: { userId },
+      orderBy: { requestedAt: 'desc' },
+      select: {
+        id: true,
+        amount: true,
+        status: true,
+        requestedAt: true,
+        reviewedAt: true,
+        rejectionReason: true,
+      },
+    });
+  } catch (error) {
+    if (isMissingTableError(error, 'PayoutRequest')) {
+      return [];
+    }
+
+    throw error;
+  }
+};
+
 const calculateUserEarnings = async (userId: string) => {
   try {
     const submissions = await prisma.submission.findMany({
@@ -76,6 +99,23 @@ const calculateTotalPaid = async (userId: string) => {
   try {
     const payouts = await prisma.payoutRequest.findMany({
       where: { userId, status: 'approved' },
+      select: { amount: true },
+    });
+
+    return payouts.reduce((sum, payout) => sum + Number(payout.amount), 0);
+  } catch (error) {
+    if (isMissingTableError(error, 'PayoutRequest')) {
+      return 0;
+    }
+
+    throw error;
+  }
+};
+
+const calculateReservedPayoutAmount = async (userId: string) => {
+  try {
+    const payouts = await prisma.payoutRequest.findMany({
+      where: { userId, status: { in: ['pending', 'approved'] } },
       select: { amount: true },
     });
 
@@ -164,14 +204,15 @@ paymentsRouter.put('/profile', async (req, res) => {
 });
 
 paymentsRouter.get('/overview', async (req, res) => {
-  const [profile, totalEarnings, totalPaid, pendingRequest] = await Promise.all([
+  const [profile, totalEarnings, totalPaid, reservedPayoutAmount, pendingRequest] = await Promise.all([
     safeFindPaymentProfile(req.auth!.user.id),
     calculateUserEarnings(req.auth!.user.id),
     calculateTotalPaid(req.auth!.user.id),
+    calculateReservedPayoutAmount(req.auth!.user.id),
     safeFindPendingPayoutRequest(req.auth!.user.id),
   ]);
 
-  const available = Math.max(totalEarnings - totalPaid, 0);
+  const available = Math.max(totalEarnings - reservedPayoutAmount, 0);
 
   return res.json({
     available_balance: Number(available.toFixed(2)),
@@ -187,6 +228,21 @@ paymentsRouter.get('/overview', async (req, res) => {
         }
       : null,
   });
+});
+
+paymentsRouter.get('/history', async (req, res) => {
+  const history = await safeFindPayoutHistory(req.auth!.user.id);
+
+  return res.json(
+    history.map(item => ({
+      id: item.id,
+      amount: Number(item.amount),
+      status: item.status,
+      requested_at: item.requestedAt.toISOString(),
+      reviewed_at: item.reviewedAt?.toISOString() ?? null,
+      rejection_reason: item.rejectionReason ?? null,
+    })),
+  );
 });
 
 paymentsRouter.post('/withdraw', async (req, res) => {
