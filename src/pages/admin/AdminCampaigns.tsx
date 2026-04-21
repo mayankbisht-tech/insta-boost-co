@@ -34,12 +34,19 @@ const AdminCampaigns = () => {
   const [saving, setSaving] = useState(false);
 
   const fetchCampaigns = async () => {
-    const data = await api.get<Campaign[]>('/api/admin/campaigns');
-    setCampaigns(data);
-    setLoading(false);
+    try {
+      const data = await api.get<Campaign[]>('/api/admin/campaigns');
+      setCampaigns(data);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load campaigns.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { fetchCampaigns(); }, []);
+  useEffect(() => {
+    void fetchCampaigns();
+  }, []);
 
   useEffect(() => {
     const socket = getRealtimeSocket();
@@ -126,7 +133,7 @@ const AdminCampaigns = () => {
 
     setSaving(false);
     setDialogOpen(false);
-    fetchCampaigns();
+    void fetchCampaigns();
   };
 
   const handleDelete = async (id: string) => {
@@ -134,7 +141,7 @@ const AdminCampaigns = () => {
     try {
       await api.delete(`/api/admin/campaigns/${id}`);
       toast.success('Campaign deleted.');
-      fetchCampaigns();
+      void fetchCampaigns();
     } catch {
       toast.error('Failed to delete.');
     }

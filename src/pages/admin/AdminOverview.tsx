@@ -3,6 +3,7 @@ import AdminLayout from '@/components/AdminLayout';
 import { motion } from 'framer-motion';
 import { Users, Megaphone, FileVideo, CheckCircle, XCircle, Clock, Eye, DollarSign, Radar } from 'lucide-react';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 interface AdminOverviewStats {
   totalUsers: number;
@@ -40,9 +41,14 @@ const AdminOverview = () => {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const data = await api.get<AdminOverviewStats>('/api/admin/overview');
-      setStats({ ...emptyStats, ...data });
-      setLoading(false);
+      try {
+        const data = await api.get<AdminOverviewStats>('/api/admin/overview');
+        setStats({ ...emptyStats, ...data });
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to load admin overview.');
+      } finally {
+        setLoading(false);
+      }
     };
     void fetchStats();
   }, []);

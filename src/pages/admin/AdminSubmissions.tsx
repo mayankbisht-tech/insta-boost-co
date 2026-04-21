@@ -56,16 +56,27 @@ const AdminSubmissions = () => {
   const [refreshInfo, setRefreshInfo] = useState<Pick<SyncAnalyticsResponse, 'refresh_limit' | 'refreshes_remaining' | 'window_resets_at'> | null>(null);
 
   const fetchSubmissions = async () => {
-    const data = await api.get<Submission[]>('/api/admin/submissions');
-    setSubmissions(data);
-    setLoading(false);
+    try {
+      const data = await api.get<Submission[]>('/api/admin/submissions');
+      setSubmissions(data);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load submissions.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     void fetchSubmissions();
-    api.get<{ id: string; title: string }[]>('/api/admin/campaigns').then(data => {
-      setCampaigns(data.map(({ id, title }) => ({ id, title })));
-    });
+    const fetchCampaigns = async () => {
+      try {
+        const data = await api.get<{ id: string; title: string }[]>('/api/admin/campaigns');
+        setCampaigns(data.map(({ id, title }) => ({ id, title })));
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to load campaigns.');
+      }
+    };
+    void fetchCampaigns();
   }, []);
 
   const updateStatus = async (id: string, status: string) => {

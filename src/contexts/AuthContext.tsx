@@ -114,13 +114,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const refreshProfile = async () => {
+  const fetchAuthPayload = async (): Promise<AuthPayload | null> => {
     try {
-      const data = await api.get<AuthPayload>('/api/auth/me');
-      await hydrateUserState(data);
+      return await api.get<AuthPayload>('/api/auth/me');
     } catch {
-      await hydrateUserState(null);
+      return null;
     }
+  };
+
+  const refreshProfile = async () => {
+    const data = await fetchAuthPayload();
+    await hydrateUserState(data);
   };
 
   // ================= INIT =================
@@ -224,17 +228,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password,
       });
 
-      const roles = data?.user.roles ?? [];
-      const isAdminUser = roles.includes('admin') || roles.includes('superadmin');
-      const isSuperadminUser = roles.includes('superadmin');
-
-      setUser({
-        id: data.user.id,
-        email: data.user.email,
-      });
-      setIsAdmin(isAdminUser);
-      setIsSuperadmin(isSuperadminUser);
-      await refreshProfile();
+      // Verify that the browser actually accepted the session cookie.
+      const payload = await fetchAuthPayload();
+      if (!payload?.user) {
+        await hydrateUserState(null);
+        return {
+          error: new Error(
+            'Login succeeded but the session was not saved. In Incognito, allow third-party cookies and try again.',
+          ),
+          data: null,
+        };
+      }
+      await hydrateUserState(payload);
 
       return { error: null, data: data ?? null };
     } catch (error) {
@@ -244,11 +249,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    await api.post('/api/auth/logout');
-    setProfile(null);
-    setUser(null);
-    setIsAdmin(false);
-    setIsSuperadmin(false);
+    try {
+      await api.post('/api/auth/logout');
+    } catch {
+      // If the session is already gone (401), still clear local auth state.
+    } finally {
+      setProfile(null);
+      setUser(null);
+      setIsAdmin(false);
+      setIsSuperadmin(false);
+    }
   };
 
   const isInstagramConnected =

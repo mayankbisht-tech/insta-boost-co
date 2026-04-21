@@ -46,13 +46,18 @@ const AdminPayments = () => {
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
-    const [profilesData, payoutsData] = await Promise.all([
-      api.get<PaymentProfile[]>('/api/admin/payments/profiles'),
-      api.get<PayoutRequest[]>('/api/admin/payments/payouts'),
-    ]);
-    setProfiles(profilesData);
-    setPayouts(payoutsData);
-    setLoading(false);
+    try {
+      const [profilesData, payoutsData] = await Promise.all([
+        api.get<PaymentProfile[]>('/api/admin/payments/profiles'),
+        api.get<PayoutRequest[]>('/api/admin/payments/payouts'),
+      ]);
+      setProfiles(profilesData);
+      setPayouts(payoutsData);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load payment data.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { getInstagramProfileUrl } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface UserProfile {
   id: string;
@@ -25,10 +26,18 @@ const AdminUsers = () => {
   const [searchUser, setSearchUser] = useState('');
 
   useEffect(() => {
-    api.get<UserProfile[]>('/api/admin/users').then(data => {
-      if (data) setUsers(data as UserProfile[]);
-      setLoading(false);
-    });
+    const fetchUsers = async () => {
+      try {
+        const data = await api.get<UserProfile[]>('/api/admin/users');
+        if (data) setUsers(data);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to load users.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchUsers();
   }, []);
 
   const filteredUsers = users.filter(user => {
