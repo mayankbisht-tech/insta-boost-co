@@ -21,8 +21,13 @@ interface Campaign extends CampaignBudget {
 }
 
 const emptyForm = {
-  title: '', description: '', category: 'General', budget_rupees: 20000, rupees_per_thousand_views: 150,
-  rules: '', status: 'Active', imageFile: null as File | null,
+  title: '',
+  category: 'General',
+  budget_rupees: 20000,
+  rupees_per_thousand_views: 150,
+  rules: '',
+  link: '',
+  status: 'Active',
 };
 
 const AdminCampaigns = () => {
@@ -91,13 +96,12 @@ const AdminCampaigns = () => {
     setEditingId(c.id);
     setForm({
       title: c.title,
-      description: c.description,
       category: c.category,
       budget_rupees: c.budget_rupees,
       rupees_per_thousand_views: c.rupees_per_thousand_views,
       rules: c.rules?.join('\n') || '',
+      link: c.image_url || '',
       status: c.status,
-      imageFile: null,
     });
     setDialogOpen(true);
   };
@@ -108,16 +112,13 @@ const AdminCampaigns = () => {
 
     const formData = new FormData();
     formData.append('title', form.title.trim());
-    formData.append('description', form.description.trim());
     formData.append('category', form.category);
     formData.append('budget_rupees', form.budget_rupees.toString());
     formData.append('rupees_per_thousand_views', form.rupees_per_thousand_views.toString());
     formData.append('reward_per_million_views', (form.rupees_per_thousand_views * 1000).toString());
     formData.append('rules', JSON.stringify(form.rules.split('\n').map(r => r.trim()).filter(Boolean)));
+    formData.append('link', form.link.trim());
     formData.append('status', form.status);
-    if (form.imageFile) {
-      formData.append('image', form.imageFile);
-    }
 
     try {
       if (editingId) {
@@ -257,21 +258,6 @@ const AdminCampaigns = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
-              >
-                <Label className="text-sm font-semibold">Description</Label>
-                <Textarea 
-                  value={form.description} 
-                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))} 
-                  className="mt-2 bg-secondary/50 border-border/50 focus:border-primary transition-colors" 
-                  rows={3} 
-                  placeholder="Describe your campaign..."
-                />
-              </motion.div>
-              
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
                 className="grid grid-cols-2 gap-4"
               >
                 <div>
@@ -302,7 +288,7 @@ const AdminCampaigns = () => {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 }}
+                transition={{ delay: 0.2 }}
               >
                 <Label className="text-sm font-semibold">Campaign Budget (INR)</Label>
                 <Input 
@@ -317,7 +303,7 @@ const AdminCampaigns = () => {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.28 }}
+                transition={{ delay: 0.25 }}
               >
                 <Label className="text-sm font-semibold">Rupees per 1,000 views</Label>
                 <Input
@@ -352,29 +338,17 @@ const AdminCampaigns = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.35 }}
               >
-                <Label className="text-sm font-semibold">Campaign Image</Label>
-                {form.imageFile && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="relative mt-2 mb-3 overflow-hidden rounded-lg"
-                  >
-                    <img 
-                      src={URL.createObjectURL(form.imageFile)} 
-                      alt="preview" 
-                      className="h-32 w-full object-cover rounded-lg shadow-md" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent rounded-lg" />
-                  </motion.div>
-                )}
-                <div className="relative">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={e => setForm(f => ({ ...f, imageFile: e.target.files?.[0] || null }))}
-                    className="mt-2 bg-secondary/50 border-border/50 focus:border-primary transition-colors file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90 cursor-pointer"
-                  />
-                </div>
+                <Label className="text-sm font-semibold">Campaign Link</Label>
+                <Input
+                  type="url"
+                  value={form.link}
+                  onChange={e => setForm(f => ({ ...f, link: e.target.value }))}
+                  className="mt-2 bg-secondary/50 border-border/50 focus:border-primary transition-colors"
+                  placeholder="https://drive.google.com/..."
+                />
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Add any URL (Google Drive, landing page, docs, or other campaign resource).
+                </p>
               </motion.div>
               
               <motion.div
