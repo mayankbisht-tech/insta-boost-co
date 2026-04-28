@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
+import { getCampaignSpendSummaries, getCampaignSpendSummary } from '../lib/campaignEarnings.js';
 import { toCampaignPayload } from '../lib/serializers.js';
 import { resolveSubmissionEarnings } from '../lib/submissionEarnings.js';
 
@@ -9,23 +10,9 @@ campaignsRouter.get('/', async (_req, res) => {
   const campaigns = await prisma.campaign.findMany({
     orderBy: { createdAt: 'desc' },
   });
+  const summaries = await getCampaignSpendSummaries(campaigns.map(campaign => campaign.id));
 
-  const billedViewsByCampaign = await prisma.submission.groupBy({
-    by: ['campaignId'],
-    where: {
-      campaignId: { in: campaigns.map(campaign => campaign.id) },
-      status: { notIn: ['Rejected', 'Flagged'] },
-    },
-    _sum: {
-      views: true,
-    },
-  });
-
-  const billedViewsMap = new Map(
-    billedViewsByCampaign.map(item => [item.campaignId, item._sum.views ?? 0]),
-  );
-
-  res.json(campaigns.map(campaign => toCampaignPayload(campaign, billedViewsMap.get(campaign.id) ?? 0)));
+  res.json(campaigns.map(campaign => toCampaignPayload(campaign, summaries.get(campaign.id) ?? { billedViews: 0, spentBudgetRupees: 0 })));
 });
 
 campaignsRouter.get('/:id', async (req, res) => {
@@ -37,17 +24,9 @@ campaignsRouter.get('/:id', async (req, res) => {
     return res.status(404).json({ error: 'Campaign not found.' });
   }
 
-  const aggregate = await prisma.submission.aggregate({
-    where: {
-      campaignId: campaign.id,
-      status: { notIn: ['Rejected', 'Flagged'] },
-    },
-    _sum: {
-      views: true,
-    },
-  });
+  const summary = await getCampaignSpendSummary(campaign.id);
 
-  res.json(toCampaignPayload(campaign, aggregate._sum.views ?? 0));
+  res.json(toCampaignPayload(campaign, summary));
 });
 
 campaignsRouter.get('/:id/leaderboard', async (req, res) => {

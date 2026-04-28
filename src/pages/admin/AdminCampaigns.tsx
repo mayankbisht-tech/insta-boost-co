@@ -24,6 +24,7 @@ const emptyForm = {
   title: '',
   category: 'General',
   budget_rupees: 20000,
+  max_earning_rupees: 0,
   rupees_per_thousand_views: 150,
   rules: '',
   link: '',
@@ -98,6 +99,7 @@ const AdminCampaigns = () => {
       title: c.title,
       category: c.category,
       budget_rupees: c.budget_rupees,
+      max_earning_rupees: c.max_earning_rupees,
       rupees_per_thousand_views: c.rupees_per_thousand_views,
       rules: c.rules?.join('\n') || '',
       link: c.image_url || '',
@@ -114,6 +116,7 @@ const AdminCampaigns = () => {
     formData.append('title', form.title.trim());
     formData.append('category', form.category);
     formData.append('budget_rupees', form.budget_rupees.toString());
+    formData.append('max_earning_rupees', form.max_earning_rupees.toString());
     formData.append('rupees_per_thousand_views', form.rupees_per_thousand_views.toString());
     formData.append('reward_per_million_views', (form.rupees_per_thousand_views * 1000).toString());
     formData.append('rules', JSON.stringify(form.rules.split('\n').map(r => r.trim()).filter(Boolean)));
@@ -297,6 +300,21 @@ const AdminCampaigns = () => {
                   onChange={e => setForm(f => ({ ...f, budget_rupees: parseInt(e.target.value, 10) || 0 }))} 
                   className="mt-2 bg-secondary/50 border-border/50 focus:border-primary transition-colors" 
                   placeholder="20000"
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.225 }}
+              >
+                <Label className="text-sm font-semibold">Max earning per user (INR)</Label>
+                <Input
+                  type="number"
+                  value={form.max_earning_rupees}
+                  onChange={e => setForm(f => ({ ...f, max_earning_rupees: parseInt(e.target.value, 10) || 0 }))}
+                  className="mt-2 bg-secondary/50 border-border/50 focus:border-primary transition-colors"
+                  placeholder="0"
                 />
               </motion.div>
 

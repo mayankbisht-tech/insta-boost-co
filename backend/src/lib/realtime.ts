@@ -1,5 +1,6 @@
 import type { Server as SocketIOServer } from 'socket.io';
 import { prisma } from './prisma.js';
+import { getCampaignSpendSummary } from './campaignEarnings.js';
 import { toCampaignPayload } from './serializers.js';
 
 let io: SocketIOServer | null = null;
@@ -23,16 +24,8 @@ export const emitCampaignBudgetUpdate = async (campaignId: string) => {
     return;
   }
 
-  const aggregate = await prisma.submission.aggregate({
-    where: {
-      campaignId,
-      status: { notIn: ['Rejected', 'Flagged'] },
-    },
-    _sum: { views: true },
-  });
-
-  const billedViews = aggregate._sum.views ?? 0;
-  const payload = toCampaignPayload(campaign, billedViews);
+  const summary = await getCampaignSpendSummary(campaignId);
+  const payload = toCampaignPayload(campaign, summary);
 
   io.emit('campaign:budget-updated', payload);
 };

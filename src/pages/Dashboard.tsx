@@ -30,6 +30,14 @@ interface SubmissionOverview {
   latest_sync_at: string | null;
 }
 
+interface PaymentOverview {
+  estimated_earning: number;
+  total_earned: number;
+  total_paid: number;
+  available_balance: number;
+  total_reel_earnings?: number;
+}
+
 const categoryColors: Record<string, string> = {
   Sports: 'bg-info/10 text-info border border-info/20',
   General: 'bg-success/10 text-success border border-success/20',
@@ -54,6 +62,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [overview, setOverview] = useState<SubmissionOverview>(emptyOverview);
+  const [paymentOverview, setPaymentOverview] = useState<PaymentOverview | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,14 +71,20 @@ const Dashboard = () => {
       setCampaigns(campData);
 
       if (user) {
-        const overviewData = await api.get<SubmissionOverview>('/api/submissions/overview');
+        const [overviewData, paymentData] = await Promise.all([
+          api.get<SubmissionOverview>('/api/submissions/overview'),
+          api.get<PaymentOverview>('/api/payments/overview'),
+        ]);
         setOverview(overviewData);
+        setPaymentOverview(paymentData);
       } else {
         setOverview(emptyOverview);
+        setPaymentOverview(null);
       }
 
       setLoading(false);
     };
+
     void fetchData();
   }, [user]);
 
@@ -137,13 +152,25 @@ const Dashboard = () => {
         ))}
       </div>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card p-5">
           <div className="flex items-center gap-2 mb-4">
             <DollarSign className="h-8 w-8 text-success" />
             <span className="text-xl text-muted-foreground">Total Earnings</span>
           </div>
-          <p className="font-display text-4xl font-bold text-success">₹ {overview.total_earnings.toFixed(2)}</p>
+          <p className="font-display text-4xl font-bold text-success">
+            ₹ {paymentOverview?.total_earned?.toFixed(2) ?? '0.00'}
+          </p>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }} className="glass-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <DollarSign className="h-8 w-8 text-primary" />
+            <span className="text-xl text-muted-foreground">Estimated Earnings</span>
+          </div>
+          <p className="font-display text-4xl font-bold text-primary">
+            ₹ {paymentOverview?.estimated_earning?.toFixed(2) ?? '0.00'}
+          </p>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }} className="glass-card p-5">

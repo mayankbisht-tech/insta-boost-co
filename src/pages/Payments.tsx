@@ -21,6 +21,7 @@ type PaymentProfile = {
 
 type PaymentOverview = {
   available_balance: number;
+  estimated_earning: number;
   total_earned: number;
   total_paid: number;
   payment_profile_status: PaymentProfile['status'] | null;
@@ -122,6 +123,7 @@ const Payments = () => {
   const pendingRequest = overview?.pending_request;
   const latestRequest = history[0] ?? null;
   const showWithdrawalCard = isVerified;
+  const estimatedEarning = overview?.estimated_earning ?? overview?.available_balance ?? 0;
 
   const toRequestStatusLabel = (status: PayoutHistoryItem['status']) => {
     if (status === 'approved') return 'Done';
@@ -141,7 +143,7 @@ const Payments = () => {
         <div>
           <h1 className="font-display text-xl font-bold">Payments</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Add your UPI details, get them verified, then request withdrawals when you have earnings.
+            Add your UPI details, get them verified, then request withdrawals when your estimated earnings cross ₹500.
           </p>
         </div>
 
@@ -170,24 +172,66 @@ const Payments = () => {
                       </div>
                     )}
 
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="rounded-xl border border-border/70 p-4">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <IndianRupee className="h-4 w-4" />
+                          Total Earned
+                        </div>
+                        <p className="mt-2 font-display text-3xl font-bold text-primary">
+                          ₹ {overview?.total_earned?.toFixed(2) ?? '0.00'}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl border border-border/70 p-4">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <IndianRupee className="h-4 w-4" />
+                          Estimated Earnings
+                        </div>
+                        <p className="mt-2 font-display text-3xl font-bold text-success">
+                          ₹ {estimatedEarning.toFixed(2)}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl border border-border/70 p-4">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <IndianRupee className="h-4 w-4" />
+                          Already Paid
+                        </div>
+                        <p className="mt-2 font-display text-3xl font-bold text-foreground">
+                          ₹ {overview?.total_paid?.toFixed(2) ?? '0.00'}
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="rounded-xl border border-border/70 p-4">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <IndianRupee className="h-4 w-4" />
-                        Available Balance
+                        Withdrawable Amount
                       </div>
                       <p className="mt-2 font-display text-3xl font-bold text-success">
-                        ₹ {overview?.available_balance?.toFixed(2) ?? '0.00'}
+                        ₹ {estimatedEarning.toFixed(2)}
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        You can request a payout only after this amount goes above ₹500.
                       </p>
                     </div>
 
                     <Button
                       onClick={() => void handleWithdraw()}
-                      disabled={withdrawing || Boolean(pendingRequest) || (overview?.available_balance ?? 0) <= 0}
+                      disabled={withdrawing || Boolean(pendingRequest) || estimatedEarning <= 500}
                     >
                       {withdrawing ? 'Requesting...' : pendingRequest ? 'Pending...' : 'Request Withdrawal'}
                     </Button>
 
-                    {!pendingRequest && (overview?.available_balance ?? 0) > 0 && (
+                    {!pendingRequest && estimatedEarning > 0 && estimatedEarning <= 500 && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <CheckCircle className="h-4 w-4 text-warning" />
+                        You need more approved earnings before you can request a payout.
+                      </div>
+                    )}
+
+                    {!pendingRequest && estimatedEarning > 500 && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <CheckCircle className="h-4 w-4 text-success" />
                         Once requested, the withdrawal cannot be cancelled.

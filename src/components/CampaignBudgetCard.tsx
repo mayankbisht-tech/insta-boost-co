@@ -10,6 +10,7 @@ export interface CampaignBudget {
   status: string;
   rupees_per_thousand_views: number;
   budget_rupees: number;
+  max_earning_rupees: number;
   spent_budget_rupees: number;
   remaining_budget_rupees: number;
   budget_consumed_percent: number;
@@ -93,8 +94,9 @@ export const CampaignBudgetCard = ({ campaign, className = '', compact = false }
             <p className="mt-1 text-lg font-semibold">{campaign.billed_views.toLocaleString('en-IN')}</p>
           </div>
           <div>
-            <p className="text-slate-400">Remaining</p>
-            <p className="mt-1 text-lg font-semibold text-emerald-400">₹{campaign.remaining_budget_rupees.toLocaleString('en-IN')}</p>
+            <p className="text-slate-400">Max per user</p>
+            <p className="mt-1 text-lg font-semibold text-emerald-400">₹{campaign.max_earning_rupees.toLocaleString('en-IN')}</p>
+            <p className="text-slate-400">Remaining: ₹{campaign.remaining_budget_rupees.toLocaleString('en-IN')}</p>
           </div>
         </div>
 

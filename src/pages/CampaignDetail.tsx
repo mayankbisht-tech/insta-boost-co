@@ -16,6 +16,7 @@ interface Campaign {
   title: string;
   description: string;
   category: string;
+  max_earning_rupees: number;
   reward_per_million_views: number;
   rules: string[];
   status: string;
@@ -137,6 +138,13 @@ const CampaignDetail = () => {
           <div className="flex items-center gap-2 text-primary mb-4 p-3 rounded-lg bg-primary/5 border border-primary/10">
             <TrendingUp className="h-4 w-4" />
             <span className="font-display font-semibold">${campaign.reward_per_million_views} per 1M views</span>
+          </div>
+
+          <div className="mb-6 rounded-lg border border-border bg-muted/40 p-4 text-sm">
+            <p className="font-medium">Max earning per user</p>
+            <p className="mt-1 text-muted-foreground">
+              ₹ {campaign.max_earning_rupees.toLocaleString('en-IN')}
+            </p>
           </div>
 
           <div className="mb-6 rounded-lg border border-warning/20 bg-warning/5 p-4 text-sm text-muted-foreground">

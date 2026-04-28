@@ -1,4 +1,5 @@
 import type { Campaign, InstagramAccount, Notification, Session, Submission, User, UserRole } from '@prisma/client';
+import type { CampaignSpendSummary } from './campaignEarnings.js';
 import { resolveSubmissionEarnings } from './submissionEarnings.js';
 
 type UserWithRoles = User & { roles: UserRole[]; instagramAccounts?: InstagramAccount[] };
@@ -149,9 +150,9 @@ const resolveRupeesPerThousandViews = (campaign: Campaign) => {
   return Number((campaign.rewardPerMillionViews / 1000).toFixed(2));
 };
 
-const calculateCampaignBudgetMetrics = (campaign: Campaign, billedViews: number) => {
+const calculateCampaignBudgetMetrics = (campaign: Campaign, summary: CampaignSpendSummary) => {
   const rupeesPerThousandViews = resolveRupeesPerThousandViews(campaign);
-  const spentBudgetRupees = Number(((billedViews / 1000) * rupeesPerThousandViews).toFixed(2));
+  const spentBudgetRupees = Number(summary.spentBudgetRupees.toFixed(2));
   const remainingBudgetRupees = Number(Math.max(campaign.budgetRupees - spentBudgetRupees, 0).toFixed(2));
   const budgetConsumedPercent = campaign.budgetRupees > 0
     ? Number(Math.min((spentBudgetRupees / campaign.budgetRupees) * 100, 100).toFixed(2))
@@ -165,8 +166,8 @@ const calculateCampaignBudgetMetrics = (campaign: Campaign, billedViews: number)
   };
 };
 
-export const toCampaignPayload = (campaign: Campaign, billedViews = 0) => {
-  const metrics = calculateCampaignBudgetMetrics(campaign, billedViews);
+export const toCampaignPayload = (campaign: Campaign, summary: CampaignSpendSummary = { billedViews: 0, spentBudgetRupees: 0 }) => {
+  const metrics = calculateCampaignBudgetMetrics(campaign, summary);
 
   return {
     id: campaign.id,
@@ -174,9 +175,10 @@ export const toCampaignPayload = (campaign: Campaign, billedViews = 0) => {
     description: campaign.description,
     category: campaign.category,
     budget_rupees: campaign.budgetRupees,
+    max_earning_rupees: campaign.maxEarningRupees,
     rupees_per_thousand_views: metrics.rupeesPerThousandViews,
     reward_per_million_views: campaign.rewardPerMillionViews,
-    billed_views: billedViews,
+    billed_views: summary.billedViews,
     spent_budget_rupees: metrics.spentBudgetRupees,
     remaining_budget_rupees: metrics.remainingBudgetRupees,
     budget_consumed_percent: metrics.budgetConsumedPercent,

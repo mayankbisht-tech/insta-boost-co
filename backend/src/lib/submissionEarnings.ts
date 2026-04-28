@@ -1,14 +1,19 @@
 import type { Decimal } from '@prisma/client/runtime/library';
 
-const NON_EARNING_STATUSES = new Set(['Rejected', 'Flagged']);
+const PAYABLE_STATUS = 'Approved';
 
 export const resolveSubmissionEarnings = (earnings: number | string | Decimal, status: string) => {
-  if (NON_EARNING_STATUSES.has(status)) {
+  if (status !== PAYABLE_STATUS) {
     return 0;
   }
 
   return Number(earnings);
 };
+
+export const calculateSubmissionGrossEarnings = (
+  views: number,
+  rewardPerMillionViews: number,
+) => Number(((views / 1_000_000) * rewardPerMillionViews).toFixed(2));
 
 export const calculateSubmissionEarnings = (
   views: number,
@@ -16,7 +21,7 @@ export const calculateSubmissionEarnings = (
   status: string,
 ) => {
   return resolveSubmissionEarnings(
-    Number(((views / 1_000_000) * rewardPerMillionViews).toFixed(2)),
+    calculateSubmissionGrossEarnings(views, rewardPerMillionViews),
     status,
   );
 };

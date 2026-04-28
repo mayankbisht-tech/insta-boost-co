@@ -78,7 +78,7 @@ const safeFindPayoutHistory = async (userId: string) => {
 const calculateUserEarnings = async (userId: string) => {
   try {
     const submissions = await prisma.submission.findMany({
-      where: { userId },
+      where: { userId, status: 'Approved' },
       select: { earnings: true, status: true },
     });
 
@@ -112,14 +112,14 @@ const calculateTotalPaid = async (userId: string) => {
   }
 };
 
-const calculateReservedPayoutAmount = async (userId: string) => {
+const calculatePendingPayoutAmount = async (userId: string) => {
   try {
-    const payouts = await prisma.payoutRequest.findMany({
-      where: { userId, status: { in: ['pending', 'approved'] } },
+    const payout = await prisma.payoutRequest.findFirst({
+      where: { userId, status: 'pending' },
       select: { amount: true },
     });
 
-    return payouts.reduce((sum, payout) => sum + Number(payout.amount), 0);
+    return Number(payout?.amount ?? 0);
   } catch (error) {
     if (isMissingTableError(error, 'PayoutRequest')) {
       return 0;
@@ -204,21 +204,23 @@ paymentsRouter.put('/profile', async (req, res) => {
 });
 
 paymentsRouter.get('/overview', async (req, res) => {
-  const [profile, totalEarnings, totalPaid, reservedPayoutAmount, pendingRequest] = await Promise.all([
+  const [profile, totalEarnings, totalPaid, pendingPayoutAmount, pendingRequest] = await Promise.all([
     safeFindPaymentProfile(req.auth!.user.id),
     calculateUserEarnings(req.auth!.user.id),
     calculateTotalPaid(req.auth!.user.id),
-    calculateReservedPayoutAmount(req.auth!.user.id),
+    calculatePendingPayoutAmount(req.auth!.user.id),
     safeFindPendingPayoutRequest(req.auth!.user.id),
   ]);
 
-  const available = Math.max(totalEarnings - reservedPayoutAmount, 0);
+  const estimated = Math.max(totalEarnings - totalPaid - pendingPayoutAmount, 0);
 
   return res.json({
-    available_balance: Number(available.toFixed(2)),
-    total_earned: Number(totalEarnings.toFixed(2)),
+    available_balance: Number(estimated.toFixed(2)),
+    estimated_earning: Number(estimated.toFixed(2)),
+    total_earned: Number(totalPaid.toFixed(2)),
     total_paid: Number(totalPaid.toFixed(2)),
     payment_profile_status: profile?.status ?? null,
+    total_reel_earnings: Number(totalEarnings.toFixed(2)),
     pending_request: pendingRequest
       ? {
           id: pendingRequest.id,
@@ -274,8 +276,8 @@ paymentsRouter.post('/withdraw', async (req, res) => {
 
   const available = Math.max(totalEarnings - totalPaid, 0);
 
-  if (available <= 0) {
-    return res.status(400).json({ error: 'No available balance to withdraw yet.' });
+  if (available <= 500) {
+    return res.status(400).json({ error: 'You can request a payout only after your estimated earnings exceed ₹500.' });
   }
 
   try {

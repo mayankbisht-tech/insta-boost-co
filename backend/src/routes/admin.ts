@@ -5,11 +5,12 @@ import { getApifyRunOverview } from '../lib/apify.js';
 import { consumeRefreshQuota, getRefreshQuota, syncSubmissionAnalytics } from '../lib/analyticsRefresh.js';
 import { createNotification } from '../lib/notifications.js';
 import { hashPassword } from '../lib/password.js';
+import { calculateCappedSubmissionEarnings, getCampaignSpendSummaries } from '../lib/campaignEarnings.js';
 import { normalizeVerificationStatus, overrideInstagramVerificationStatus, runInstagramVerificationCheck } from '../lib/instagramVerification.js';
 import { prisma } from '../lib/prisma.js';
 import { emitCampaignBudgetUpdate } from '../lib/realtime.js';
 import { toCampaignPayload, toFrontendProfile, toSubmissionPayload } from '../lib/serializers.js';
-import { calculateSubmissionEarnings, resolveSubmissionEarnings } from '../lib/submissionEarnings.js';
+import { resolveSubmissionEarnings } from '../lib/submissionEarnings.js';
 import { requireAdmin, requireSuperadmin } from '../middleware/admin.js';
 import { requireAuth } from '../middleware/auth.js';
 
@@ -35,6 +36,7 @@ const campaignSchema = z.object({
   link: z.string().trim().optional().default(''),
   category: z.string().trim().min(1),
   budget_rupees: z.coerce.number().int().min(0),
+  max_earning_rupees: z.coerce.number().int().min(0).optional().default(0),
   rupees_per_thousand_views: z.coerce.number().int().min(0),
   reward_per_million_views: z.coerce.number().int().min(0).optional().default(0),
   rules: z.string().transform(v => {
@@ -316,23 +318,9 @@ adminRouter.get('/campaigns', async (_req, res) => {
   const campaigns = await prisma.campaign.findMany({
     orderBy: { createdAt: 'desc' },
   });
+  const summaries = await getCampaignSpendSummaries(campaigns.map(campaign => campaign.id));
 
-  const billedViewsByCampaign = await prisma.submission.groupBy({
-    by: ['campaignId'],
-    where: {
-      campaignId: { in: campaigns.map(campaign => campaign.id) },
-      status: { notIn: ['Rejected', 'Flagged'] },
-    },
-    _sum: {
-      views: true,
-    },
-  });
-
-  const billedViewsMap = new Map(
-    billedViewsByCampaign.map(item => [item.campaignId, item._sum.views ?? 0]),
-  );
-
-  res.json(campaigns.map(campaign => toCampaignPayload(campaign, billedViewsMap.get(campaign.id) ?? 0)));
+  res.json(campaigns.map(campaign => toCampaignPayload(campaign, summaries.get(campaign.id) ?? { billedViews: 0, spentBudgetRupees: 0 })));
 });
 
 adminRouter.post('/campaigns', async (req, res) => {
@@ -348,6 +336,7 @@ adminRouter.post('/campaigns', async (req, res) => {
       description: parsed.data.description,
       category: parsed.data.category,
       budgetRupees: parsed.data.budget_rupees,
+      maxEarningRupees: parsed.data.max_earning_rupees,
       rupeesPerThousandViews: parsed.data.rupees_per_thousand_views,
       rewardPerMillionViews: parsed.data.rupees_per_thousand_views * 1000,
       rules: parsed.data.rules,
@@ -384,6 +373,7 @@ adminRouter.put('/campaigns/:id', async (req, res) => {
       description: parsed.data.description || existing.description,
       category: parsed.data.category,
       budgetRupees: parsed.data.budget_rupees,
+      maxEarningRupees: parsed.data.max_earning_rupees,
       rupeesPerThousandViews: parsed.data.rupees_per_thousand_views,
       rewardPerMillionViews: parsed.data.rupees_per_thousand_views * 1000,
       rules: parsed.data.rules,
@@ -585,16 +575,20 @@ adminRouter.patch('/submissions/:id/status', async (req, res) => {
       ? 'Flagged by admin review.'
       : null;
 
+  const earnings = await calculateCappedSubmissionEarnings({
+    submissionId: existing.id,
+    userId: existing.userId,
+    campaign: existing.campaign,
+    views: existing.views,
+    status: parsed.data.status,
+  });
+
   const submission = await prisma.submission.update({
     where: { id: req.params.id },
     data: {
       status: parsed.data.status,
       rejectionReason,
-      earnings: calculateSubmissionEarnings(
-        existing.views,
-        existing.campaign.rewardPerMillionViews,
-        parsed.data.status,
-      ),
+      earnings,
       reviewedAt: new Date(),
       reviewedByAdmin: req.auth!.user.id,
     },
@@ -643,11 +637,13 @@ adminRouter.patch('/submissions/:id/views', async (req, res) => {
     return res.status(404).json({ error: 'Submission not found.' });
   }
 
-  const earnings = calculateSubmissionEarnings(
-    parsed.data.views,
-    existing.campaign.rewardPerMillionViews,
-    existing.status,
-  );
+  const earnings = await calculateCappedSubmissionEarnings({
+    submissionId: existing.id,
+    userId: existing.userId,
+    campaign: existing.campaign,
+    views: parsed.data.views,
+    status: existing.status,
+  });
 
   const submission = await prisma.submission.update({
     where: { id: req.params.id },
@@ -698,12 +694,31 @@ adminRouter.patch('/submissions/:id/sync-analytics', async (req, res) => {
     });
   }
 
+  const refreshedEarnings = await calculateCappedSubmissionEarnings({
+    submissionId: result.submission.id,
+    userId: result.submission.userId,
+    campaign: result.submission.campaign,
+    views: result.submission.views,
+    status: result.submission.status,
+  });
+
+  const submission = await prisma.submission.update({
+    where: { id: result.submission.id },
+    data: {
+      earnings: refreshedEarnings,
+    },
+    include: {
+      campaign: true,
+      user: true,
+    },
+  });
+
   const quota = consumeRefreshQuota(req.auth!.user);
 
-  await emitCampaignBudgetUpdate(result.submission.campaignId);
+  await emitCampaignBudgetUpdate(submission.campaignId);
 
   res.json({
-    submission: toSubmissionPayload(result.submission),
+    submission: toSubmissionPayload(submission),
     refresh_limit: quota.refreshLimit,
     refreshes_remaining: quota.refreshesRemaining,
     window_resets_at: quota.windowResetsAt,
