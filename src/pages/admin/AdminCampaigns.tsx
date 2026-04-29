@@ -314,7 +314,7 @@ const AdminCampaigns = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.225 }}
               >
-                <Label className="text-sm font-semibold">Max earning per user (INR)</Label>
+                <Label className="text-sm font-semibold">Max payment per reel (INR)</Label>
                 <Input
                   type="number"
                   value={form.max_earning_rupees}

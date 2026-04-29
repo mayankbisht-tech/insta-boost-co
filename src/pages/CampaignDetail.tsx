@@ -142,7 +142,7 @@ const CampaignDetail = () => {
           </div>
 
           <div className="mb-6 rounded-lg border border-border bg-muted/40 p-4 text-sm">
-            <p className="font-medium">Max earning per user</p>
+            <p className="font-medium">Max payment per reel</p>
             <p className="mt-1 text-muted-foreground">
               ₹ {campaign.max_earning_rupees.toLocaleString('en-IN')}
             </p>

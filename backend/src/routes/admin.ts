@@ -345,7 +345,7 @@ adminRouter.post('/campaigns', async (req, res) => {
       imageUrl: parsed.data.link || uploadRequest.fileUrl || null,
       googleDriveUrl: parsed.data.google_drive_url || null,
       createdByAdminId: req.auth!.user.id,
-    },
+    } as any,
   });
 
   await emitCampaignBudgetUpdate(campaign.id);
@@ -381,9 +381,9 @@ adminRouter.put('/campaigns/:id', async (req, res) => {
       rules: parsed.data.rules,
       status: parsed.data.status,
       imageUrl: parsed.data.link || uploadRequest.fileUrl || existing.imageUrl,
-      googleDriveUrl: parsed.data.google_drive_url || existing.googleDriveUrl,
+      googleDriveUrl: parsed.data.google_drive_url || (existing as typeof existing & { googleDriveUrl?: string | null }).googleDriveUrl,
       createdByAdminId: req.auth!.user.id,
-    },
+    } as any,
   });
 
   await emitCampaignBudgetUpdate(campaign.id);

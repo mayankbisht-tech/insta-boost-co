@@ -11,7 +11,6 @@ export type CampaignSpendSummary = {
 
 type ApprovedSubmissionRow = {
   campaignId: string;
-  userId: string;
   earnings: unknown;
   views: number;
   campaign: {
@@ -27,7 +26,6 @@ const sumApprovedSubmissionEarnings = async (where: Record<string, unknown>) => 
     },
     select: {
       campaignId: true,
-      userId: true,
       earnings: true,
       views: true,
       campaign: {
@@ -38,32 +36,10 @@ const sumApprovedSubmissionEarnings = async (where: Record<string, unknown>) => 
     },
   }) as ApprovedSubmissionRow[];
 
-  const perCampaignUser = new Map<string, {
-    campaignId: string;
-    totalEarnings: number;
-    billedViews: number;
-    maxEarningRupees: number;
-  }>();
-
-  for (const row of rows) {
-    const key = `${row.campaignId}:${row.userId}`;
-    const current = perCampaignUser.get(key) ?? {
-      campaignId: row.campaignId,
-      totalEarnings: 0,
-      billedViews: 0,
-      maxEarningRupees: row.campaign.maxEarningRupees,
-    };
-
-    current.totalEarnings += Number(row.earnings ?? 0);
-    current.billedViews += row.views;
-    current.maxEarningRupees = row.campaign.maxEarningRupees;
-    perCampaignUser.set(key, current);
-  }
-
-  return Array.from(perCampaignUser.values()).reduce(
+  return rows.reduce(
     (summary, row) => ({
-      spentBudgetRupees: summary.spentBudgetRupees + Math.min(row.totalEarnings, row.maxEarningRupees),
-      billedViews: summary.billedViews + row.billedViews,
+      spentBudgetRupees: summary.spentBudgetRupees + Math.min(Number(row.earnings ?? 0), row.campaign.maxEarningRupees),
+      billedViews: summary.billedViews + row.views,
     }),
     { spentBudgetRupees: 0, billedViews: 0 },
   );
@@ -81,7 +57,6 @@ const sumCappedApprovedSubmissionEarningsByCampaign = async (campaignIds: string
     },
     select: {
       campaignId: true,
-      userId: true,
       earnings: true,
       views: true,
       campaign: {
@@ -92,34 +67,12 @@ const sumCappedApprovedSubmissionEarningsByCampaign = async (campaignIds: string
     },
   }) as ApprovedSubmissionRow[];
 
-  const perCampaignUser = new Map<string, {
-    campaignId: string;
-    totalEarnings: number;
-    billedViews: number;
-    maxEarningRupees: number;
-  }>();
-
-  for (const row of rows) {
-    const key = `${row.campaignId}:${row.userId}`;
-    const current = perCampaignUser.get(key) ?? {
-      campaignId: row.campaignId,
-      totalEarnings: 0,
-      billedViews: 0,
-      maxEarningRupees: row.campaign.maxEarningRupees,
-    };
-
-    current.totalEarnings += Number(row.earnings ?? 0);
-    current.billedViews += row.views;
-    current.maxEarningRupees = row.campaign.maxEarningRupees;
-    perCampaignUser.set(key, current);
-  }
-
   const totalsByCampaign = new Map<string, CampaignSpendSummary>();
 
-  for (const row of perCampaignUser.values()) {
+  for (const row of rows) {
     const current = totalsByCampaign.get(row.campaignId) ?? { billedViews: 0, spentBudgetRupees: 0 };
-    current.billedViews += row.billedViews;
-    current.spentBudgetRupees += Math.min(row.totalEarnings, row.maxEarningRupees);
+    current.billedViews += row.views;
+    current.spentBudgetRupees += Math.min(Number(row.earnings ?? 0), row.campaign.maxEarningRupees);
     totalsByCampaign.set(row.campaignId, current);
   }
 
@@ -154,20 +107,13 @@ export const calculateCappedSubmissionEarnings = async (args: {
   const rawEarnings = calculateSubmissionGrossEarnings(args.views, args.campaign.rewardPerMillionViews);
 
   const submissionExclusion = args.submissionId ? { id: { not: args.submissionId } } : {};
-  const [campaignSummary, userSummary] = await Promise.all([
-    sumApprovedSubmissionEarnings({
-      campaignId: args.campaign.id,
-      ...submissionExclusion,
-    }),
-    sumApprovedSubmissionEarnings({
-      campaignId: args.campaign.id,
-      userId: args.userId,
-      ...submissionExclusion,
-    }),
-  ]);
+  const campaignSummary = await sumApprovedSubmissionEarnings({
+    campaignId: args.campaign.id,
+    ...submissionExclusion,
+  });
 
   const campaignRemaining = Math.max(args.campaign.budgetRupees - campaignSummary.spentBudgetRupees, 0);
-  const userRemaining = Math.max(args.campaign.maxEarningRupees - userSummary.spentBudgetRupees, 0);
+  const reelMaxPayment = Math.max(args.campaign.maxEarningRupees, 0);
 
-  return Number(Math.max(Math.min(rawEarnings, campaignRemaining, userRemaining), 0).toFixed(2));
+  return Number(Math.max(Math.min(rawEarnings, campaignRemaining, reelMaxPayment), 0).toFixed(2));
 };

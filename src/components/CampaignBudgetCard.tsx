@@ -96,7 +96,7 @@ export const CampaignBudgetCard = ({ campaign, className = '', compact = false }
             <p className="mt-1 text-lg font-semibold text-slate-950">{campaign.billed_views.toLocaleString('en-IN')}</p>
           </div>
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 shadow-sm">
-            <p className="text-slate-600">Max per user</p>
+            <p className="text-slate-600">Max per reel</p>
             <p className="mt-1 text-lg font-semibold text-emerald-700">₹{campaign.max_earning_rupees.toLocaleString('en-IN')}</p>
             <p className="text-slate-500">Remaining: ₹{campaign.remaining_budget_rupees.toLocaleString('en-IN')}</p>
           </div>
