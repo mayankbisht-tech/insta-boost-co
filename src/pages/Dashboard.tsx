@@ -197,7 +197,7 @@ const Dashboard = () => {
           <p className="text-muted-foreground">No campaigns available.</p>
         </div>
       ) : (
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-2">
           {campaigns.map((campaign, i) => (
             <motion.div
               key={campaign.id}

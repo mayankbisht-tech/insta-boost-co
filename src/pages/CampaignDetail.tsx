@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { ArrowLeft, CheckCircle2, AlertTriangle, TrendingUp, Trophy, Clock3, Radar } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, AlertTriangle, TrendingUp, Trophy, Clock3, Radar, ExternalLink } from 'lucide-react';
 
 interface Campaign {
   id: string;
@@ -21,6 +21,7 @@ interface Campaign {
   rules: string[];
   status: string;
   image_url: string | null;
+  google_drive_url: string | null;
 }
 
 const submissionWindowMinutes = 120;
@@ -162,6 +163,20 @@ const CampaignDetail = () => {
               </div>
             </div>
           </div>
+
+          {campaign.google_drive_url && (
+            <div className="mb-6 flex items-center justify-between gap-4 rounded-lg border border-amber-100 bg-gradient-to-r from-amber-50 via-white to-sky-50 px-4 py-3 text-sm shadow-sm">
+              <div>
+                <p className="font-medium text-foreground">Campaign brief</p>
+                <p className="text-muted-foreground">Google Drive attachment</p>
+              </div>
+              <Button asChild variant="outline" size="sm" className="shrink-0 border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800">
+                <a href={campaign.google_drive_url} target="_blank" rel="noreferrer">
+                  Open link <ExternalLink className="ml-1 h-4 w-4" />
+                </a>
+              </Button>
+            </div>
+          )}
 
           <Button asChild variant="outline" size="sm" className="mb-6">
             <Link to={`/campaign/${campaign.id}/leaderboard`}>

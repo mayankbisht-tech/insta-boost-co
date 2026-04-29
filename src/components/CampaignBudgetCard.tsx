@@ -48,7 +48,8 @@ export const CampaignBudgetCard = ({ campaign, className = '', compact = false }
   const progressValue = Math.max(0, Math.min(campaign.budget_consumed_percent, 100));
 
   return (
-    <article className={`rounded-3xl border border-amber-100 bg-gradient-to-br from-white via-sky-50 to-indigo-50 text-slate-900 shadow-[0_18px_50px_rgba(15,23,42,0.08)] ring-1 ring-sky-100/70 ${className}`.trim()}>
+    <article className={`relative overflow-hidden rounded-[28px] border border-slate-200 bg-white text-slate-900 shadow-[0_24px_60px_rgba(15,23,42,0.12)] ring-1 ring-slate-100 ${className}`.trim()}>
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-500 via-indigo-500 to-amber-400" />
       <div className="p-5 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-3">
@@ -56,72 +57,56 @@ export const CampaignBudgetCard = ({ campaign, className = '', compact = false }
               <img
                 src={campaign.image_url}
                 alt={campaign.title}
-                className="h-16 w-24 rounded-xl object-cover"
+                className="h-16 w-24 rounded-xl border border-slate-200 object-cover shadow-sm"
                 loading="lazy"
               />
             ) : (
-              <div className="flex h-16 w-24 items-center justify-center rounded-xl bg-amber-100 text-sm font-semibold text-amber-700">
+              <div className="flex h-16 w-24 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-sm font-semibold text-amber-800 shadow-sm">
                 No image
               </div>
             )}
             <div>
-              <h3 className="font-display text-lg font-semibold leading-tight text-slate-900">{campaign.title}</h3>
-              <p className="mt-1 text-sm text-slate-700 line-clamp-1">{campaign.description}</p>
+              <h3 className="font-display text-lg font-semibold leading-tight text-slate-950">{campaign.title}</h3>
+              <p className="mt-1 text-sm text-slate-600 line-clamp-1">{campaign.description}</p>
             </div>
           </div>
 
           <div className="text-left lg:text-right">
             <div className="flex flex-wrap gap-2 lg:justify-end">
-              <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">{campaign.category}</Badge>
-              <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-100">{campaign.status}</Badge>
+              <Badge className="border border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-50">{campaign.category}</Badge>
+              <Badge className="border border-indigo-200 bg-indigo-50 text-indigo-900 hover:bg-indigo-50">{campaign.status}</Badge>
             </div>
-            {!compact && <p className="mt-2 text-sm text-slate-600">{ageLabel((campaign as { created_at?: string }).created_at)}</p>}
+            {!compact && <p className="mt-2 text-sm text-slate-500">{ageLabel((campaign as { created_at?: string }).created_at)}</p>}
           </div>
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <p className="text-slate-700">Paid Out</p>
-            <p className="mt-1 text-lg font-semibold text-slate-900">₹{campaign.spent_budget_rupees.toLocaleString('en-IN')}</p>
-            <p className="text-slate-600">/ ₹{campaign.budget_rupees.toLocaleString('en-IN')}</p>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm">
+            <p className="text-slate-600">Paid Out</p>
+            <p className="mt-1 text-lg font-semibold text-slate-950">₹{campaign.spent_budget_rupees.toLocaleString('en-IN')}</p>
+            <p className="text-slate-500">/ ₹{campaign.budget_rupees.toLocaleString('en-IN')}</p>
           </div>
-          <div>
-            <p className="text-slate-700">CPM</p>
-            <p className="mt-1 text-lg font-semibold text-slate-900">₹{campaign.rupees_per_thousand_views.toLocaleString('en-IN')}</p>
-            <p className="text-slate-600">/ 1k views</p>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm">
+            <p className="text-slate-600">CPM</p>
+            <p className="mt-1 text-lg font-semibold text-slate-950">₹{campaign.rupees_per_thousand_views.toLocaleString('en-IN')}</p>
+            <p className="text-slate-500">/ 1k views</p>
           </div>
-          <div>
-            <p className="text-slate-700">Views</p>
-            <p className="mt-1 text-lg font-semibold text-slate-900">{campaign.billed_views.toLocaleString('en-IN')}</p>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm">
+            <p className="text-slate-600">Views</p>
+            <p className="mt-1 text-lg font-semibold text-slate-950">{campaign.billed_views.toLocaleString('en-IN')}</p>
           </div>
-          <div>
-            <p className="text-slate-700">Max per user</p>
-            <p className="mt-1 text-lg font-semibold text-emerald-600">₹{campaign.max_earning_rupees.toLocaleString('en-IN')}</p>
-            <p className="text-slate-600">Remaining: ₹{campaign.remaining_budget_rupees.toLocaleString('en-IN')}</p>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 shadow-sm">
+            <p className="text-slate-600">Max per user</p>
+            <p className="mt-1 text-lg font-semibold text-emerald-700">₹{campaign.max_earning_rupees.toLocaleString('en-IN')}</p>
+            <p className="text-slate-500">Remaining: ₹{campaign.remaining_budget_rupees.toLocaleString('en-IN')}</p>
           </div>
         </div>
 
         <div className="mt-5">
           <Progress value={progressValue} className="h-2 bg-slate-200" />
-          <p className="mt-2 text-xs text-slate-600">{progressValue.toFixed(2)}% budget consumed</p>
+          <p className="mt-2 text-xs text-slate-500">{progressValue.toFixed(2)}% budget consumed</p>
         </div>
 
-        {campaign.google_drive_url && (
-          <div className="mt-4 flex items-center justify-between rounded-2xl border border-amber-100 bg-gradient-to-r from-amber-50 via-white to-sky-50 px-4 py-3 text-sm shadow-sm">
-            <div>
-              <p className="font-medium text-slate-900">Campaign brief</p>
-              <p className="text-slate-600">Google Drive attachment</p>
-            </div>
-            <a
-              href={campaign.google_drive_url}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-indigo-700 transition-colors hover:bg-indigo-100"
-            >
-              Open link
-            </a>
-          </div>
-        )}
       </div>
     </article>
   );
