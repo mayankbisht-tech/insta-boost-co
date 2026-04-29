@@ -185,6 +185,7 @@ export const toCampaignPayload = (campaign: Campaign, summary: CampaignSpendSumm
     rules: campaign.rules,
     status: campaign.status,
     image_url: campaign.imageUrl,
+    google_drive_url: (campaign as Campaign & { googleDriveUrl?: string | null }).googleDriveUrl ?? null,
     created_at: campaign.createdAt.toISOString(),
     created_by_admin: campaign.createdByAdminId,
   };

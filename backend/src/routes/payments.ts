@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
+import { getUserCappedApprovedEarnings } from '../lib/campaignEarnings.js';
 import { prisma } from '../lib/prisma.js';
 import { resolveSubmissionEarnings } from '../lib/submissionEarnings.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -69,26 +70,6 @@ const safeFindPayoutHistory = async (userId: string) => {
   } catch (error) {
     if (isMissingTableError(error, 'PayoutRequest')) {
       return [];
-    }
-
-    throw error;
-  }
-};
-
-const calculateUserEarnings = async (userId: string) => {
-  try {
-    const submissions = await prisma.submission.findMany({
-      where: { userId, status: 'Approved' },
-      select: { earnings: true, status: true },
-    });
-
-    return submissions.reduce(
-      (sum, submission) => sum + resolveSubmissionEarnings(submission.earnings, submission.status),
-      0,
-    );
-  } catch (error) {
-    if (isMissingTableError(error, 'Submission')) {
-      return 0;
     }
 
     throw error;
@@ -206,7 +187,7 @@ paymentsRouter.put('/profile', async (req, res) => {
 paymentsRouter.get('/overview', async (req, res) => {
   const [profile, totalEarnings, totalPaid, pendingPayoutAmount, pendingRequest] = await Promise.all([
     safeFindPaymentProfile(req.auth!.user.id),
-    calculateUserEarnings(req.auth!.user.id),
+    getUserCappedApprovedEarnings(req.auth!.user.id),
     calculateTotalPaid(req.auth!.user.id),
     calculatePendingPayoutAmount(req.auth!.user.id),
     safeFindPendingPayoutRequest(req.auth!.user.id),
@@ -270,7 +251,7 @@ paymentsRouter.post('/withdraw', async (req, res) => {
   }
 
   const [totalEarnings, totalPaid] = await Promise.all([
-    calculateUserEarnings(req.auth!.user.id),
+    getUserCappedApprovedEarnings(req.auth!.user.id),
     calculateTotalPaid(req.auth!.user.id),
   ]);
 

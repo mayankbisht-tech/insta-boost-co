@@ -257,6 +257,7 @@ model Campaign {
   rules                 String[]
   status                String       @default("Active")
   imageUrl              String?
+  googleDriveUrl        String?
   createdByAdminId      String?
   createdAt             DateTime     @default(now())
   submissions           Submission[]

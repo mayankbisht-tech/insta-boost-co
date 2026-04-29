@@ -137,7 +137,7 @@ const CampaignDetail = () => {
 
           <div className="flex items-center gap-2 text-primary mb-4 p-3 rounded-lg bg-primary/5 border border-primary/10">
             <TrendingUp className="h-4 w-4" />
-            <span className="font-display font-semibold">${campaign.reward_per_million_views} per 1M views</span>
+            <span className="font-display font-semibold">₹{campaign.reward_per_million_views} per 1M views</span>
           </div>
 
           <div className="mb-6 rounded-lg border border-border bg-muted/40 p-4 text-sm">
@@ -157,7 +157,7 @@ const CampaignDetail = () => {
                 <p className="mt-1">The reel must belong to the same Instagram account you connected here.</p>
                 <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                   <Radar className="h-3.5 w-3.5" />
-                  Upload times and account ownership are verified automatically via Apify.
+                  Upload times and account ownership are verified automatically.
                 </div>
               </div>
             </div>
@@ -213,7 +213,7 @@ const CampaignDetail = () => {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                We verify the upload time automatically using Apify before accepting the submission.
+                We verify the upload time automatically before accepting the submission.
               </p>
               <div className="flex gap-2">
                 <Button type="submit" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit'}</Button>

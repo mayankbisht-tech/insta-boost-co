@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,11 +7,9 @@ const Landing = () => {
   const navigate = useNavigate();
   const { user, isAdmin, isSuperadmin } = useAuth();
 
-  // Redirect if already logged in
   if (user) {
     const destination = isSuperadmin ? '/superadmin' : isAdmin ? '/admin' : '/dashboard';
-    navigate(destination, { replace: true });
-    return null;
+    return <Navigate to={destination} replace />;
   }
 
   const containerVariants = {
@@ -19,8 +17,8 @@ const Landing = () => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2,
-        delayChildren: 0.3,
+        staggerChildren: 0.12,
+        delayChildren: 0.15,
       },
     },
   };
@@ -30,105 +28,184 @@ const Landing = () => {
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.5 },
+      transition: { duration: 0.55, ease: 'easeOut' },
+    },
+  };
+
+  const floatVariants = {
+    animate: {
+      y: [0, -14, 0],
+      transition: {
+        duration: 5,
+        repeat: Infinity,
+        ease: 'easeInOut',
+      },
     },
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
-      {/* Header */}
+    <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(214_100%_97%)_45%,hsl(210_100%_99%)_100%)] text-foreground">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-sky-200/60 blur-3xl" />
+        <div className="absolute right-0 top-20 h-80 w-80 rounded-full bg-cyan-200/50 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-96 w-96 rounded-full bg-indigo-100/60 blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.7),_transparent_42%),linear-gradient(135deg,rgba(255,255,255,0.55),rgba(255,255,255,0.2))]" />
+      </div>
+
       <motion.header
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex items-center px-6 py-6 sm:px-8 sm:py-8"
+        transition={{ duration: 0.45 }}
+        className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8"
       >
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center text-white font-bold">
-            ▶
+        <button onClick={() => navigate('/')} className="flex items-center gap-3 text-left" type="button">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/80 text-primary shadow-[0_10px_30px_rgba(59,130,246,0.14)] ring-1 ring-border/70 backdrop-blur">
+            <span className="text-xl font-bold"><img src="/3.png" alt="GoClips Logo" className="h-full w-full object-contain" /></span>
           </div>
-          <span className="font-display text-xl font-bold text-foreground">GoClips</span>
+          <div>
+            <p className="font-display text-xl font-bold tracking-tight">GoClips</p>
+            <p className="text-xs text-muted-foreground">Creator rewards, made clean</p>
+          </div>
+        </button>
+
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" onClick={() => navigate('/auth')} className="hidden text-muted-foreground sm:inline-flex">
+            Log in
+          </Button>
+          <Button onClick={() => navigate('/auth')} className="rounded-full px-5 shadow-lg shadow-primary/15">
+            Get started
+          </Button>
         </div>
       </motion.header>
 
-      {/* Main content */}
       <motion.main
-        className="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] px-4 sm:px-6"
+        className="relative z-10 mx-auto flex min-h-[calc(100vh-88px)] w-full max-w-7xl flex-col justify-center px-4 pb-10 pt-2 sm:px-6 lg:px-8"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        {/* Logo and title section */}
-        <motion.div variants={itemVariants} className="text-center space-y-6 max-w-2xl">
-          <motion.div
-            className="flex justify-center mb-4"
-            whileHover={{ scale: 1.05, rotate: 5 }}
-            transition={{ type: 'spring', stiffness: 300 }}
-          >
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-full blur-2xl opacity-30" />
-              <div className="h-24 w-24 sm:h-32 sm:w-32 relative z-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center text-5xl sm:text-6xl font-bold text-primary-foreground">
-                ▶
-              </div>
-            </div>
-          </motion.div>
+        <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+          <motion.section variants={itemVariants} className="max-w-2xl">
 
-          <motion.h1 variants={itemVariants} className="gradient-text font-display text-4xl sm:text-5xl lg:text-6xl font-bold">
-            GoClips
-          </motion.h1>
+            <motion.h1
+              variants={itemVariants}
+              className="font-display text-5xl font-bold leading-[0.95] tracking-tight text-slate-900 sm:text-6xl lg:text-7xl"
+            >
+              Grow faster with a cleaner creator payout flow.
+            </motion.h1>
 
-          <motion.p variants={itemVariants} className="text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Log in once and we&apos;ll send you to the right dashboard based on your account access.
-          </motion.p>
+            <motion.p variants={itemVariants} className="mt-6 max-w-xl text-lg leading-8 text-slate-600 sm:text-xl">
+              A bright, focused landing page that puts the campaign artwork front and center while guiding creators straight into submissions, payouts, and tracking.
+            </motion.p>
 
-          {/* CTA Section */}
-          <motion.div variants={itemVariants} className="pt-6">
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                onClick={() => navigate('/auth')}
-                size="lg"
-                className="w-full max-w-sm bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-semibold text-lg px-8 py-3 rounded-xl shadow-xl hover:shadow-2xl transition-all"
-              >
-                Get Started
-              </Button>
+            <motion.div variants={itemVariants} className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  onClick={() => navigate('/auth')}
+                  size="lg"
+                  className="h-12 rounded-full bg-slate-950 px-7 text-base font-semibold text-white shadow-[0_18px_40px_rgba(15,23,42,0.2)] hover:bg-slate-800"
+                >
+                  Start now
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  onClick={() => navigate('/auth')}
+                  size="lg"
+                  variant="outline"
+                  className="h-12 rounded-full border-slate-300 bg-white/70 px-7 text-base font-semibold text-slate-700 backdrop-blur hover:bg-white"
+                >
+                  View portal
+                </Button>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        </motion.div>
 
-        {/* Features section */}
-        <motion.div
-          variants={itemVariants}
-          className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16 max-w-4xl"
-        >
+            <motion.div variants={itemVariants} className="mt-10 grid gap-4 sm:grid-cols-3">
+              {[
+                { value: 'Fast', label: 'Submission flow' },
+                { value: 'Clear', label: 'Payout visibility' },
+                { value: 'Light', label: 'Modern experience' },
+              ].map((stat, index) => (
+                <motion.div
+                  key={stat.label}
+                  whileHover={{ y: -4 }}
+                  transition={{ duration: 0.2 }}
+                  className="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-[0_12px_28px_rgba(15,23,42,0.06)] backdrop-blur"
+                >
+                  <p className="text-2xl font-semibold text-slate-900">{stat.value}</p>
+                  <p className="mt-1 text-sm text-slate-500">{stat.label}</p>
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.section>
+
+          <motion.section variants={itemVariants} className="relative flex items-center justify-center lg:justify-end">
+            <motion.div variants={floatVariants} animate="animate" className="relative w-full max-w-[560px]">
+              <div className="absolute -inset-6 rounded-[2rem] bg-gradient-to-br from-sky-200/60 via-white/60 to-cyan-100/40 blur-2xl" />
+
+              <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/80 p-4 shadow-[0_30px_80px_rgba(15,23,42,0.12)] backdrop-blur-xl sm:p-5">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.18),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.12),transparent_28%)]" />
+
+                <div className="relative flex items-center justify-between gap-3 px-1 pb-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.28em] text-slate-400">Featured campaign</p>
+                  </div>
+                </div>
+
+                <div className="relative mx-auto overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-50 shadow-inner">
+                  <img
+                    src="/3.png"
+                    alt="GoClips landing artwork"
+                    className="h-[420px] w-full object-cover object-center sm:h-[520px]"
+                    loading="eager"
+                  />
+
+                  <div className="absolute bottom-4 left-4 rounded-2xl border border-white/70 bg-white/85 px-4 py-3 shadow-lg backdrop-blur">
+                    <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Campaign earnings</p>
+                    <p className="mt-1 text-lg font-semibold text-slate-900">Clean and visible</p>
+                  </div>
+                  <motion.div
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 rounded-2xl border border-sky-200/80 bg-white/90 px-4 py-3 shadow-lg backdrop-blur"
+                  >
+                    <p className="text-xs uppercase tracking-[0.24em] text-sky-500">Revenue</p>
+                    <p className="mt-1 text-2xl font-semibold text-slate-900">₹0.00</p>
+                    <p className="text-sm text-slate-500">until approved</p>
+                  </motion.div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.section>
+        </div>
+
+        <motion.section variants={itemVariants} className="mt-14 grid gap-4 lg:grid-cols-3">
           {[
             {
-              icon: '📱',
-              title: 'Easy Submissions',
-              description: 'Submit your Instagram Reels in seconds',
+              title: 'Submission-ready',
+              description: 'Creators can move from login to campaign tracking without visual clutter.',
             },
             {
-              icon: '📊',
-              title: 'Track Progress',
-              description: 'Monitor your earnings in real-time',
+              title: 'Payout clarity',
+              description: 'The UI emphasizes payout visibility so limits and approvals stay obvious.',
             },
             {
-              icon: '💰',
-              title: 'Instant Rewards',
-              description: 'Get paid for your best content',
+              title: 'Smooth motion',
+              description: 'Gentle floating, staggered reveals, and soft gradients keep the page feeling alive.',
             },
-          ].map((feature, index) => (
+          ].map((item, index) => (
             <motion.div
-              key={index}
-              variants={itemVariants}
-              className="stat-card p-6 text-center space-y-3"
+              key={item.title}
               whileHover={{ y: -5 }}
+              transition={{ duration: 0.2 }}
+              className="rounded-3xl border border-white/80 bg-white/70 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)] backdrop-blur"
             >
-              <div className="text-4xl">{feature.icon}</div>
-              <h3 className="font-bold text-foreground">{feature.title}</h3>
-              <p className="text-sm text-muted-foreground">{feature.description}</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary/70">0{index + 1}</p>
+              <h3 className="mt-3 font-display text-xl font-semibold text-slate-900">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p>
             </motion.div>
           ))}
-        </motion.div>
+        </motion.section>
       </motion.main>
     </div>
   );

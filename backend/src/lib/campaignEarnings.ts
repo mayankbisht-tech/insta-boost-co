@@ -9,54 +9,135 @@ export type CampaignSpendSummary = {
   spentBudgetRupees: number;
 };
 
+type ApprovedSubmissionRow = {
+  campaignId: string;
+  userId: string;
+  earnings: unknown;
+  views: number;
+  campaign: {
+    maxEarningRupees: number;
+  };
+};
+
 const sumApprovedSubmissionEarnings = async (where: Record<string, unknown>) => {
-  const aggregate = await prisma.submission.aggregate({
+  const rows = await prisma.submission.findMany({
     where: {
       ...where,
       status: 'Approved',
     },
-    _sum: {
+    select: {
+      campaignId: true,
+      userId: true,
       earnings: true,
       views: true,
+      campaign: {
+        select: {
+          maxEarningRupees: true,
+        },
+      },
     },
-  });
+  }) as ApprovedSubmissionRow[];
 
-  return {
-    spentBudgetRupees: Number(aggregate._sum.earnings ?? 0),
-    billedViews: aggregate._sum.views ?? 0,
-  };
+  const perCampaignUser = new Map<string, {
+    campaignId: string;
+    totalEarnings: number;
+    billedViews: number;
+    maxEarningRupees: number;
+  }>();
+
+  for (const row of rows) {
+    const key = `${row.campaignId}:${row.userId}`;
+    const current = perCampaignUser.get(key) ?? {
+      campaignId: row.campaignId,
+      totalEarnings: 0,
+      billedViews: 0,
+      maxEarningRupees: row.campaign.maxEarningRupees,
+    };
+
+    current.totalEarnings += Number(row.earnings ?? 0);
+    current.billedViews += row.views;
+    current.maxEarningRupees = row.campaign.maxEarningRupees;
+    perCampaignUser.set(key, current);
+  }
+
+  return Array.from(perCampaignUser.values()).reduce(
+    (summary, row) => ({
+      spentBudgetRupees: summary.spentBudgetRupees + Math.min(row.totalEarnings, row.maxEarningRupees),
+      billedViews: summary.billedViews + row.billedViews,
+    }),
+    { spentBudgetRupees: 0, billedViews: 0 },
+  );
 };
 
-export const getCampaignSpendSummary = async (campaignId: string): Promise<CampaignSpendSummary> => {
-  return await sumApprovedSubmissionEarnings({ campaignId });
-};
-
-export const getCampaignSpendSummaries = async (campaignIds: string[]) => {
+const sumCappedApprovedSubmissionEarningsByCampaign = async (campaignIds: string[]) => {
   if (campaignIds.length === 0) {
     return new Map<string, CampaignSpendSummary>();
   }
 
-  const rows = await prisma.submission.groupBy({
-    by: ['campaignId'],
+  const rows = await prisma.submission.findMany({
     where: {
       campaignId: { in: campaignIds },
       status: 'Approved',
     },
-    _sum: {
+    select: {
+      campaignId: true,
+      userId: true,
       earnings: true,
       views: true,
-    },
-  });
-
-  return new Map(
-    rows.map(row => [
-      row.campaignId,
-      {
-        billedViews: row._sum.views ?? 0,
-        spentBudgetRupees: Number(row._sum.earnings ?? 0),
+      campaign: {
+        select: {
+          maxEarningRupees: true,
+        },
       },
-    ]),
-  );
+    },
+  }) as ApprovedSubmissionRow[];
+
+  const perCampaignUser = new Map<string, {
+    campaignId: string;
+    totalEarnings: number;
+    billedViews: number;
+    maxEarningRupees: number;
+  }>();
+
+  for (const row of rows) {
+    const key = `${row.campaignId}:${row.userId}`;
+    const current = perCampaignUser.get(key) ?? {
+      campaignId: row.campaignId,
+      totalEarnings: 0,
+      billedViews: 0,
+      maxEarningRupees: row.campaign.maxEarningRupees,
+    };
+
+    current.totalEarnings += Number(row.earnings ?? 0);
+    current.billedViews += row.views;
+    current.maxEarningRupees = row.campaign.maxEarningRupees;
+    perCampaignUser.set(key, current);
+  }
+
+  const totalsByCampaign = new Map<string, CampaignSpendSummary>();
+
+  for (const row of perCampaignUser.values()) {
+    const current = totalsByCampaign.get(row.campaignId) ?? { billedViews: 0, spentBudgetRupees: 0 };
+    current.billedViews += row.billedViews;
+    current.spentBudgetRupees += Math.min(row.totalEarnings, row.maxEarningRupees);
+    totalsByCampaign.set(row.campaignId, current);
+  }
+
+  return totalsByCampaign;
+};
+
+export const getCampaignSpendSummary = async (campaignId: string): Promise<CampaignSpendSummary> => {
+  const summaries = await sumCappedApprovedSubmissionEarningsByCampaign([campaignId]);
+  return summaries.get(campaignId) ?? { billedViews: 0, spentBudgetRupees: 0 };
+};
+
+export const getCampaignSpendSummaries = async (campaignIds: string[]) => {
+  return await sumCappedApprovedSubmissionEarningsByCampaign(campaignIds);
+};
+
+export const getUserCappedApprovedEarnings = async (userId: string) => {
+  const summary = await sumApprovedSubmissionEarnings({ userId });
+  return Number(summary.spentBudgetRupees.toFixed(2));
 };
 
 export const calculateCappedSubmissionEarnings = async (args: {

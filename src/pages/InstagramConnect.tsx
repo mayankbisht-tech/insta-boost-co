@@ -178,7 +178,7 @@ const InstagramConnect = () => {
           <div className="glass-card p-5">
             <h2 className="font-display text-lg font-semibold">Setup</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Enter another Instagram username to connect more accounts. Follower count will be fetched from Apify during verification.
+              Enter another Instagram username to connect more accounts.
             </p>
 
             <div className="mt-5 space-y-4">
@@ -232,7 +232,7 @@ const InstagramConnect = () => {
                     <p className="mt-1 font-mono font-medium">{request.verification_code}</p>
                   </div>
                   <div className="rounded-xl border border-border/70 p-3">
-                    <p className="text-xs text-muted-foreground">Followers from Apify</p>
+                    <p className="text-xs text-muted-foreground">Followers </p>
                     <p className="mt-1 font-medium">
                       {request.followers_count > 0 ? request.followers_count.toLocaleString() : 'Will appear after verification'}
                     </p>

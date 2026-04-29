@@ -18,6 +18,7 @@ interface Campaign extends CampaignBudget {
   reward_per_million_views: number;
   rules: string[];
   created_at: string;
+  google_drive_url: string | null;
 }
 
 const emptyForm = {
@@ -28,6 +29,7 @@ const emptyForm = {
   rupees_per_thousand_views: 150,
   rules: '',
   link: '',
+  google_drive_url: '',
   status: 'Active',
 };
 
@@ -60,21 +62,23 @@ const AdminCampaigns = () => {
       setCampaigns(previous => {
         const found = previous.some(campaign => campaign.id === payload.id);
         if (!found) {
-          return [{
+          const newCampaign: Campaign = {
             ...payload,
+            google_drive_url: payload.google_drive_url ?? null,
             reward_per_million_views: payload.rupees_per_thousand_views * 1000,
             rules: [],
             created_at: new Date().toISOString(),
-          }, ...previous];
+          };
+          return [newCampaign, ...previous];
         }
 
         return previous.map(campaign => (
           campaign.id === payload.id
-            ? {
+            ? ({
                 ...campaign,
                 ...payload,
                 reward_per_million_views: payload.rupees_per_thousand_views * 1000,
-              }
+              } as Campaign)
             : campaign
         ));
       });
@@ -103,6 +107,7 @@ const AdminCampaigns = () => {
       rupees_per_thousand_views: c.rupees_per_thousand_views,
       rules: c.rules?.join('\n') || '',
       link: c.image_url || '',
+      google_drive_url: c.google_drive_url || '',
       status: c.status,
     });
     setDialogOpen(true);
@@ -121,6 +126,7 @@ const AdminCampaigns = () => {
     formData.append('reward_per_million_views', (form.rupees_per_thousand_views * 1000).toString());
     formData.append('rules', JSON.stringify(form.rules.split('\n').map(r => r.trim()).filter(Boolean)));
     formData.append('link', form.link.trim());
+    formData.append('google_drive_url', form.google_drive_url.trim());
     formData.append('status', form.status);
 
     try {
@@ -356,7 +362,7 @@ const AdminCampaigns = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.35 }}
               >
-                <Label className="text-sm font-semibold">Campaign Link</Label>
+                <Label className="text-sm font-semibold">Campaign Image URL</Label>
                 <Input
                   type="url"
                   value={form.link}
@@ -365,7 +371,25 @@ const AdminCampaigns = () => {
                   placeholder="https://drive.google.com/..."
                 />
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Add any URL (Google Drive, landing page, docs, or other campaign resource).
+                  This is used for the campaign preview image or banner.
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.375 }}
+              >
+                <Label className="text-sm font-semibold">Google Drive Link</Label>
+                <Input
+                  type="url"
+                  value={form.google_drive_url}
+                  onChange={e => setForm(f => ({ ...f, google_drive_url: e.target.value }))}
+                  className="mt-2 bg-secondary/50 border-border/50 focus:border-primary transition-colors"
+                  placeholder="https://drive.google.com/..."
+                />
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Add the campaign brief, assets, or instructions for creators.
                 </p>
               </motion.div>
               

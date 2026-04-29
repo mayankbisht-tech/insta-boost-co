@@ -7,6 +7,7 @@ export interface CampaignBudget {
   description: string;
   category: string;
   image_url: string | null;
+  google_drive_url?: string | null;
   status: string;
   rupees_per_thousand_views: number;
   budget_rupees: number;
@@ -47,7 +48,7 @@ export const CampaignBudgetCard = ({ campaign, className = '', compact = false }
   const progressValue = Math.max(0, Math.min(campaign.budget_consumed_percent, 100));
 
   return (
-    <article className={`rounded-3xl border border-primary/20 bg-slate-950 text-slate-100 shadow-xl ${className}`.trim()}>
+    <article className={`rounded-3xl border border-amber-100 bg-gradient-to-br from-white via-sky-50 to-indigo-50 text-slate-900 shadow-[0_18px_50px_rgba(15,23,42,0.08)] ring-1 ring-sky-100/70 ${className}`.trim()}>
       <div className="p-5 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-3">
@@ -59,51 +60,68 @@ export const CampaignBudgetCard = ({ campaign, className = '', compact = false }
                 loading="lazy"
               />
             ) : (
-              <div className="flex h-16 w-24 items-center justify-center rounded-xl bg-primary/30 text-sm font-semibold text-primary-foreground">
+              <div className="flex h-16 w-24 items-center justify-center rounded-xl bg-amber-100 text-sm font-semibold text-amber-700">
                 No image
               </div>
             )}
             <div>
-              <h3 className="font-display text-lg font-semibold leading-tight">{campaign.title}</h3>
-              <p className="mt-1 text-sm text-slate-300 line-clamp-1">{campaign.description}</p>
+              <h3 className="font-display text-lg font-semibold leading-tight text-slate-900">{campaign.title}</h3>
+              <p className="mt-1 text-sm text-slate-700 line-clamp-1">{campaign.description}</p>
             </div>
           </div>
 
           <div className="text-left lg:text-right">
             <div className="flex flex-wrap gap-2 lg:justify-end">
-              <Badge className="bg-fuchsia-600 text-white hover:bg-fuchsia-600">{campaign.category}</Badge>
-              <Badge className="bg-fuchsia-600 text-white hover:bg-fuchsia-600">{campaign.status}</Badge>
+              <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">{campaign.category}</Badge>
+              <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-100">{campaign.status}</Badge>
             </div>
-            {!compact && <p className="mt-2 text-sm text-slate-400">{ageLabel((campaign as { created_at?: string }).created_at)}</p>}
+            {!compact && <p className="mt-2 text-sm text-slate-600">{ageLabel((campaign as { created_at?: string }).created_at)}</p>}
           </div>
         </div>
 
         <div className="mt-6 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <p className="text-slate-400">Paid Out</p>
-            <p className="mt-1 text-lg font-semibold">₹{campaign.spent_budget_rupees.toLocaleString('en-IN')}</p>
-            <p className="text-slate-400">/ ₹{campaign.budget_rupees.toLocaleString('en-IN')}</p>
+            <p className="text-slate-700">Paid Out</p>
+            <p className="mt-1 text-lg font-semibold text-slate-900">₹{campaign.spent_budget_rupees.toLocaleString('en-IN')}</p>
+            <p className="text-slate-600">/ ₹{campaign.budget_rupees.toLocaleString('en-IN')}</p>
           </div>
           <div>
-            <p className="text-slate-400">CPM</p>
-            <p className="mt-1 text-lg font-semibold">₹{campaign.rupees_per_thousand_views.toLocaleString('en-IN')}</p>
-            <p className="text-slate-400">/ 1k views</p>
+            <p className="text-slate-700">CPM</p>
+            <p className="mt-1 text-lg font-semibold text-slate-900">₹{campaign.rupees_per_thousand_views.toLocaleString('en-IN')}</p>
+            <p className="text-slate-600">/ 1k views</p>
           </div>
           <div>
-            <p className="text-slate-400">Views</p>
-            <p className="mt-1 text-lg font-semibold">{campaign.billed_views.toLocaleString('en-IN')}</p>
+            <p className="text-slate-700">Views</p>
+            <p className="mt-1 text-lg font-semibold text-slate-900">{campaign.billed_views.toLocaleString('en-IN')}</p>
           </div>
           <div>
-            <p className="text-slate-400">Max per user</p>
-            <p className="mt-1 text-lg font-semibold text-emerald-400">₹{campaign.max_earning_rupees.toLocaleString('en-IN')}</p>
-            <p className="text-slate-400">Remaining: ₹{campaign.remaining_budget_rupees.toLocaleString('en-IN')}</p>
+            <p className="text-slate-700">Max per user</p>
+            <p className="mt-1 text-lg font-semibold text-emerald-600">₹{campaign.max_earning_rupees.toLocaleString('en-IN')}</p>
+            <p className="text-slate-600">Remaining: ₹{campaign.remaining_budget_rupees.toLocaleString('en-IN')}</p>
           </div>
         </div>
 
         <div className="mt-5">
-          <Progress value={progressValue} className="h-2 bg-slate-700" />
-          <p className="mt-2 text-xs text-slate-400">{progressValue.toFixed(2)}% budget consumed</p>
+          <Progress value={progressValue} className="h-2 bg-slate-200" />
+          <p className="mt-2 text-xs text-slate-600">{progressValue.toFixed(2)}% budget consumed</p>
         </div>
+
+        {campaign.google_drive_url && (
+          <div className="mt-4 flex items-center justify-between rounded-2xl border border-amber-100 bg-gradient-to-r from-amber-50 via-white to-sky-50 px-4 py-3 text-sm shadow-sm">
+            <div>
+              <p className="font-medium text-slate-900">Campaign brief</p>
+              <p className="text-slate-600">Google Drive attachment</p>
+            </div>
+            <a
+              href={campaign.google_drive_url}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-indigo-700 transition-colors hover:bg-indigo-100"
+            >
+              Open link
+            </a>
+          </div>
+        )}
       </div>
     </article>
   );

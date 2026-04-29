@@ -269,7 +269,7 @@ const SuperadminDashboard = () => {
                   Total Earnings
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-3xl font-bold">${overview?.platformEarnings.toFixed(2) ?? '0.00'}</CardContent>
+              <CardContent className="text-3xl font-bold">₹{overview?.platformEarnings.toFixed(2) ?? '0.00'}</CardContent>
             </Card>
             <Card className="glass-card border-border/60">
               <CardHeader>
@@ -330,10 +330,6 @@ const SuperadminDashboard = () => {
             </Card>
             <Card className="glass-card border-border/60">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <CalendarClock className="h-4 w-4 text-primary" />
-                  Apify Run Status
-                </CardTitle>
               </CardHeader>
               <CardContent className="text-lg font-semibold">
                 {overview?.apifyRunStatus ?? 'not-configured'}

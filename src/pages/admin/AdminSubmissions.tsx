@@ -301,9 +301,9 @@ const AdminSubmissions = () => {
                     disabled={syncingId === submission.id}
                   >
                     <RefreshCcw className="mr-1 h-3.5 w-3.5" />
-                    {syncingId === submission.id ? 'Syncing...' : 'Sync Apify'}
+                    {syncingId === submission.id ? 'Syncing...' : 'Sync'}
                   </Button>
-                  <span className="text-sm font-medium text-success">${Number(submission.earnings || 0).toFixed(2)}</span>
+                  <span className="text-sm font-medium text-success">₹{Number(submission.earnings || 0).toFixed(2)}</span>
                 </div>
 
                 <div className="flex items-center gap-1">

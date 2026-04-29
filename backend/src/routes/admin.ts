@@ -34,6 +34,7 @@ const campaignSchema = z.object({
   title: z.string().trim().min(1),
   description: z.string().trim().optional().default(''),
   link: z.string().trim().optional().default(''),
+  google_drive_url: z.string().trim().optional().default(''),
   category: z.string().trim().min(1),
   budget_rupees: z.coerce.number().int().min(0),
   max_earning_rupees: z.coerce.number().int().min(0).optional().default(0),
@@ -342,6 +343,7 @@ adminRouter.post('/campaigns', async (req, res) => {
       rules: parsed.data.rules,
       status: parsed.data.status,
       imageUrl: parsed.data.link || uploadRequest.fileUrl || null,
+      googleDriveUrl: parsed.data.google_drive_url || null,
       createdByAdminId: req.auth!.user.id,
     },
   });
@@ -379,6 +381,7 @@ adminRouter.put('/campaigns/:id', async (req, res) => {
       rules: parsed.data.rules,
       status: parsed.data.status,
       imageUrl: parsed.data.link || uploadRequest.fileUrl || existing.imageUrl,
+      googleDriveUrl: parsed.data.google_drive_url || existing.googleDriveUrl,
       createdByAdminId: req.auth!.user.id,
     },
   });
@@ -602,17 +605,17 @@ adminRouter.patch('/submissions/:id/status', async (req, res) => {
   if (parsed.data.status === 'Approved') {
     await createNotification(
       submission.userId,
-      `Your reel for ${campaignTitle} was approved. Current earnings: $${Number(submission.earnings).toFixed(2)}.`,
+      `Your reel for ${campaignTitle} was approved. Current earnings: ₹${Number(submission.earnings).toFixed(2)}.`,
     );
   } else if (parsed.data.status === 'Rejected') {
     await createNotification(
       submission.userId,
-      `Your reel for ${campaignTitle} was rejected. Earnings for this reel are now $0.00.`,
+      `Your reel for ${campaignTitle} was rejected. Earnings for this reel are now ₹0.00.`,
     );
   } else if (parsed.data.status === 'Flagged') {
     await createNotification(
       submission.userId,
-      `Your reel for ${campaignTitle} was flagged for review. Earnings for this reel are now $0.00.`,
+      `Your reel for ${campaignTitle} was flagged for review. Earnings for this reel are now ₹0.00.`,
     );
   }
 
