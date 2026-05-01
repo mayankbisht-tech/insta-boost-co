@@ -91,11 +91,11 @@ const Landing = () => {
               variants={itemVariants}
               className="font-display text-5xl font-bold leading-[0.95] tracking-tight text-slate-900 sm:text-6xl lg:text-7xl"
             >
-              Grow faster with a cleaner creator payout flow.
+              Turn Clips Into Income
             </motion.h1>
 
             <motion.p variants={itemVariants} className="mt-6 max-w-xl text-lg leading-8 text-slate-600 sm:text-xl">
-              A bright, focused landing page that puts the campaign artwork front and center while guiding creators straight into submissions, payouts, and tracking.
+              Join a platform built for creators to earn from content clipping with easy submissions, real-time tracking, and fast payouts.
             </motion.p>
 
             <motion.div variants={itemVariants} className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -108,34 +108,6 @@ const Landing = () => {
                   Start now
                 </Button>
               </motion.div>
-              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
-                <Button
-                  onClick={() => navigate('/auth')}
-                  size="lg"
-                  variant="outline"
-                  className="h-12 rounded-full border-slate-300 bg-white/70 px-7 text-base font-semibold text-slate-700 backdrop-blur hover:bg-white"
-                >
-                  View portal
-                </Button>
-              </motion.div>
-            </motion.div>
-
-            <motion.div variants={itemVariants} className="mt-10 grid gap-4 sm:grid-cols-3">
-              {[
-                { value: 'Fast', label: 'Submission flow' },
-                { value: 'Clear', label: 'Payout visibility' },
-                { value: 'Light', label: 'Modern experience' },
-              ].map((stat, index) => (
-                <motion.div
-                  key={stat.label}
-                  whileHover={{ y: -4 }}
-                  transition={{ duration: 0.2 }}
-                  className="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-[0_12px_28px_rgba(15,23,42,0.06)] backdrop-blur"
-                >
-                  <p className="text-2xl font-semibold text-slate-900">{stat.value}</p>
-                  <p className="mt-1 text-sm text-slate-500">{stat.label}</p>
-                </motion.div>
-              ))}
             </motion.div>
           </motion.section>
 
@@ -182,16 +154,16 @@ const Landing = () => {
         <motion.section variants={itemVariants} className="mt-14 grid gap-4 lg:grid-cols-3">
           {[
             {
-              title: 'Submission-ready',
-              description: 'Creators can move from login to campaign tracking without visual clutter.',
+              title: 'Instant Clip Submissions',
+              description: 'Creators can submit clips directly from Instagram with our streamlined process, no extra uploads needed.',
             },
             {
-              title: 'Payout clarity',
-              description: 'The UI emphasizes payout visibility so limits and approvals stay obvious.',
+              title: 'Real-Time Earnings Visibility',
+              description: 'Creators can track their earnings in real-time with our transparent dashboard, showing pending, approved, and estimated revenue at a glance.',
             },
             {
-              title: 'Smooth motion',
-              description: 'Gentle floating, staggered reveals, and soft gradients keep the page feeling alive.',
+              title: 'Built for Modern Creators',
+              description: 'GoClips is designed with creators in mind, offering a seamless experience that integrates with their existing workflow and maximizes their earning potential.',
             },
           ].map((item, index) => (
             <motion.div
