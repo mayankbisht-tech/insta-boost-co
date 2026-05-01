@@ -145,7 +145,7 @@ const AdminOverview = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.4 }}
                   >
-                    ${stats.totalEarnings.toFixed(2)}
+                    ₹{stats.totalEarnings.toFixed(2)}
                   </motion.p>
                 </div>
               </motion.div>
