@@ -159,7 +159,7 @@ const Submissions = () => {
 
                   {submission.rejection_reason && (
                     <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-                      {submission.rejection_reason}
+                      Admin note: {submission.rejection_reason}
                     </p>
                   )}
                 </div>

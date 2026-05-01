@@ -4,6 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { CheckCircle, XCircle, AlertTriangle, ExternalLink, Eye, Heart, MessageCircle, PlayCircle, RefreshCcw, FileVideo } from 'lucide-react';
@@ -54,6 +63,8 @@ const AdminSubmissions = () => {
   const [editingViews, setEditingViews] = useState<Record<string, string>>({});
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [refreshInfo, setRefreshInfo] = useState<Pick<SyncAnalyticsResponse, 'refresh_limit' | 'refreshes_remaining' | 'window_resets_at'> | null>(null);
+  const [reviewNoteById, setReviewNoteById] = useState<Record<string, string>>({});
+  const [reviewDialog, setReviewDialog] = useState<{ submissionId: string; action: 'Rejected' | 'Flagged' } | null>(null);
 
   const fetchSubmissions = async () => {
     try {
@@ -79,10 +90,16 @@ const AdminSubmissions = () => {
     void fetchCampaigns();
   }, []);
 
-  const updateStatus = async (id: string, status: string) => {
+  const updateStatus = async (id: string, status: string, reason?: string) => {
     try {
-      await api.patch(`/api/admin/submissions/${id}/status`, { status });
+      await api.patch(`/api/admin/submissions/${id}/status`, { status, reason });
       toast.success(`Submission ${status.toLowerCase()}.`);
+      setReviewNoteById(current => {
+        const next = { ...current };
+        delete next[id];
+        return next;
+      });
+      setReviewDialog(null);
       void fetchSubmissions();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to update.');
@@ -251,7 +268,7 @@ const AdminSubmissions = () => {
                   </div>
                   {submission.rejection_reason && (
                     <p className="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-                      {submission.rejection_reason}
+                      Admin note: {submission.rejection_reason}
                     </p>
                   )}
                 </div>
@@ -276,7 +293,7 @@ const AdminSubmissions = () => {
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-col gap-3 border-t border-border/70 pt-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="flex items-center gap-1">
                     <Eye className="h-3.5 w-3.5 text-muted-foreground" />
@@ -306,21 +323,94 @@ const AdminSubmissions = () => {
                   <span className="text-sm font-medium text-success">₹{Number(submission.earnings || 0).toFixed(2)}</span>
                 </div>
 
-                <div className="flex items-center gap-1">
-                  <Button size="sm" variant="ghost" className="text-success hover:text-success hover:bg-success/10 h-8"
-                    onClick={() => void updateStatus(submission.id, 'Approved')} disabled={submission.status === 'Approved'}>
+                <div className="flex flex-wrap items-center gap-1 justify-end">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-success hover:text-success hover:bg-success/10 h-8"
+                    onClick={() => void updateStatus(submission.id, 'Approved')}
+                    disabled={submission.status === 'Approved'}
+                  >
                     <CheckCircle className="h-4 w-4" />
                   </Button>
-                  <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8"
-                    onClick={() => void updateStatus(submission.id, 'Rejected')} disabled={submission.status === 'Rejected'}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8"
+                    onClick={() => {
+                      setReviewDialog({ submissionId: submission.id, action: 'Rejected' });
+                      setReviewNoteById(current => ({ ...current, [submission.id]: current[submission.id] ?? '' }));
+                    }}
+                    disabled={submission.status === 'Rejected'}
+                  >
                     <XCircle className="h-4 w-4" />
                   </Button>
-                  <Button size="sm" variant="ghost" className="text-warning hover:text-warning hover:bg-warning/10 h-8"
-                    onClick={() => void updateStatus(submission.id, 'Flagged')} disabled={submission.status === 'Flagged'}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-warning hover:text-warning hover:bg-warning/10 h-8"
+                    onClick={() => {
+                      setReviewDialog({ submissionId: submission.id, action: 'Flagged' });
+                      setReviewNoteById(current => ({ ...current, [submission.id]: current[submission.id] ?? '' }));
+                    }}
+                    disabled={submission.status === 'Flagged'}
+                  >
                     <AlertTriangle className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
+
+              <Dialog
+                open={reviewDialog?.submissionId === submission.id}
+                onOpenChange={open => {
+                  if (!open && reviewDialog?.submissionId === submission.id) {
+                    setReviewDialog(null);
+                  }
+                }}
+              >
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {reviewDialog?.action === 'Rejected' ? 'Reject submission' : 'Flag submission'}
+                    </DialogTitle>
+                    <DialogDescription>
+                      Add a message for the creator before sending the decision.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <Textarea
+                    value={reviewNoteById[submission.id] ?? ''}
+                    onChange={event => setReviewNoteById(current => ({ ...current, [submission.id]: event.target.value }))}
+                    placeholder="Type the message you want the creator to receive"
+                    rows={5}
+                    className="min-h-[140px]"
+                  />
+
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setReviewDialog(null)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (!reviewDialog) return;
+                        const note = (reviewNoteById[reviewDialog.submissionId] ?? '').trim();
+                        if (!note) {
+                          toast.error('Please add an admin note before submitting.');
+                          return;
+                        }
+                        void updateStatus(
+                          reviewDialog.submissionId,
+                          reviewDialog.action,
+                          note,
+                        );
+                      }}
+                      disabled={!((reviewNoteById[reviewDialog?.submissionId ?? ''] ?? '').trim())}
+                    >
+                      {reviewDialog?.action === 'Rejected' ? 'Submit Rejection' : 'Submit Flag'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </motion.div>
           ))}
           </div>

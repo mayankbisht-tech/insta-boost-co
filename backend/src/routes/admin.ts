@@ -62,6 +62,7 @@ const verificationDecisionSchema = z.object({
 
 const submissionStatusSchema = z.object({
   status: z.enum(['Pending', 'Approved', 'Rejected', 'Flagged']),
+  reason: z.string().trim().max(500).optional(),
 });
 
 const submissionViewsSchema = z.object({
@@ -571,11 +572,16 @@ adminRouter.patch('/submissions/:id/status', async (req, res) => {
     return res.status(404).json({ error: 'Submission not found.' });
   }
 
+  const reviewNote = parsed.data.reason?.trim();
+  if ((parsed.data.status === 'Rejected' || parsed.data.status === 'Flagged') && !reviewNote) {
+    return res.status(400).json({ error: 'An admin note is required when rejecting or flagging a submission.' });
+  }
+
   const rejectionReason =
     parsed.data.status === 'Rejected'
-      ? 'Rejected by admin review.'
+      ? reviewNote
       : parsed.data.status === 'Flagged'
-      ? 'Flagged by admin review.'
+      ? reviewNote
       : null;
 
   const earnings = await calculateCappedSubmissionEarnings({
@@ -602,6 +608,7 @@ adminRouter.patch('/submissions/:id/status', async (req, res) => {
   });
 
   const campaignTitle = existing.campaign.title;
+  const adminMessage = rejectionReason ? ` Admin note: ${rejectionReason}` : '';
   if (parsed.data.status === 'Approved') {
     await createNotification(
       submission.userId,
@@ -610,12 +617,12 @@ adminRouter.patch('/submissions/:id/status', async (req, res) => {
   } else if (parsed.data.status === 'Rejected') {
     await createNotification(
       submission.userId,
-      `Your reel for ${campaignTitle} was rejected. Earnings for this reel are now ₹0.00.`,
+      `Your reel for ${campaignTitle} was rejected. Earnings for this reel are now ₹0.00.${adminMessage}`,
     );
   } else if (parsed.data.status === 'Flagged') {
     await createNotification(
       submission.userId,
-      `Your reel for ${campaignTitle} was flagged for review. Earnings for this reel are now ₹0.00.`,
+      `Your reel for ${campaignTitle} was flagged for review. Earnings for this reel are now ₹0.00.${adminMessage}`,
     );
   }
 
