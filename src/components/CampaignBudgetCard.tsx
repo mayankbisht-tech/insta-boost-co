@@ -80,7 +80,7 @@ export const CampaignBudgetCard = ({ campaign, className = '', compact = false }
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm">
             <p className="text-slate-600">Paid Out</p>
             <p className="mt-1 text-lg font-semibold text-slate-950">₹{campaign.spent_budget_rupees.toLocaleString('en-IN')}</p>
@@ -94,11 +94,6 @@ export const CampaignBudgetCard = ({ campaign, className = '', compact = false }
           <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm">
             <p className="text-slate-600">Views</p>
             <p className="mt-1 text-lg font-semibold text-slate-950">{campaign.billed_views.toLocaleString('en-IN')}</p>
-          </div>
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 shadow-sm">
-            <p className="text-slate-600">Max per reel</p>
-            <p className="mt-1 text-lg font-semibold text-emerald-700">₹{campaign.max_earning_rupees.toLocaleString('en-IN')}</p>
-            <p className="text-slate-500">Remaining: ₹{campaign.remaining_budget_rupees.toLocaleString('en-IN')}</p>
           </div>
         </div>
 

@@ -55,13 +55,13 @@ const AdminOverview = () => {
 
   const cards = [
     { label: 'Visible Users', value: stats.totalUsers, icon: Users, color: 'from-primary to-primary/60' },
-    { label: 'Campaigns', value: stats.totalCampaigns, icon: Megaphone, color: 'from-accent to-accent/60' },
+    { label: 'Campaigns', value: stats.totalCampaigns, icon: Megaphone, color: 'from-primary to-primary/60' },
     { label: 'Submissions', value: stats.totalSubmissions, icon: FileVideo, color: 'from-info to-info/60' },
     { label: 'Approved', value: stats.approved, icon: CheckCircle, color: 'from-success to-success/60' },
     { label: 'Rejected', value: stats.rejected, icon: XCircle, color: 'from-destructive to-destructive/60' },
     { label: 'Pending', value: stats.pending, icon: Clock, color: 'from-warning to-warning/60' },
     { label: 'Eligible', value: stats.eligible, icon: Radar, color: 'from-primary to-primary/60' },
-    { label: 'Total Views', value: stats.totalViews.toLocaleString(), icon: Eye, color: 'from-accent to-accent/60' },
+    { label: 'Total Views', value: stats.totalViews.toLocaleString(), icon: Eye, color: 'from-success to-success/60' },
   ];
 
   return (
@@ -145,7 +145,7 @@ const AdminOverview = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.4 }}
                   >
-                    ${stats.totalEarnings.toFixed(2)}
+                    ₹{stats.totalEarnings.toFixed(2)}
                   </motion.p>
                 </div>
               </motion.div>

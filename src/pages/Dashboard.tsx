@@ -155,7 +155,6 @@ const Dashboard = () => {
       <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card p-5">
           <div className="flex items-center gap-2 mb-4">
-            <DollarSign className="h-8 w-8 text-success" />
             <span className="text-xl text-muted-foreground">Total Earnings</span>
           </div>
           <p className="font-display text-4xl font-bold text-success">
@@ -216,7 +215,7 @@ const Dashboard = () => {
                     <Badge className="bg-warning/10 text-warning border border-warning/20">Top Paying</Badge>
                   )}
                 </div>
-                <Button asChild size="sm" variant="outline" className="text-xs">
+                <Button asChild size="sm" variant="outline" className="text-xs bg-blue-300 hover:bg-blue-300/80">
                   <Link to={`/campaign/${campaign.id}`}>View Details</Link>
                 </Button>
               </div>
