@@ -81,7 +81,7 @@ const AdminOverview = () => {
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {cards.map((card, i) => (
                 <motion.div
                   key={card.label}
@@ -99,18 +99,18 @@ const AdminOverview = () => {
                   
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-muted-foreground">{card.label}</span>
+                      <span className="text-md font-medium text-muted-foreground">{card.label}</span>
                       <motion.div
                         whileHover={{ scale: 1.2 }}
                         whileTap={{ scale: 0.9 }}
                       >
-                        <div className={`stat-icon h-10 w-10 rounded-lg bg-gradient-to-br ${card.color} flex items-center justify-center`}>
-                          <card.icon className="h-6 w-6 text-white" />
+                        <div className={`stat-icon h-8 w-8 md:h-10 w-10 rounded-lg bg-gradient-to-br ${card.color} flex items-center justify-center`}>
+                          <card.icon className="h-4 w-4 md:h-6 md:w-6 text-white" />
                         </div>
                       </motion.div>
                     </div>
                     <motion.p 
-                      className="font-display text-4xl font-bold"
+                      className="font-display text-3xl font-bold"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: i * 0.08 + 0.2 }}
@@ -136,11 +136,11 @@ const AdminOverview = () => {
                       <DollarSign className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total Earnings</p>
+                      <p className="text-md font-medium text-muted-foreground">Total Earnings</p>
                     </div>
                   </div>
                   <motion.p 
-                    className="font-display text-4xl font-bold text-success"
+                    className="font-display text-3xl font-bold text-success"
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.4 }}
@@ -163,11 +163,11 @@ const AdminOverview = () => {
                       <FileVideo className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Unique Content</p>
+                      <p className="text-md font-medium text-muted-foreground">Unique Content</p>
                     </div>
                   </div>
                   <motion.p 
-                    className="font-display text-4xl font-bold"
+                    className="font-display text-3xl font-bold"
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.4 }}

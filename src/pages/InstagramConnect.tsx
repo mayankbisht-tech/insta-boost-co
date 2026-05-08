@@ -111,8 +111,8 @@ const InstagramConnect = () => {
         response.status === 'verified'
           ? 'Instagram verified successfully.'
           : response.status === 'expired'
-          ? 'Verification window expired. Generate a new code and try again.'
-          : 'Verification check completed.',
+            ? 'Verification window expired. Generate a new code and try again.'
+            : 'Verification check completed.',
       );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Verification failed.');
@@ -148,31 +148,6 @@ const InstagramConnect = () => {
             </div>
           </div>
         </div>
-
-        {connectedAccounts.length > 0 && (
-          <div className="glass-card p-5">
-            <h2 className="font-display text-lg font-semibold">Connected Accounts</h2>
-            <div className="mt-4 space-y-3">
-              {connectedAccounts.map(account => (
-                <div key={account.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 p-4">
-                  <div>
-                    <p className="font-semibold">@{account.instagram_username}</p>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                      <Badge className={statusTone[account.instagram_connection_status] || ''}>
-                        {account.instagram_connection_status}
-                      </Badge>
-                      <span>{account.followers_count.toLocaleString()} followers</span>
-                      {account.verification_code && <span>Code: {account.verification_code}</span>}
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Added {new Date(account.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="glass-card p-5">
@@ -254,6 +229,30 @@ const InstagramConnect = () => {
               </div>
             )}
           </div>
+          {connectedAccounts.length > 0 && (
+            <div className="glass-card p-5">
+              <h2 className="font-display text-lg font-semibold">Connected Accounts</h2>
+              <div className="mt-4 space-y-3">
+                {connectedAccounts.map(account => (
+                  <div key={account.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 p-4">
+                    <div>
+                      <p className="font-semibold">@{account.instagram_username}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                        <Badge className={statusTone[account.instagram_connection_status] || ''}>
+                          {account.instagram_connection_status}
+                        </Badge>
+                        <span>{account.followers_count.toLocaleString()} followers</span>
+                        {account.verification_code && <span>Code: {account.verification_code}</span>}
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Added {new Date(account.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

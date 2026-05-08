@@ -80,20 +80,20 @@ export const CampaignBudgetCard = ({ campaign, className = '', compact = false }
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm">
-            <p className="text-slate-600">Paid Out</p>
-            <p className="mt-1 text-lg font-semibold text-slate-950">₹{campaign.spent_budget_rupees.toLocaleString('en-IN')}</p>
-            <p className="text-slate-500">/ ₹{campaign.budget_rupees.toLocaleString('en-IN')}</p>
+        <div className="mt-6 grid grid-cols-3 gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3 sm:gap-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-2 sm:p-3 shadow-sm">
+            <p className="text-slate-600 text-xs sm:text-sm">Paid Out</p>
+            <p className="mt-1 text-base sm:text-lg font-semibold text-slate-950">₹{campaign.spent_budget_rupees.toLocaleString('en-IN')}</p>
+            <p className="text-slate-500 text-xs">/ ₹{campaign.budget_rupees.toLocaleString('en-IN')}</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm">
-            <p className="text-slate-600">CPM</p>
-            <p className="mt-1 text-lg font-semibold text-slate-950">₹{campaign.rupees_per_thousand_views.toLocaleString('en-IN')}</p>
-            <p className="text-slate-500">/ 1k views</p>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-2 sm:p-3 shadow-sm">
+            <p className="text-slate-600 text-xs sm:text-sm">CPM</p>
+            <p className="mt-1 text-base sm:text-lg font-semibold text-slate-950">₹{campaign.rupees_per_thousand_views.toLocaleString('en-IN')}</p>
+            <p className="text-slate-500 text-xs">/ 1k views</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm">
-            <p className="text-slate-600">Views</p>
-            <p className="mt-1 text-lg font-semibold text-slate-950">{campaign.billed_views.toLocaleString('en-IN')}</p>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-2 sm:p-3 shadow-sm">
+            <p className="text-slate-600 text-xs sm:text-sm">Views</p>
+            <p className="mt-1 text-base sm:text-lg font-semibold text-slate-950">{campaign.billed_views.toLocaleString('en-IN')}</p>
           </div>
         </div>
 
