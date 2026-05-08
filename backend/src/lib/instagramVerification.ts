@@ -176,7 +176,7 @@ export const runInstagramVerificationCheck = async (params: {
         followersMatch,
         reviewedAt: status === 'verified' || status === 'failed' || status === 'expired' ? now : null,
         reviewerId: params.reviewerId ?? null,
-        reviewNotes: status === 'verified' ? 'Auto-verified via Apify.' : null,
+        reviewNotes: null,
       },
     });
 
@@ -196,7 +196,7 @@ export const runInstagramVerificationCheck = async (params: {
             ? 'Verification code was not found in the Instagram bio.'
             : status === 'expired'
             ? 'Verification window expired.'
-            : 'Instagram account verified automatically.',
+            : null,
       },
       create: {
         userId: params.userId,
@@ -213,7 +213,7 @@ export const runInstagramVerificationCheck = async (params: {
             ? 'Verification code was not found in the Instagram bio.'
             : status === 'expired'
             ? 'Verification window expired.'
-            : 'Instagram account verified automatically.',
+            : null,
       },
     });
 
@@ -230,7 +230,7 @@ export const runInstagramVerificationCheck = async (params: {
             ? 'Verification code was not found in the Instagram bio.'
             : status === 'expired'
             ? 'Verification window expired.'
-            : 'Instagram account verified automatically.',
+            : null,
       },
     });
   });

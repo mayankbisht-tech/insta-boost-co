@@ -97,6 +97,7 @@ const SuperadminDashboard = () => {
   const [pendingAdminCredentials, setPendingAdminCredentials] = useState<PendingAdminCredential[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [campaignSearch, setCampaignSearch] = useState('');
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [creatingAdmin, setCreatingAdmin] = useState(false);
   const [adminInviteForm, setAdminInviteForm] = useState({
@@ -183,6 +184,23 @@ const SuperadminDashboard = () => {
   const allVerificationUsers = filteredUsers.filter(
     user => user.instagram_verification_request !== null,
   );
+
+  const visibleCampaigns = useMemo(() => {
+    const query = campaignSearch.trim().toLowerCase();
+
+    return [...campaigns]
+      .sort((left, right) => right.billed_views - left.billed_views)
+      .filter(campaign => {
+        if (!query) {
+          return true;
+        }
+
+        return [campaign.title, campaign.category, campaign.description]
+          .join(' ')
+          .toLowerCase()
+          .includes(query);
+      });
+  }, [campaignSearch, campaigns]);
 
   const createAdminCredential = async () => {
     if (!adminInviteForm.name.trim() || !adminInviteForm.email.trim() || !adminInviteForm.password.trim()) {
@@ -439,14 +457,23 @@ const SuperadminDashboard = () => {
                 <h2 className="font-display text-xl font-bold">Active Campaign Budget Tracker</h2>
                 <p className="text-sm text-muted-foreground">Live budget consumption updates are shared with admin, superadmin, and creator dashboards.</p>
               </div>
-              <Badge variant="secondary">{campaigns.length} active</Badge>
+              <Badge variant="secondary">{visibleCampaigns.length} active</Badge>
             </div>
 
-            {campaigns.length === 0 ? (
+            <div className="flex justify-end">
+              <Input
+                value={campaignSearch}
+                onChange={event => setCampaignSearch(event.target.value)}
+                placeholder="Search campaigns by title or category"
+                className="max-w-sm"
+              />
+            </div>
+
+            {visibleCampaigns.length === 0 ? (
               <div className="glass-card p-6 text-sm text-muted-foreground">No active campaigns right now.</div>
             ) : (
               <div className="grid gap-4 lg:grid-cols-2">
-                {campaigns.map(campaign => (
+                {visibleCampaigns.map(campaign => (
                   <CampaignBudgetCard key={campaign.id} campaign={campaign} compact />
                 ))}
               </div>

@@ -124,6 +124,8 @@ const Payments = () => {
   const latestRequest = history[0] ?? null;
   const showWithdrawalCard = isVerified;
   const estimatedEarning = overview?.estimated_earning ?? overview?.available_balance ?? 0;
+  const hasPreviousPayout = (overview?.total_paid ?? 0) > 0;
+  const withdrawalThreshold = hasPreviousPayout ? 0 : 500;
 
   const toRequestStatusLabel = (status: PayoutHistoryItem['status']) => {
     if (status === 'approved') return 'Done';
@@ -143,7 +145,7 @@ const Payments = () => {
         <div>
           <h1 className="font-display text-xl font-bold">Payments</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Add your UPI details, get them verified, then request withdrawals when your estimated earnings cross ₹500.
+            Add your UPI details, get them verified, then request withdrawals after your campaigns end and earnings become withdrawable.
           </p>
         </div>
 
@@ -176,7 +178,7 @@ const Payments = () => {
                       <div className="rounded-xl border border-border/70 p-4">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <IndianRupee className="h-4 w-4" />
-                          Total Earned
+                          Withdrawable Earnings
                         </div>
                         <p className="mt-2 font-display text-3xl font-bold text-primary">
                           ₹ {overview?.total_earned?.toFixed(2) ?? '0.00'}
@@ -213,25 +215,25 @@ const Payments = () => {
                         ₹ {estimatedEarning.toFixed(2)}
                       </p>
                       <p className="mt-2 text-xs text-muted-foreground">
-                        You can request a payout only after this amount goes above ₹500.
+                        Only approved earnings from ended campaigns are counted here.
                       </p>
                     </div>
 
                     <Button
                       onClick={() => void handleWithdraw()}
-                      disabled={withdrawing || Boolean(pendingRequest) || estimatedEarning <= 500}
+                      disabled={withdrawing || Boolean(pendingRequest) || estimatedEarning <= withdrawalThreshold}
                     >
                       {withdrawing ? 'Requesting...' : pendingRequest ? 'Pending...' : 'Request Withdrawal'}
                     </Button>
 
-                    {!pendingRequest && estimatedEarning > 0 && estimatedEarning <= 500 && (
+                    {!pendingRequest && estimatedEarning > 0 && estimatedEarning <= withdrawalThreshold && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <CheckCircle className="h-4 w-4 text-warning" />
-                        You need more approved earnings before you can request a payout.
+                        You need more approved earnings from ended campaigns before you can request a payout.
                       </div>
                     )}
 
-                    {!pendingRequest && estimatedEarning > 500 && (
+                    {!pendingRequest && estimatedEarning > withdrawalThreshold && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <CheckCircle className="h-4 w-4 text-success" />
                         Once requested, the withdrawal cannot be cancelled.
@@ -337,3 +339,9 @@ const Payments = () => {
 };
 
 export default Payments;
+
+
+
+
+
+

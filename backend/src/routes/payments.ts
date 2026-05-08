@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { Router } from 'express';
 import { z } from 'zod';
-import { getUserCappedApprovedEarnings } from '../lib/campaignEarnings.js';
+import { getUserEndedCampaignApprovedEarnings } from '../lib/campaignEarnings.js';
 import { prisma } from '../lib/prisma.js';
 import { resolveSubmissionEarnings } from '../lib/submissionEarnings.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -187,7 +187,7 @@ paymentsRouter.put('/profile', async (req, res) => {
 paymentsRouter.get('/overview', async (req, res) => {
   const [profile, totalEarnings, totalPaid, pendingPayoutAmount, pendingRequest] = await Promise.all([
     safeFindPaymentProfile(req.auth!.user.id),
-    getUserCappedApprovedEarnings(req.auth!.user.id),
+    getUserEndedCampaignApprovedEarnings(req.auth!.user.id),
     calculateTotalPaid(req.auth!.user.id),
     calculatePendingPayoutAmount(req.auth!.user.id),
     safeFindPendingPayoutRequest(req.auth!.user.id),
@@ -251,16 +251,21 @@ paymentsRouter.post('/withdraw', async (req, res) => {
   }
 
   const [totalEarnings, totalPaid] = await Promise.all([
-    getUserCappedApprovedEarnings(req.auth!.user.id),
+    getUserEndedCampaignApprovedEarnings(req.auth!.user.id),
     calculateTotalPaid(req.auth!.user.id),
   ]);
 
   const available = Math.max(totalEarnings - totalPaid, 0);
+  const hasPreviousPayout = totalPaid > 0;
+  const minimumWithdrawal = hasPreviousPayout ? 0 : 500;
 
-  if (available <= 500) {
-    return res.status(400).json({ error: 'You can request a payout only after your estimated earnings exceed ₹500.' });
+  if (available <= minimumWithdrawal) {
+    return res.status(400).json({
+      error: hasPreviousPayout
+        ? 'You need more approved earnings before you can request another payout.'
+        : 'You can request a payout only after your estimated earnings exceed INR 500.',
+    });
   }
-
   try {
     const payout = await prisma.payoutRequest.create({
       data: {
@@ -291,3 +296,6 @@ paymentsRouter.post('/withdraw', async (req, res) => {
     throw error;
   }
 });
+
+
+

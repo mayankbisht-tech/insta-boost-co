@@ -121,6 +121,9 @@ const InstagramConnect = () => {
     }
   };
 
+  const verificationNote =
+    request?.review_notes?.startsWith('Verification') ? request.review_notes : null;
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -248,7 +251,7 @@ const InstagramConnect = () => {
                 <div className="rounded-xl border border-border/70 p-3">
                   <p className="text-xs text-muted-foreground">Verification Notes</p>
                   <p className="mt-1">
-                    {request.review_notes || request.checked_bio || 'No review notes yet.'}
+                    {verificationNote || request.checked_bio || 'No review notes yet.'}
                   </p>
                 </div>
               </div>

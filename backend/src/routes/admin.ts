@@ -2,7 +2,7 @@ import { AppRole, type InstagramVerificationRequest, type PendingAdminCredential
 import { Router, type Request } from 'express';
 import { z } from 'zod';
 import { getApifyRunOverview } from '../lib/apify.js';
-import { consumeRefreshQuota, getRefreshQuota, syncSubmissionAnalytics } from '../lib/analyticsRefresh.js';
+import { syncSubmissionAnalytics } from '../lib/analyticsRefresh.js';
 import { createNotification } from '../lib/notifications.js';
 import { hashPassword } from '../lib/password.js';
 import { calculateCappedSubmissionEarnings, getCampaignSpendSummaries } from '../lib/campaignEarnings.js';
@@ -684,24 +684,9 @@ adminRouter.patch('/submissions/:id/sync-analytics', async (req, res) => {
     return res.status(404).json({ error: 'Submission not found.' });
   }
 
-  const quotaBeforeRefresh = getRefreshQuota(req.auth!.user);
-  if (quotaBeforeRefresh.refreshesRemaining <= 0) {
-    return res.status(429).json({
-      error: `You have used all ${quotaBeforeRefresh.refreshLimit} analytics refreshes for this hour.`,
-      refresh_limit: quotaBeforeRefresh.refreshLimit,
-      refreshes_remaining: quotaBeforeRefresh.refreshesRemaining,
-      window_resets_at: quotaBeforeRefresh.windowResetsAt,
-    });
-  }
-
   const result = await syncSubmissionAnalytics(existing);
   if (!result.ok) {
-    return res.status(result.status).json({
-      error: result.error,
-      refresh_limit: quotaBeforeRefresh.refreshLimit,
-      refreshes_remaining: quotaBeforeRefresh.refreshesRemaining,
-      window_resets_at: quotaBeforeRefresh.windowResetsAt,
-    });
+    return res.status(result.status).json({ error: result.error });
   }
 
   const refreshedEarnings = await calculateCappedSubmissionEarnings({
@@ -723,15 +708,10 @@ adminRouter.patch('/submissions/:id/sync-analytics', async (req, res) => {
     },
   });
 
-  const quota = consumeRefreshQuota(req.auth!.user);
-
   await emitCampaignBudgetUpdate(submission.campaignId);
 
   res.json({
     submission: toSubmissionPayload(submission),
-    refresh_limit: quota.refreshLimit,
-    refreshes_remaining: quota.refreshesRemaining,
-    window_resets_at: quota.windowResetsAt,
   });
 });
 

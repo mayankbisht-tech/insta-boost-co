@@ -41,9 +41,6 @@ interface Submission {
 
 interface SyncAnalyticsResponse {
   submission: Submission;
-  refresh_limit: number;
-  refreshes_remaining: number;
-  window_resets_at: string | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -62,7 +59,6 @@ const AdminSubmissions = () => {
   const [loading, setLoading] = useState(true);
   const [editingViews, setEditingViews] = useState<Record<string, string>>({});
   const [syncingId, setSyncingId] = useState<string | null>(null);
-  const [refreshInfo, setRefreshInfo] = useState<Pick<SyncAnalyticsResponse, 'refresh_limit' | 'refreshes_remaining' | 'window_resets_at'> | null>(null);
   const [reviewNoteById, setReviewNoteById] = useState<Record<string, string>>({});
   const [reviewDialog, setReviewDialog] = useState<{ submissionId: string; action: 'Rejected' | 'Flagged' } | null>(null);
 
@@ -134,12 +130,7 @@ const AdminSubmissions = () => {
       setSubmissions(current =>
         current.map(submission => (submission.id === id ? response.submission : submission)),
       );
-      setRefreshInfo({
-        refresh_limit: response.refresh_limit,
-        refreshes_remaining: response.refreshes_remaining,
-        window_resets_at: response.window_resets_at,
-      });
-      toast.success(`Analytics synced. ${response.refreshes_remaining} refreshes left this hour.`);
+      toast.success('Analytics synced.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to sync analytics.');
     } finally {
@@ -176,17 +167,6 @@ const AdminSubmissions = () => {
           <h1 className="admin-header">Submissions Review</h1>
           <p className="text-muted-foreground mt-2">Review and manage user submissions</p>
         </div>
-
-        {refreshInfo && (
-          <motion.p 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 text-sm font-medium text-accent bg-accent/10 border border-accent/20 rounded-lg px-4 py-2 w-fit"
-          >
-            📊 Refreshes: {refreshInfo.refreshes_remaining}/{refreshInfo.refresh_limit} remaining
-            {refreshInfo.window_resets_at ? ` - Resets ${new Date(refreshInfo.window_resets_at).toLocaleTimeString()}` : ''}
-          </motion.p>
-        )}
 
         <div className="flex flex-wrap gap-3 mb-8">
           <motion.div whileHover={{ scale: 1.02 }} className="flex-[2] min-w-[260px]">
@@ -421,3 +401,4 @@ const AdminSubmissions = () => {
 };
 
 export default AdminSubmissions;
+

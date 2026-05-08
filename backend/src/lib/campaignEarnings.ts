@@ -93,6 +93,19 @@ export const getUserCappedApprovedEarnings = async (userId: string) => {
   return Number(summary.spentBudgetRupees.toFixed(2));
 };
 
+export const getUserEndedCampaignApprovedEarnings = async (userId: string) => {
+  const summary = await sumApprovedSubmissionEarnings({
+    userId,
+    campaign: {
+      is: {
+        status: { not: 'Active' },
+      },
+    },
+  });
+
+  return Number(summary.spentBudgetRupees.toFixed(2));
+};
+
 export const calculateCappedSubmissionEarnings = async (args: {
   submissionId?: string;
   userId: string;
