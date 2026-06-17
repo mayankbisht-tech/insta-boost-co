@@ -7,13 +7,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DashboardLayout from '@/components/DashboardLayout';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, IndianRupee } from 'lucide-react';
+import { CheckCircle, XCircle, IndianRupee, Wallet } from 'lucide-react';
 
 type PaymentProfile = {
   id: string;
   upi_id: string;
   full_name: string;
   phone_number: string;
+  ethereum_wallet_address: string | null;
   status: 'pending' | 'verified' | 'rejected';
   reviewed_at: string | null;
   review_notes: string | null;
@@ -53,6 +54,8 @@ const Payments = () => {
   const [upiId, setUpiId] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [ethAddress, setEthAddress] = useState('');
+  const [ethError, setEthError] = useState('');
 
   const loadData = async () => {
     const [profileResult, overviewResult, historyResult] = await Promise.allSettled([
@@ -75,6 +78,7 @@ const Payments = () => {
     setUpiId(profileData.profile?.upi_id ?? '');
     setFullName(profileData.profile?.full_name ?? '');
     setPhoneNumber(profileData.profile?.phone_number ?? '');
+    setEthAddress(profileData.profile?.ethereum_wallet_address ?? '');
   };
 
   useEffect(() => {
@@ -85,9 +89,16 @@ const Payments = () => {
 
   const handleSaveProfile = async () => {
     if (!upiId.trim() || !fullName.trim() || !phoneNumber.trim()) {
-      toast.error('Please fill all payment details.');
+      toast.error('Please fill all required payment details.');
       return;
     }
+
+    // Validate ETH address format if provided
+    if (ethAddress.trim() && !/^0x[0-9a-fA-F]{40}$/.test(ethAddress.trim())) {
+      setEthError('Invalid Ethereum address. Must be 0x followed by 40 hex characters.');
+      return;
+    }
+    setEthError('');
 
     setSaving(true);
     try {
@@ -95,6 +106,7 @@ const Payments = () => {
         upi_id: upiId.trim(),
         full_name: fullName.trim(),
         phone_number: phoneNumber.trim(),
+        ethereum_wallet_address: ethAddress.trim() || undefined,
       });
       setProfile(response.profile);
       toast.success('Payment details submitted for verification.');
@@ -307,6 +319,31 @@ const Payments = () => {
                       onChange={event => setPhoneNumber(event.target.value)}
                       placeholder="10-digit phone"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="eth-address" className="flex items-center gap-2">
+                      <Wallet className="h-4 w-4 text-muted-foreground" />
+                      Ethereum Wallet Address
+                      <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+                    </Label>
+                    <Input
+                      id="eth-address"
+                      value={ethAddress}
+                      onChange={event => {
+                        setEthAddress(event.target.value);
+                        setEthError('');
+                      }}
+                      placeholder="0x..."
+                      className={ethError ? 'border-destructive' : ''}
+                    />
+                    {ethError ? (
+                      <p className="text-xs text-destructive">{ethError}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Your Ethereum payout address (42-character hex, starting with 0x). Stored as an alternative payout destination.
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">

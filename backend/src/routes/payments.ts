@@ -12,6 +12,14 @@ const paymentProfileSchema = z.object({
   upi_id: z.string().trim().min(3).max(120),
   full_name: z.string().trim().min(2).max(120),
   phone_number: z.string().trim().min(8).max(20),
+  ethereum_wallet_address: z
+    .string()
+    .trim()
+    .optional()
+    .refine(
+      val => !val || /^0x[0-9a-fA-F]{40}$/.test(val),
+      { message: 'Invalid Ethereum wallet address. Must be 0x followed by 40 hex characters.' },
+    ),
 });
 
 const payoutRequestSchema = z.object({
@@ -125,6 +133,7 @@ paymentsRouter.get('/profile', async (req, res) => {
       upi_id: profile.upiId,
       full_name: profile.fullName,
       phone_number: profile.phoneNumber,
+      ethereum_wallet_address: profile.ethereumWalletAddress ?? null,
       status: profile.status,
       reviewed_at: profile.reviewedAt?.toISOString() ?? null,
       review_notes: profile.reviewNotes ?? null,
@@ -147,6 +156,7 @@ paymentsRouter.put('/profile', async (req, res) => {
         upiId: parsed.data.upi_id,
         fullName: parsed.data.full_name,
         phoneNumber: parsed.data.phone_number,
+        ethereumWalletAddress: parsed.data.ethereum_wallet_address ?? null,
         status: 'pending',
         reviewedAt: null,
         reviewNotes: null,
@@ -156,6 +166,7 @@ paymentsRouter.put('/profile', async (req, res) => {
         upiId: parsed.data.upi_id,
         fullName: parsed.data.full_name,
         phoneNumber: parsed.data.phone_number,
+        ethereumWalletAddress: parsed.data.ethereum_wallet_address ?? null,
         status: 'pending',
       },
     });
@@ -166,6 +177,7 @@ paymentsRouter.put('/profile', async (req, res) => {
         upi_id: profile.upiId,
         full_name: profile.fullName,
         phone_number: profile.phoneNumber,
+        ethereum_wallet_address: profile.ethereumWalletAddress ?? null,
         status: profile.status,
         reviewed_at: profile.reviewedAt?.toISOString() ?? null,
         review_notes: profile.reviewNotes ?? null,

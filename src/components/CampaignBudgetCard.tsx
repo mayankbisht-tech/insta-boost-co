@@ -48,8 +48,8 @@ export const CampaignBudgetCard = ({ campaign, className = '', compact = false }
   const progressValue = Math.max(0, Math.min(campaign.budget_consumed_percent, 100));
 
   return (
-    <article className={`relative overflow-hidden rounded-[28px] border border-slate-200 bg-white text-slate-900 shadow-[0_24px_60px_rgba(15,23,42,0.12)] ring-1 ring-slate-100 ${className}`.trim()}>
-      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-sky-500 via-indigo-500 to-amber-400" />
+    <article className={`relative overflow-hidden rounded-[28px] border border-white/10 bg-[#0b0b0b] text-foreground shadow-[0_28px_70px_-24px_hsl(0_0%_0%/0.9)] ring-1 ring-white/5 ${className}`.trim()}>
+      <div className="absolute inset-x-0 top-0 h-1 bg-white/10" />
       <div className="p-5 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-3">
@@ -57,49 +57,49 @@ export const CampaignBudgetCard = ({ campaign, className = '', compact = false }
               <img
                 src={campaign.image_url}
                 alt={campaign.title}
-                className="h-16 w-24 rounded-xl border border-slate-200 object-cover shadow-sm"
+                className="h-16 w-24 rounded-xl border border-white/10 object-cover shadow-sm"
                 loading="lazy"
               />
             ) : (
-              <div className="flex h-16 w-24 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-sm font-semibold text-amber-800 shadow-sm">
+              <div className="flex h-16 w-24 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-sm font-semibold text-muted-foreground shadow-sm">
                 No image
               </div>
             )}
             <div>
-              <h3 className="font-display text-lg font-semibold leading-tight text-slate-950">{campaign.title}</h3>
-              <p className="mt-1 text-sm text-slate-600 line-clamp-1">{campaign.description}</p>
+              <h3 className="font-display text-lg font-semibold leading-tight text-foreground">{campaign.title}</h3>
+              <p className="mt-1 text-sm text-muted-foreground line-clamp-1">{campaign.description}</p>
             </div>
           </div>
 
           <div className="text-left lg:text-right">
             <div className="flex flex-wrap gap-2 lg:justify-end">
-              <Badge className="border border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-50">{campaign.category}</Badge>
-              <Badge className="border border-indigo-200 bg-indigo-50 text-indigo-900 hover:bg-indigo-50">{campaign.status}</Badge>
+              <Badge className="border border-white/10 bg-white/[0.04] text-foreground hover:bg-white/[0.04]">{campaign.category}</Badge>
+              <Badge className="border border-primary/20 bg-primary/10 text-primary hover:bg-primary/10">{campaign.status}</Badge>
             </div>
-            {!compact && <p className="mt-2 text-sm text-slate-500">{ageLabel((campaign as { created_at?: string }).created_at)}</p>}
+            {!compact && <p className="mt-2 text-sm text-muted-foreground">{ageLabel((campaign as { created_at?: string }).created_at)}</p>}
           </div>
         </div>
 
         <div className="mt-6 grid grid-cols-3 gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3 sm:gap-3">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-2 sm:p-3 shadow-sm">
-            <p className="text-slate-600 text-xs sm:text-sm">Paid Out</p>
-            <p className="mt-1 text-base sm:text-lg font-semibold text-slate-950">₹{campaign.spent_budget_rupees.toLocaleString('en-IN')}</p>
-            <p className="text-slate-500 text-xs">/ ₹{campaign.budget_rupees.toLocaleString('en-IN')}</p>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-2 sm:p-3 shadow-sm">
+            <p className="text-muted-foreground text-xs sm:text-sm">Paid Out</p>
+            <p className="mt-1 text-base sm:text-lg font-semibold text-foreground">₹{campaign.spent_budget_rupees.toLocaleString('en-IN')}</p>
+            <p className="text-muted-foreground text-xs">/ ₹{campaign.budget_rupees.toLocaleString('en-IN')}</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-2 sm:p-3 shadow-sm">
-            <p className="text-slate-600 text-xs sm:text-sm">CPM</p>
-            <p className="mt-1 text-base sm:text-lg font-semibold text-slate-950">₹{campaign.rupees_per_thousand_views.toLocaleString('en-IN')}</p>
-            <p className="text-slate-500 text-xs">/ 1k views</p>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-2 sm:p-3 shadow-sm">
+            <p className="text-muted-foreground text-xs sm:text-sm">CPM</p>
+            <p className="mt-1 text-base sm:text-lg font-semibold text-foreground">₹{campaign.rupees_per_thousand_views.toLocaleString('en-IN')}</p>
+            <p className="text-muted-foreground text-xs">/ 1k views</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-2 sm:p-3 shadow-sm">
-            <p className="text-slate-600 text-xs sm:text-sm">Views</p>
-            <p className="mt-1 text-base sm:text-lg font-semibold text-slate-950">{campaign.billed_views.toLocaleString('en-IN')}</p>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-2 sm:p-3 shadow-sm">
+            <p className="text-muted-foreground text-xs sm:text-sm">Views</p>
+            <p className="mt-1 text-base sm:text-lg font-semibold text-foreground">{campaign.billed_views.toLocaleString('en-IN')}</p>
           </div>
         </div>
 
         <div className="mt-5">
-          <Progress value={progressValue} className="h-2 bg-slate-200" />
-          <p className="mt-2 text-xs text-slate-500">{progressValue.toFixed(2)}% budget consumed</p>
+          <Progress value={progressValue} className="h-2 bg-white/[0.08]" />
+          <p className="mt-2 text-xs text-muted-foreground">{progressValue.toFixed(2)}% budget consumed</p>
         </div>
 
       </div>

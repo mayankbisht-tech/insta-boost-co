@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Users as UsersIcon } from 'lucide-react';
+import { CheckCircle2, Users as UsersIcon, MessageCircle } from 'lucide-react';
 import AdminLayout from '@/components/AdminLayout';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { getInstagramProfileUrl } from '@/lib/utils';
@@ -21,6 +23,7 @@ interface UserProfile {
 }
 
 const AdminUsers = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchUser, setSearchUser] = useState('');
@@ -115,6 +118,7 @@ const AdminUsers = () => {
                     <th className="px-6 py-4 text-left font-display font-semibold text-foreground">Instagram</th>
                     <th className="px-6 py-4 text-right font-display font-semibold text-foreground">Followers</th>
                     <th className="px-6 py-4 text-right font-display font-semibold text-foreground">Joined</th>
+                    <th className="px-6 py-4 text-right font-display font-semibold text-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -164,6 +168,29 @@ const AdminUsers = () => {
                         </td>
                         <td className="px-6 py-4 text-right text-xs text-muted-foreground">
                           {new Date(user.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            onClick={() =>
+                              navigate('/admin/support', {
+                                state: {
+                                  openUserId: user.id,
+                                  user: {
+                                    id: user.id,
+                                    name: user.name,
+                                    username: user.username,
+                                    email: user.email,
+                                  },
+                                },
+                              })
+                            }
+                          >
+                            <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                            Message
+                          </Button>
                         </td>
                       </motion.tr>
                     );

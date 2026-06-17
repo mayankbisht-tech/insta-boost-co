@@ -81,20 +81,23 @@ model User {
   reviewedInstagramVerifications InstagramVerificationRequest[] @relation("InstagramVerificationReviewer")
   paymentProfile            PaymentProfile?
   payoutRequests            PayoutRequest[]
+  broadcastReads            BroadcastRead[]
+  supportMessages           SupportMessage[]
 }
 
 model PaymentProfile {
-  id            String               @id @default(cuid())
-  userId        String               @unique
-  upiId         String
-  fullName      String
-  phoneNumber   String
-  status        PaymentProfileStatus @default(pending)
-  reviewedAt    DateTime?
-  reviewNotes   String?
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
-  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                    String               @id @default(cuid())
+  userId                String               @unique
+  upiId                 String
+  fullName              String
+  phoneNumber           String
+  ethereumWalletAddress String?
+  status                PaymentProfileStatus @default(pending)
+  reviewedAt            DateTime?
+  reviewNotes           String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  user                  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PayoutRequest {
@@ -300,4 +303,39 @@ model Notification {
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Broadcast {
+  id        String          @id @default(cuid())
+  title     String?
+  message   String
+  category  String?
+  sentById  String
+  createdAt DateTime        @default(now())
+  reads     BroadcastRead[]
+
+  @@index([createdAt])
+}
+
+model BroadcastRead {
+  id          String    @id @default(cuid())
+  broadcastId String
+  userId      String
+  readAt      DateTime  @default(now())
+  broadcast   Broadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([broadcastId, userId])
+}
+
+model SupportMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  message   String
+  fromAdmin Boolean  @default(false)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

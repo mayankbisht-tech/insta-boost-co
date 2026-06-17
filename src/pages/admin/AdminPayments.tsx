@@ -15,6 +15,7 @@ type PaymentProfile = {
   upi_id: string;
   full_name: string;
   phone_number: string;
+  ethereum_wallet_address: string | null;
   status: 'pending' | 'verified' | 'rejected';
   reviewed_at: string | null;
   review_notes: string | null;
@@ -141,6 +142,9 @@ const AdminPayments = () => {
                           <p>UPI: <span className="text-foreground">{profile.upi_id}</span></p>
                           <p>Name: <span className="text-foreground">{profile.full_name}</span></p>
                           <p>Phone: <span className="text-foreground">{profile.phone_number}</span></p>
+                          {profile.ethereum_wallet_address && (
+                            <p className="sm:col-span-3">ETH Wallet: <span className="text-foreground font-mono text-xs break-all">{profile.ethereum_wallet_address}</span></p>
+                          )}
                         </div>
 
                         {profile.status === 'pending' && (

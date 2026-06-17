@@ -13,12 +13,14 @@ import { env } from './config/env.js';
 import { setSocketServer } from './lib/realtime.js';
 import { adminRouter } from './routes/admin.js';
 import { authRouter } from './routes/auth.js';
+import { broadcastsRouter } from './routes/broadcasts.js';
 import { campaignsRouter } from './routes/campaigns.js';
 import { healthRouter } from './routes/health.js';
 import { notificationsRouter } from './routes/notifications.js';
 import { paymentsRouter } from './routes/payments.js';
 import { profileRouter } from './routes/profile.js';
 import { submissionsRouter } from './routes/submissions.js';
+import { supportRouter } from './routes/support.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -132,6 +134,8 @@ app.use('/api/submissions', submissionsRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/profile', profileRouter);
+app.use('/api/broadcasts', broadcastsRouter);
+app.use('/api/support', supportRouter);
 app.use('/api/admin/campaigns', campaignUploadMiddleware);
 app.use('/api/admin', adminRouter);
 

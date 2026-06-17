@@ -15,13 +15,17 @@ import Submissions from "./pages/Submissions";
 import InstagramConnect from "./pages/InstagramConnect";
 import Payments from "./pages/Payments";
 import Notifications from "./pages/Notifications";
+import Announcements from "./pages/Announcements";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminCampaigns from "./pages/admin/AdminCampaigns";
 import AdminSubmissions from "./pages/admin/AdminSubmissions";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminPayments from "./pages/admin/AdminPayments";
+import AdminBroadcasts from "./pages/admin/AdminBroadcasts";
+import AdminSupport from "./pages/admin/AdminSupport";
 import SuperadminDashboard from "./pages/superadmin/SuperadminDashboard";
 import NotFound from "./pages/NotFound";
+import SupportChat from "./components/SupportChat";
 
 const queryClient = new QueryClient();
 
@@ -42,15 +46,20 @@ const App = () => (
             <Route path="/instagram" element={<ProtectedRoute><InstagramConnect /></ProtectedRoute>} />
             <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+            <Route path="/announcements" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
             {/* Admin routes */}
             <Route path="/admin" element={<AdminRoute><AdminOverview /></AdminRoute>} />
             <Route path="/admin/campaigns" element={<AdminRoute><AdminCampaigns /></AdminRoute>} />
             <Route path="/admin/submissions" element={<AdminRoute><AdminSubmissions /></AdminRoute>} />
             <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
             <Route path="/admin/payments" element={<AdminRoute><AdminPayments /></AdminRoute>} />
+            <Route path="/admin/broadcasts" element={<AdminRoute><AdminBroadcasts /></AdminRoute>} />
+            <Route path="/admin/support" element={<AdminRoute><AdminSupport /></AdminRoute>} />
             <Route path="/superadmin" element={<SuperadminRoute><SuperadminDashboard /></SuperadminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          {/* Global support chat widget — only shown to authenticated non-admin users */}
+          <SupportChat />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

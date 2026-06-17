@@ -8,7 +8,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, Clock, DollarSign, Eye } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
 
 interface Campaign extends CampaignBudget {
   reward_per_million_views: number;
@@ -141,7 +141,7 @@ const Dashboard = () => {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="glass-card p-4"
+            className="editorial-panel p-4"
           >
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-muted-foreground">{stat.label}</span>
@@ -153,7 +153,7 @@ const Dashboard = () => {
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card p-5">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="editorial-panel p-5">
           <div className="flex items-center gap-2 mb-4">
             <span className="text-xl text-muted-foreground">Total Earnings</span>
           </div>
@@ -162,9 +162,8 @@ const Dashboard = () => {
           </p>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }} className="glass-card p-5">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }} className="editorial-panel p-5">
           <div className="flex items-center gap-2 mb-4">
-            <DollarSign className="h-8 w-8 text-primary" />
             <span className="text-xl text-muted-foreground">Estimated Earnings</span>
           </div>
           <p className="font-display text-4xl font-bold text-primary">
@@ -172,10 +171,10 @@ const Dashboard = () => {
           </p>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }} className="glass-card p-5">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }} className="editorial-panel p-5">
           <h2 className="font-display text-lg font-semibold">Creator Snapshot</h2>
           <div className="mt-4 space-y-4 text-sm text-muted-foreground">
-            <div className="rounded-xl border border-border/70 bg-background/50 p-4">
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
               <p className="text-xs uppercase tracking-[0.18em]">Connected Instagram</p>
               <p className="mt-2 text-base font-semibold text-foreground">
                 {user ? (overview.total_submissions > 0 ? 'Ready for reel submissions' : 'Verified and ready to start') : 'Sign in required'}
@@ -192,7 +191,7 @@ const Dashboard = () => {
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       ) : campaigns.length === 0 ? (
-        <div className="glass-card p-12 text-center">
+        <div className="editorial-panel p-12 text-center">
           <p className="text-muted-foreground">No campaigns available.</p>
         </div>
       ) : (
@@ -215,7 +214,7 @@ const Dashboard = () => {
                     <Badge className="bg-warning/10 text-warning border border-warning/20">Top Paying</Badge>
                   )}
                 </div>
-                <Button asChild size="sm" variant="outline" className="text-xs bg-blue-300 hover:bg-blue-300/80">
+                <Button asChild size="sm" variant="outline" className="text-xs border-primary/20 text-primary hover:bg-primary/10">
                   <Link to={`/campaign/${campaign.id}`}>View Details</Link>
                 </Button>
               </div>
