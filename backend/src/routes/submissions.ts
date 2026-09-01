@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { env } from '../config/env.js';
 import { refreshApifyAnalyticsForReelUrl } from '../lib/apify.js';
+import { consumeRefreshQuota, syncSubmissionAnalytics } from '../lib/analyticsRefresh.js';
+import { calculateCappedSubmissionEarnings } from '../lib/campaignEarnings.js';
 import { prisma } from '../lib/prisma.js';
 import { emitCampaignBudgetUpdate } from '../lib/realtime.js';
 import { extractInstagramReelCode, normalizeInstagramReelUrl, normalizeInstagramUsername } from '../lib/reels.js';
@@ -22,19 +24,32 @@ submissionsRouter.use(requireAuth);
 submissionsRouter.get('/overview', async (req, res) => {
   const submissions = await prisma.submission.findMany({
     where: { userId: req.auth!.user.id },
+    include: { campaign: true },
     orderBy: { submittedAt: 'desc' },
   });
 
-  const totalViews = submissions.reduce((sum, submission) => sum + submission.views, 0);
+  const isSubmissionCapped = (submission: any) => {
+    return submission.campaign && Number(submission.earnings) >= submission.campaign.maxEarningRupees;
+  };
+
+  const totalViews = submissions.reduce((sum: number, submission: any) => {
+    return sum + (isSubmissionCapped(submission) ? 0 : submission.views);
+  }, 0);
+
   const totalEarnings = submissions.reduce(
-    (sum, submission) => sum + resolveSubmissionEarnings(submission.earnings, submission.status),
+    (sum: number, submission: any) => sum + resolveSubmissionEarnings(submission.earnings, submission.status),
     0,
   );
-  const bestSubmission = submissions.reduce<typeof submissions[number] | null>(
-    (best, submission) => (!best || submission.views > best.views ? submission : best),
-    null,
+
+  const bestSubmission = submissions.reduce(
+    (best: any, submission: any) => {
+      if (isSubmissionCapped(submission)) return best;
+      return (!best || submission.views > best.views ? submission : best);
+    },
+    null as any,
   );
-  const latestSync = submissions.reduce<Date | null>((latest, submission) => {
+
+  const latestSync = submissions.reduce((latest: Date | null, submission: any) => {
     if (!submission.analyticsSyncedAt) {
       return latest;
     }
@@ -44,18 +59,20 @@ submissionsRouter.get('/overview', async (req, res) => {
     }
 
     return latest;
-  }, null);
+  }, null as Date | null);
+
+  const uncappedSubmissions = submissions.filter((s: any) => !isSubmissionCapped(s));
 
   res.json({
     total_submissions: submissions.length,
-    approved: submissions.filter(submission => submission.status === 'Approved').length,
-    rejected: submissions.filter(submission => submission.status === 'Rejected').length,
-    pending: submissions.filter(submission => submission.status === 'Pending').length,
+    approved: submissions.filter((submission: any) => submission.status === 'Approved').length,
+    rejected: submissions.filter((submission: any) => submission.status === 'Rejected').length,
+    pending: submissions.filter((submission: any) => submission.status === 'Pending').length,
     total_views: totalViews,
     total_earnings: Number(totalEarnings.toFixed(2)),
-    average_views: submissions.length ? Math.round(totalViews / submissions.length) : 0,
-    active_reels: submissions.filter(submission => submission.status === 'Pending' || submission.status === 'Approved').length,
-    reels_with_analytics: submissions.filter(submission => Boolean(submission.analyticsSyncedAt)).length,
+    average_views: uncappedSubmissions.length ? Math.round(totalViews / uncappedSubmissions.length) : 0,
+    active_reels: submissions.filter((submission: any) => submission.status === 'Pending' || submission.status === 'Approved').length,
+    reels_with_analytics: submissions.filter((submission: any) => Boolean(submission.analyticsSyncedAt)).length,
     best_reel_views: bestSubmission?.views ?? 0,
     latest_sync_at: latestSync?.toISOString() ?? null,
   });
@@ -180,9 +197,9 @@ submissionsRouter.post('/', async (req, res) => {
 
   const scrapedOwner = normalizeInstagramUsername(analyticsSnapshot?.ownerUsername);
   const approvedOwners = req.auth!.user.instagramAccounts
-    .filter(account => account.connectionStatus === 'approved')
-    .map(account => normalizeInstagramUsername(account.instagramUsername))
-    .filter((username): username is string => Boolean(username));
+    .filter((account: any) => account.connectionStatus === 'approved')
+    .map((account: any) => normalizeInstagramUsername(account.instagramUsername))
+    .filter((username: any): username is string => Boolean(username));
   const legacyApprovedOwner =
     req.auth!.user.instagramConnectionStatus === 'approved'
       ? normalizeInstagramUsername(req.auth!.user.instagramUsername)
@@ -231,5 +248,55 @@ submissionsRouter.post('/', async (req, res) => {
 });
 
 submissionsRouter.patch('/:id/refresh-analytics', async (req, res) => {
-  return res.status(403).json({ error: 'Analytics updates are managed by admin only.' });
+  const submission = await prisma.submission.findUnique({
+    where: { id: req.params.id },
+    include: { campaign: true, user: true },
+  });
+
+  if (!submission || !submission.campaign) {
+    return res.status(404).json({ error: 'Submission not found.' });
+  }
+
+  const isAdminOrSuperadmin = req.auth!.user.roles.some(
+    (role: any) => role.role === 'admin' || role.role === 'superadmin'
+  );
+
+  if (submission.userId !== req.auth!.user.id && !isAdminOrSuperadmin) {
+    return res.status(403).json({ error: 'You do not have permission to refresh this submission.' });
+  }
+
+  const quota = consumeRefreshQuota(req.auth!.user);
+  if (!quota.ok) {
+    return res.status(429).json({
+      error: `Rate limit exceeded. You can refresh again at ${quota.windowResetsAt}.`,
+      refreshes_remaining: quota.refreshesRemaining,
+      window_resets_at: quota.windowResetsAt,
+    });
+  }
+
+  const syncResult = await syncSubmissionAnalytics(submission);
+  if (!syncResult.ok) {
+    return res.status(syncResult.status).json({ error: syncResult.error });
+  }
+
+  const refreshedEarnings = await calculateCappedSubmissionEarnings({
+    submissionId: syncResult.submission.id,
+    userId: syncResult.submission.userId,
+    campaign: syncResult.submission.campaign!,
+    views: syncResult.submission.views,
+    status: syncResult.submission.status,
+  });
+
+  const updatedSubmission = await prisma.submission.update({
+    where: { id: syncResult.submission.id },
+    data: {
+      earnings: refreshedEarnings,
+    },
+    include: {
+      campaign: true,
+      user: true,
+    },
+  });
+
+  res.json(toSubmissionPayload(updatedSubmission));
 });

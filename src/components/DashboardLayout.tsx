@@ -84,11 +84,11 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             </button>
             <Link to="/dashboard" className="inline-flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] p-2 shadow-[0_10px_30px_rgba(0,0,0,0.24)]">
-                <img src="/3.png" alt="Go Clips" className="h-full w-full object-contain" />
+                <img src="/3.png" alt="Viralkaro" className="h-full w-full object-contain" />
               </div>
               <div className="hidden sm:block">
-                <p className="font-display text-lg font-semibold tracking-tight">Go Clips</p>
-                <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Creator dashboard</p>
+                <p className="font-display text-lg font-bold tracking-tight bg-gradient-to-r from-[#c5c0ff] to-[#ffb59e] bg-clip-text text-transparent">Viralkaro</p>
+                <p className="text-[9px] uppercase tracking-[0.22em] text-muted-foreground font-semibold">Creator Portal</p>
               </div>
             </Link>
           </div>

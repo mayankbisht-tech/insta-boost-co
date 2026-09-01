@@ -153,77 +153,79 @@ const Payments = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div>
-          <h1 className="font-display text-xl font-bold">Payments</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Add your UPI details, get them verified, then request withdrawals after your campaigns end and earnings become withdrawable.
+          <h1 className="font-display text-4xl font-extrabold bg-gradient-to-r from-white to-[#c8c6c8] bg-clip-text text-transparent">Payments & Earnings</h1>
+          <p className="mt-2 text-body-md text-muted-foreground">
+            Manage your payment profile, link withdrawal accounts, and request earnings payouts.
           </p>
         </div>
 
         <div className="flex justify-center">
-          <div className="glass-card w-full max-w-3xl p-5">
+          <div className="rounded-2xl border border-white/10 bg-[#1a1a1c]/60 backdrop-blur-xl w-full max-w-3xl p-8 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.8)] relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-[#8c84eb] to-[#ffb59e] opacity-50"></div>
+            
             {showWithdrawalCard ? (
               <>
-                <Tabs defaultValue="withdraw" className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h2 className="font-display text-lg font-semibold">Withdrawal</h2>
-                    <TabsList className="ml-auto">
-                      <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
-                      <TabsTrigger value="history">History</TabsTrigger>
+                <Tabs defaultValue="withdraw" className="space-y-6">
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
+                    <h2 className="font-display text-xl font-bold text-foreground">Withdrawal Center</h2>
+                    <TabsList className="bg-white/[0.04] border border-white/10 p-1">
+                      <TabsTrigger value="withdraw" className="data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground text-xs">Withdraw</TabsTrigger>
+                      <TabsTrigger value="history" className="data-[state=active]:bg-white/[0.08] data-[state=active]:text-foreground text-xs">History</TabsTrigger>
                     </TabsList>
                   </div>
 
-                  <TabsContent value="withdraw" className="space-y-4">
+                  <TabsContent value="withdraw" className="space-y-6">
                     {latestRequest && (
-                      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/70 p-3">
-                        <p className="text-sm text-muted-foreground">
-                          Latest request: ₹ {latestRequest.amount.toFixed(2)} · {new Date(latestRequest.requested_at).toLocaleString()}
-                        </p>
-                        <Badge className={requestStatusTone[latestRequest.status]}>
+                      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#c5c0ff]/30 bg-[#c5c0ff]/5 p-4">
+                        <div className="text-sm text-muted-foreground">
+                          Latest payout request: <span className="font-bold text-foreground">₹ {latestRequest.amount.toFixed(2)}</span> · {new Date(latestRequest.requested_at).toLocaleString()}
+                        </div>
+                        <Badge className={`${requestStatusTone[latestRequest.status]} text-xs font-semibold px-3 py-1`}>
                           {toRequestStatusLabel(latestRequest.status)}
                         </Badge>
                       </div>
                     )}
 
                     <div className="grid gap-4 md:grid-cols-3">
-                      <div className="rounded-xl border border-border/70 p-4">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <IndianRupee className="h-4 w-4" />
-                          Withdrawable Earnings
+                      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+                        <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                          <Wallet className="h-4 w-4 text-[#c5c0ff]" />
+                          Withdrawable
                         </div>
-                        <p className="mt-2 font-display text-3xl font-bold text-primary">
+                        <p className="mt-3 font-display text-2xl font-extrabold bg-gradient-to-r from-[#c5c0ff] to-[#ffb59e] bg-clip-text text-transparent">
                           ₹ {overview?.total_earned?.toFixed(2) ?? '0.00'}
                         </p>
                       </div>
 
-                      <div className="rounded-xl border border-border/70 p-4">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <IndianRupee className="h-4 w-4" />
-                          Estimated Earnings
+                      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+                        <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                          <IndianRupee className="h-4 w-4 text-[#ffb59e]" />
+                          Estimated
                         </div>
-                        <p className="mt-2 font-display text-3xl font-bold text-success">
+                        <p className="mt-3 font-display text-2xl font-extrabold text-foreground">
                           ₹ {estimatedEarning.toFixed(2)}
                         </p>
                       </div>
 
-                      <div className="rounded-xl border border-border/70 p-4">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <IndianRupee className="h-4 w-4" />
+                      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
+                        <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                          <CheckCircle className="h-4 w-4 text-[#c5c0ff]" />
                           Already Paid
                         </div>
-                        <p className="mt-2 font-display text-3xl font-bold text-foreground">
+                        <p className="mt-3 font-display text-2xl font-extrabold text-muted-foreground">
                           ₹ {overview?.total_paid?.toFixed(2) ?? '0.00'}
                         </p>
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-border/70 p-4">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <IndianRupee className="h-4 w-4" />
-                        Withdrawable Amount
+                    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-6">
+                      <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                        <IndianRupee className="h-4 w-4 text-[#c5c0ff]" />
+                        Withdrawable Balance Summary
                       </div>
-                      <p className="mt-2 font-display text-3xl font-bold text-success">
+                      <p className="font-display text-4xl font-extrabold text-foreground">
                         ₹ {estimatedEarning.toFixed(2)}
                       </p>
                       <p className="mt-2 text-xs text-muted-foreground">
@@ -234,13 +236,14 @@ const Payments = () => {
                     <Button
                       onClick={() => void handleWithdraw()}
                       disabled={withdrawing || Boolean(pendingRequest) || estimatedEarning <= withdrawalThreshold}
+                      className="w-full bg-gradient-to-r from-[#8c84eb] to-[#ffb59e] hover:from-[#7b72e7] hover:to-[#ffa488] text-white font-bold py-4 rounded-xl shadow-lg shadow-[#8c84eb]/20 active:scale-[0.98] transition-all duration-200"
                     >
-                      {withdrawing ? 'Requesting...' : pendingRequest ? 'Pending...' : 'Request Withdrawal'}
+                      {withdrawing ? 'Processing Withdrawal...' : pendingRequest ? 'Withdrawal Pending Approval' : 'Request Withdrawal'}
                     </Button>
 
                     {!pendingRequest && estimatedEarning > 0 && estimatedEarning <= withdrawalThreshold && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <CheckCircle className="h-4 w-4 text-warning" />
+                        <Clock className="h-4 w-4 text-warning" />
                         You need more approved earnings from ended campaigns before you can request a payout.
                       </div>
                     )}
@@ -248,22 +251,22 @@ const Payments = () => {
                     {!pendingRequest && estimatedEarning > withdrawalThreshold && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <CheckCircle className="h-4 w-4 text-success" />
-                        Once requested, the withdrawal cannot be cancelled.
+                        Once requested, the withdrawal will be verified and paid out by the administrator team.
                       </div>
                     )}
                   </TabsContent>
 
-                  <TabsContent value="history" className="space-y-3">
+                  <TabsContent value="history" className="space-y-4">
                     {history.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No withdrawal requests yet.</p>
+                      <p className="text-sm text-muted-foreground text-center py-8">No withdrawal requests yet.</p>
                     ) : (
                       history.map(item => (
-                        <div key={item.id} className="rounded-xl border border-border/70 p-4 space-y-2">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-sm text-muted-foreground">
-                              Requested ₹ {item.amount.toFixed(2)} on {new Date(item.requested_at).toLocaleString()}
+                        <div key={item.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-5 space-y-3 transition-all hover:bg-white/[0.04]">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <p className="text-sm font-semibold text-foreground">
+                              Requested <span className="text-[#c5c0ff]">₹ {item.amount.toFixed(2)}</span> on {new Date(item.requested_at).toLocaleDateString()}
                             </p>
-                            <Badge className={requestStatusTone[item.status]}>
+                            <Badge className={`${requestStatusTone[item.status]} text-xs font-semibold`}>
                               {toRequestStatusLabel(item.status)}
                             </Badge>
                           </div>
@@ -275,9 +278,9 @@ const Payments = () => {
                           )}
 
                           {item.status === 'rejected' && item.rejection_reason && (
-                            <p className="text-sm text-muted-foreground">
-                              Admin note: {item.rejection_reason}
-                            </p>
+                            <div className="text-sm text-red-300 bg-red-950/20 border border-red-900/30 rounded-lg p-3">
+                              <span className="font-bold">Admin note:</span> {item.rejection_reason}
+                            </div>
                           )}
                         </div>
                       ))
@@ -287,56 +290,70 @@ const Payments = () => {
               </>
             ) : (
               <>
-                <h2 className="font-display text-lg font-semibold">UPI Details</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  These details are reviewed by admin before withdrawals are enabled.
+                <h2 className="font-display text-2xl font-bold text-foreground">UPI Profile Details</h2>
+                <p className="mt-2 text-body-sm text-muted-foreground border-b border-white/10 pb-4">
+                  Add your details. The admin team will review and approve your profile to unlock withdrawals.
                 </p>
 
-                <div className="mt-5 space-y-4">
+                <div className="mt-6 space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="upi-id">UPI ID</Label>
-                    <Input
-                      id="upi-id"
-                      value={upiId}
-                      onChange={event => setUpiId(event.target.value)}
-                      placeholder="yourname@bank"
-                    />
+                    <Label htmlFor="upi-id" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">UPI ID / VPA</Label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground material-symbols-outlined font-normal text-lg">account_balance</span>
+                      <Input
+                        id="upi-id"
+                        value={upiId}
+                        onChange={event => setUpiId(event.target.value)}
+                        placeholder="yourname@bank"
+                        className="w-full bg-[#141415] border border-white/10 rounded-lg py-3 pl-12 pr-4 text-white focus:border-[#8c84eb] outline-none transition-all placeholder:text-muted-foreground/30"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="upi-name">Full Name</Label>
-                    <Input
-                      id="upi-name"
-                      value={fullName}
-                      onChange={event => setFullName(event.target.value)}
-                      placeholder="Name on bank account"
-                    />
+                    <Label htmlFor="upi-name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Full Name (Bank Account Holder)</Label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground material-symbols-outlined font-normal text-lg">person</span>
+                      <Input
+                        id="upi-name"
+                        value={fullName}
+                        onChange={event => setFullName(event.target.value)}
+                        placeholder="John Doe"
+                        className="w-full bg-[#141415] border border-white/10 rounded-lg py-3 pl-12 pr-4 text-white focus:border-[#8c84eb] outline-none transition-all placeholder:text-muted-foreground/30"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="upi-phone">Phone Number</Label>
-                    <Input
-                      id="upi-phone"
-                      value={phoneNumber}
-                      onChange={event => setPhoneNumber(event.target.value)}
-                      placeholder="10-digit phone"
-                    />
+                    <Label htmlFor="upi-phone" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Phone Number</Label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground material-symbols-outlined font-normal text-lg">call</span>
+                      <Input
+                        id="upi-phone"
+                        value={phoneNumber}
+                        onChange={event => setPhoneNumber(event.target.value)}
+                        placeholder="10-digit phone"
+                        className="w-full bg-[#141415] border border-white/10 rounded-lg py-3 pl-12 pr-4 text-white focus:border-[#8c84eb] outline-none transition-all placeholder:text-muted-foreground/30"
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="eth-address" className="flex items-center gap-2">
+                    <Label htmlFor="eth-address" className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                       <Wallet className="h-4 w-4 text-muted-foreground" />
-                      Ethereum Wallet Address
-                      <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+                      Ethereum Wallet Address <span className="text-[10px] text-muted-foreground font-normal lowercase">(optional)</span>
                     </Label>
-                    <Input
-                      id="eth-address"
-                      value={ethAddress}
-                      onChange={event => {
-                        setEthAddress(event.target.value);
-                        setEthError('');
-                      }}
-                      placeholder="0x..."
-                      className={ethError ? 'border-destructive' : ''}
-                    />
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground material-symbols-outlined font-normal text-lg">currency_bitcoin</span>
+                      <Input
+                        id="eth-address"
+                        value={ethAddress}
+                        onChange={event => {
+                          setEthAddress(event.target.value);
+                          setEthError('');
+                        }}
+                        placeholder="0x..."
+                        className={`w-full bg-[#141415] border border-white/10 rounded-lg py-3 pl-12 pr-4 text-white focus:border-[#8c84eb] outline-none transition-all placeholder:text-muted-foreground/30 ${ethError ? 'border-destructive' : ''}`}
+                      />
+                    </div>
                     {ethError ? (
                       <p className="text-xs text-destructive">{ethError}</p>
                     ) : (
@@ -346,24 +363,30 @@ const Payments = () => {
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button onClick={() => void handleSaveProfile()} disabled={saving}>
-                      {saving ? 'Saving...' : profile ? 'Update & Verify' : 'Submit for Verification'}
+                  {profile?.review_notes && (
+                    <div className="text-sm text-yellow-300 bg-yellow-950/20 border border-yellow-900/30 rounded-lg p-4">
+                      <span className="font-bold">Admin review note:</span> {profile.review_notes}
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-white/10">
+                    <Button 
+                      onClick={() => void handleSaveProfile()} 
+                      disabled={saving}
+                      className="bg-gradient-to-r from-[#8c84eb] to-[#ffb59e] hover:opacity-90 text-white font-bold px-6 py-3 rounded-lg shadow-lg active:scale-[0.98] transition-all duration-200"
+                    >
+                      {saving ? 'Submitting...' : profile ? 'Update Details' : 'Submit Profile for Verification'}
                     </Button>
                     {profile?.status && (
-                      <Badge className={statusTone[profile.status] || ''}>{profile.status}</Badge>
+                      <Badge className={`${statusTone[profile.status]} text-xs font-semibold px-3 py-1.5`}>
+                        Status: {profile.status}
+                      </Badge>
                     )}
                   </div>
 
-                  {profile?.review_notes && (
-                    <p className="text-sm text-muted-foreground">
-                      Admin note: {profile.review_notes}
-                    </p>
-                  )}
-
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <XCircle className="h-4 w-4 text-destructive" />
-                    Your payment details must be verified before you can request a withdrawal.
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2">
+                    <Clock className="h-4 w-4 text-[#ffb59e]" />
+                    Your details must be verified by the admin team before requesting a withdrawal.
                   </div>
                 </div>
               </>

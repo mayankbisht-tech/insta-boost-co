@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Reel Submission | Viralkaro</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-lowest": "#0e0e0f",
+                      "inverse-primary": "#5951b4",
+                      "secondary-container": "#952a00",
+                      "secondary-fixed-dim": "#ffb59e",
+                      "surface-container": "#201f20",
+                      "tertiary-fixed": "#e4e2e4",
+                      "on-error-container": "#ffdad6",
+                      "on-secondary": "#5e1700",
+                      "outline": "#928f9d",
+                      "surface-container-highest": "#353436",
+                      "surface-dim": "#131314",
+                      "on-primary-fixed": "#140067",
+                      "secondary": "#ffb59e",
+                      "outline-variant": "#474552",
+                      "on-secondary-container": "#ffaf97",
+                      "surface-container-high": "#2a2a2b",
+                      "error": "#ffb4ab",
+                      "surface-variant": "#353436",
+                      "background": "#131314",
+                      "error-container": "#93000a",
+                      "on-surface": "#e5e2e3",
+                      "tertiary": "#c8c6c8",
+                      "on-secondary-fixed-variant": "#852400",
+                      "secondary-fixed": "#ffdbd0",
+                      "on-tertiary-fixed": "#1b1b1d",
+                      "on-primary": "#2a1c84",
+                      "surface-container-low": "#1c1b1c",
+                      "on-tertiary-fixed-variant": "#474649",
+                      "surface-tint": "#c5c0ff",
+                      "inverse-on-surface": "#313031",
+                      "on-secondary-fixed": "#3a0b00",
+                      "on-surface-variant": "#c8c4d4",
+                      "tertiary-container": "#929092",
+                      "tertiary-fixed-dim": "#c8c6c8",
+                      "primary-container": "#8c84eb",
+                      "on-primary-fixed-variant": "#41379b",
+                      "on-tertiary-container": "#2a292c",
+                      "on-primary-container": "#23127d",
+                      "primary-fixed-dim": "#c5c0ff",
+                      "surface-bright": "#3a393a",
+                      "primary": "#c5c0ff",
+                      "inverse-surface": "#e5e2e3",
+                      "on-background": "#e5e2e3",
+                      "on-error": "#690005",
+                      "primary-fixed": "#e4dfff",
+                      "on-tertiary": "#303032",
+                      "surface": "#131314"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "24px",
+                      "margin-desktop": "64px",
+                      "margin-mobile": "20px",
+                      "unit": "8px",
+                      "container-max": "1440px"
+              },
+              "fontFamily": {
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "headline-xl": [
+                              "Inter"
+                      ],
+                      "label-bold": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg-mobile": [
+                              "28px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "letterSpacing": "0em",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-xl": [
+                              "48px",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.04em",
+                                      "fontWeight": "800"
+                              }
+                      ],
+                      "label-bold": [
+                              "12px",
+                              {
+                                      "lineHeight": "1",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .glass-panel {
+            background-color: rgba(26, 26, 28, 0.6);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .glass-pulse {
+            box-shadow: 0 20px 40px rgba(127, 119, 221, 0.05);
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #c5c0ff, #ffb59e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8c84eb, #ffaf97);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .input-glow:focus-within {
+            border-image: linear-gradient(to right, #8c84eb, #ffaf97) 1;
+            box-shadow: inset 0 0 10px rgba(140, 132, 235, 0.1);
+        }
+        
+        @keyframes pulse-glow {
+            0% { opacity: 0.5; box-shadow: 0 0 10px #c5c0ff; }
+            50% { opacity: 1; box-shadow: 0 0 20px #c5c0ff, 0 0 30px #ffb59e; }
+            100% { opacity: 0.5; box-shadow: 0 0 10px #c5c0ff; }
+        }
+
+        .syncing-glow {
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md antialiased overflow-x-hidden">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-surface-container/60 backdrop-blur-xl border-b border-white/10 shadow-2xl shadow-primary/5 hidden md:flex items-center justify-between px-margin-desktop h-20 max-w-container-max mx-auto">
+<div class="font-headline-lg text-headline-lg bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-extrabold cursor-pointer hover:bg-white/5 transition-colors active:scale-95 duration-200">
+            Viralkaro
+        </div>
+<div class="flex items-center gap-6">
+<button aria-label="Wallet" class="text-on-surface-variant hover:bg-white/5 transition-colors p-2 rounded-full active:scale-95 duration-200">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 0;">account_balance_wallet</span>
+</button>
+<button aria-label="Notifications" class="text-on-surface-variant hover:bg-white/5 transition-colors p-2 rounded-full active:scale-95 duration-200 relative">
+<span class="absolute top-1 right-1 w-2 h-2 bg-secondary rounded-full"></span>
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-surface-container-highest border border-outline-variant overflow-hidden cursor-pointer hover:border-primary transition-colors active:scale-95 duration-200">
+<img alt="Creator Profile" class="w-full h-full object-cover" data-alt="A high-quality, professional headshot of a young creator in a studio setting with dramatic neon rim lighting, conveying a modern and energetic aesthetic suitable for a dark-mode profile avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEtMvQPxl4cCCKiemU97V5xYH36mS_BCAJtTbrFS7ntlea85I37nhhkUhy56w-QMVTCruLR7HME76o0QsEOYBQkpETmKuVoLIqHqTDOmrwI1Jpw8eoBFL2HPRllaBSB4MYTWO9eCwmHlhM1cCjgWm9nOCLSHbptMb1mYDVjcVDOwQszo53BGGj9tj6YoQc_pqE06ZkGJaIVzcnyw_HrMIMoc-AdsnhXTTvZAOiK70J3M2C4LcUk_XG"/>
+</div>
+</div>
+</nav>
+<div class="flex max-w-container-max mx-auto pt-20 md:pt-20">
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col p-6 gap-4 bg-surface-container-low/80 backdrop-blur-2xl border-r border-white/10 shadow-xl fixed left-0 top-20 h-[calc(100vh-80px)] w-64 z-40">
+<div class="mb-8 flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest overflow-hidden">
+<img alt="Creator Avatar" class="w-full h-full object-cover" data-alt="A stylized digital avatar of a futuristic content creator wearing neon-accented headphones, rendered in a crisp 3D style with vibrant purple and coral tones, set against a dark void background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-W_ZHihE6vU53uLVAbXIX96bvD6PxLrIfDK25rtqAvPrjCRHuHDSrLgt_jndl8KjOFQ4T9cE1oTf_u64qDTEUWDCScyO1K3s3zB6QuqcI2Vb0hAC0HKSCLb3AIgPGNZq2GqEKXjAcO_PgNMphkDMlZWyyuytTPV3prvf5y58Sz3zlDL5tRJVlTVj4rpwG6Nb55MQUhkxwxEANBaPQ7iVCWwjx-Xo_BMxCzyxZHzxkm2RfUFJ9nA4p"/>
+</div>
+<div>
+<h2 class="font-label-bold text-label-bold text-on-surface">Viralkaro Creator</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Pro Level</p>
+</div>
+</div>
+<nav class="flex-1 flex flex-col gap-2">
+<a class="flex items-center gap-3 p-3 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50 transition-all hover:translate-x-1 duration-200 font-label-bold text-label-bold" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">storefront</span>
+                    Marketplace
+                </a>
+<a class="flex items-center gap-3 p-3 rounded-xl bg-primary-container text-on-primary-container shadow-inner-bevel font-label-bold text-label-bold" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send_and_archive</span>
+                    Submissions
+                </a>
+<a class="flex items-center gap-3 p-3 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50 transition-all hover:translate-x-1 duration-200 font-label-bold text-label-bold" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">payments</span>
+                    Earnings
+                </a>
+<a class="flex items-center gap-3 p-3 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50 transition-all hover:translate-x-1 duration-200 font-label-bold text-label-bold" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+                    Settings
+                </a>
+</nav>
+<div class="mt-auto flex flex-col gap-2 border-t border-outline-variant/30 pt-4">
+<a class="flex items-center gap-3 p-3 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50 transition-all hover:translate-x-1 duration-200 font-label-bold text-label-bold" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">help</span>
+                    Support
+                </a>
+<a class="flex items-center gap-3 p-3 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50 transition-all hover:translate-x-1 duration-200 font-label-bold text-label-bold" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">logout</span>
+                    Logout
+                </a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 p-margin-mobile md:p-margin-desktop min-h-screen">
+<header class="mb-12">
+<h1 class="font-headline-xl text-headline-xl text-on-surface mb-2">Submit Your Reel</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Paste your Instagram or TikTok link to start tracking performance metrics.</p>
+</header>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Submission Form (Center Stage) -->
+<div class="lg:col-span-7 flex flex-col gap-8">
+<div class="glass-panel rounded-xl p-8 glass-pulse relative overflow-hidden">
+<!-- Ambient Glow -->
+<div class="absolute -top-20 -right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+<form class="flex flex-col gap-6 relative z-10">
+<!-- Campaign Selection -->
+<div class="flex flex-col gap-2">
+<label class="font-label-bold text-label-bold text-on-surface-variant" for="campaign">Select Campaign</label>
+<div class="relative input-glow border border-outline-variant rounded-lg bg-[#141415] transition-all">
+<select class="w-full bg-transparent text-on-surface font-body-md p-4 appearance-none focus:outline-none border-none" id="campaign">
+<option class="text-outline" disabled="" selected="" value="">Choose an active campaign...</option>
+<option class="bg-surface-container text-on-surface" value="nike">Nike Urban Runners Q3</option>
+<option class="bg-surface-container text-on-surface" value="spotify">Spotify Wrapped Promo</option>
+<option class="bg-surface-container text-on-surface" value="redbull">RedBull Extreme Summer</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+</div>
+<!-- URL Input -->
+<div class="flex flex-col gap-2">
+<label class="font-label-bold text-label-bold text-on-surface-variant" for="reelUrl">Reel URL</label>
+<div class="relative input-glow border border-outline-variant rounded-lg bg-[#141415] flex items-center p-1 transition-all">
+<span class="material-symbols-outlined text-outline ml-3 mr-2">link</span>
+<input class="w-full bg-transparent text-on-surface font-body-md p-3 focus:outline-none border-none placeholder-outline-variant" id="reelUrl" placeholder="https://www.instagram.com/reel/..." type="url"/>
+</div>
+<p class="font-body-sm text-body-sm text-tertiary mt-1">Make sure the post is public before submitting.</p>
+</div>
+<!-- Action Area -->
+<div class="mt-4">
+<button class="btn-primary w-full py-4 rounded-lg font-label-bold text-label-bold text-white shadow-lg hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2" type="button">
+<span class="material-symbols-outlined">rocket_launch</span>
+                                    Initialize Sync
+                                </button>
+</div>
+</form>
+</div>
+</div>
+<!-- Context Sidebar (Right) -->
+<div class="lg:col-span-5 flex flex-col gap-8">
+<!-- Preview Card (Loading State) -->
+<div class="glass-panel rounded-xl overflow-hidden relative">
+<div class="h-48 bg-surface-container-high relative flex items-center justify-center">
+<!-- Simulated blurred video bg -->
+<div class="absolute inset-0 bg-cover bg-center opacity-30 blur-sm mix-blend-screen" data-alt="A highly blurred, abstract frame from a high-energy urban dance reel, featuring deep shadows and vibrant neon streetlights, creating a sense of motion and anticipation suited for a dark-mode UI placeholder." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD7t2gfJ2pjM_ADqiVgUiDXnnfBoQjwRSEXK53NAD7qQ-5DZMwJyaEwi3YtzhBVIGrkXpJO6tFRYr75VLXH-Fb9qRJifP3jHVRAwQuLJP_wgBNhBXt3jQolv5luc7xgasFgBdMAfwjpafayQBO5Q9E1ZVpqayiaxNZtfF21FI9wn3y7h8TZV-CZCkZvtw9I3Pq7oNsiM0jzbqPxIcHx_i-PXH-6pUeQ7Y60NBTRIOCS4CYD31UkEP6l')"></div>
+<!-- Loading Indicator -->
+<div class="relative z-10 flex flex-col items-center gap-4">
+<div class="w-16 h-16 rounded-full border-2 border-primary/30 border-t-primary animate-spin syncing-glow"></div>
+<span class="font-label-bold text-label-bold gradient-text tracking-widest uppercase">Syncing Metrics</span>
+</div>
+</div>
+<div class="p-6">
+<div class="h-6 bg-surface-container-highest rounded w-3/4 mb-4 animate-pulse"></div>
+<div class="flex gap-4">
+<div class="h-4 bg-surface-container-highest rounded w-1/4 animate-pulse"></div>
+<div class="h-4 bg-surface-container-highest rounded w-1/4 animate-pulse"></div>
+</div>
+</div>
+</div>
+<!-- Submission Rules -->
+<div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-6">
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">rule</span>
+                            Submission Guidelines
+                        </h3>
+<ul class="space-y-4">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-0.5 text-sm">check_circle</span>
+<div>
+<h4 class="font-label-bold text-label-bold text-on-surface">Account Privacy</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Your social account must be set to public for the duration of the campaign.</p>
+</div>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-0.5 text-sm">check_circle</span>
+<div>
+<h4 class="font-label-bold text-label-bold text-on-surface">Correct Tags</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Ensure all required campaign hashtags and mentions are in the original caption.</p>
+</div>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-0.5 text-sm">check_circle</span>
+<div>
+<h4 class="font-label-bold text-label-bold text-on-surface">Metric Sync Delay</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Initial view and engagement data may take up to 2 hours to populate on the dashboard.</p>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

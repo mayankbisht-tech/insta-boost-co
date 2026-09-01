@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Viralkaro - Campaign Marketplace</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-lowest": "#0e0e0f",
+                      "inverse-primary": "#5951b4",
+                      "secondary-container": "#952a00",
+                      "secondary-fixed-dim": "#ffb59e",
+                      "surface-container": "#201f20",
+                      "tertiary-fixed": "#e4e2e4",
+                      "on-error-container": "#ffdad6",
+                      "on-secondary": "#5e1700",
+                      "outline": "#928f9d",
+                      "surface-container-highest": "#353436",
+                      "surface-dim": "#131314",
+                      "on-primary-fixed": "#140067",
+                      "secondary": "#ffb59e",
+                      "outline-variant": "#474552",
+                      "on-secondary-container": "#ffaf97",
+                      "surface-container-high": "#2a2a2b",
+                      "error": "#ffb4ab",
+                      "surface-variant": "#353436",
+                      "background": "#131314",
+                      "error-container": "#93000a",
+                      "on-surface": "#e5e2e3",
+                      "tertiary": "#c8c6c8",
+                      "on-secondary-fixed-variant": "#852400",
+                      "secondary-fixed": "#ffdbd0",
+                      "on-tertiary-fixed": "#1b1b1d",
+                      "on-primary": "#2a1c84",
+                      "surface-container-low": "#1c1b1c",
+                      "on-tertiary-fixed-variant": "#474649",
+                      "surface-tint": "#c5c0ff",
+                      "inverse-on-surface": "#313031",
+                      "on-secondary-fixed": "#3a0b00",
+                      "on-surface-variant": "#c8c4d4",
+                      "tertiary-container": "#929092",
+                      "tertiary-fixed-dim": "#c8c6c8",
+                      "primary-container": "#8c84eb",
+                      "on-primary-fixed-variant": "#41379b",
+                      "on-tertiary-container": "#2a292c",
+                      "on-primary-container": "#23127d",
+                      "primary-fixed-dim": "#c5c0ff",
+                      "surface-bright": "#3a393a",
+                      "primary": "#c5c0ff",
+                      "inverse-surface": "#e5e2e3",
+                      "on-background": "#e5e2e3",
+                      "on-error": "#690005",
+                      "primary-fixed": "#e4dfff",
+                      "on-tertiary": "#303032",
+                      "surface": "#131314"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "24px",
+                      "margin-desktop": "64px",
+                      "margin-mobile": "20px",
+                      "unit": "8px",
+                      "container-max": "1440px"
+              },
+              "fontFamily": {
+                      "headline-lg-mobile": ["Inter"],
+                      "body-sm": ["Inter"],
+                      "body-md": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "headline-xl": ["Inter"],
+                      "label-bold": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-lg-mobile": ["28px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-sm": ["14px", {"lineHeight": "1.5", "letterSpacing": "0.01em", "fontWeight": "400"}],
+                      "body-md": ["16px", {"lineHeight": "1.6", "letterSpacing": "0em", "fontWeight": "400"}],
+                      "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-xl": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "800"}],
+                      "label-bold": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0A0A0B; /* The Void */
+        }
+        
+        .glass-plate {
+            background-color: rgba(26, 26, 28, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .pulse-layer {
+            box-shadow: 0 20px 40px rgba(127, 119, 221, 0.05);
+        }
+
+        .gradient-btn {
+            background: linear-gradient(135deg, #8c84eb, #ffb59e);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .glass-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .trending-glow {
+            box-shadow: 0 0 20px rgba(140, 132, 235, 0.3), inset 0 0 10px rgba(140, 132, 235, 0.2);
+            border: 1px solid rgba(140, 132, 235, 0.5) !important;
+        }
+
+        .progress-bar-gradient {
+            background: linear-gradient(90deg, #8c84eb, #c5c0ff);
+        }
+
+        .chip-neon {
+            background-color: rgba(140, 132, 235, 0.15);
+            color: #c5c0ff;
+        }
+        
+        .metric-gradient {
+            background: linear-gradient(to right, #c5c0ff, #ffb59e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body class="text-on-surface font-body-md min-h-screen flex flex-col antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopNavBar -->
+<header class="bg-surface-container/60 backdrop-blur-xl text-primary font-body-md text-body-md fixed top-0 w-full z-50 border-b border-white/10 shadow-2xl shadow-primary/5">
+<div class="flex items-center justify-between px-margin-mobile md:px-margin-desktop h-20 w-full max-w-container-max mx-auto">
+<div class="flex items-center gap-4">
+<a class="font-headline-lg text-headline-lg bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-extrabold active:scale-95 duration-200" href="#">
+                    Viralkaro
+                </a>
+</div>
+<!-- Web Navigation (Hidden on Mobile) -->
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-primary font-bold hover:bg-white/5 transition-colors px-4 py-2 rounded-lg" href="#">Marketplace</a>
+<a class="text-on-surface-variant hover:bg-white/5 transition-colors px-4 py-2 rounded-lg" href="#">Submissions</a>
+<a class="text-on-surface-variant hover:bg-white/5 transition-colors px-4 py-2 rounded-lg" href="#">Earnings</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:bg-white/5 transition-colors p-2 rounded-full active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+</button>
+<button class="text-on-surface-variant hover:bg-white/5 transition-colors p-2 rounded-full active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden border border-outline-variant/30 ml-2">
+<img alt="Creator Profile" class="w-full h-full object-cover" data-alt="A close up, high resolution portrait of a young digital creator in a neon-lit dark studio setting, looking directly at the camera with a confident expression. The lighting is moody with purple and orange accents reflecting off their face, fitting a premium cyberpunk or modern creator aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAo-LdDAbdFHVA2SBrXVg_BildBlZn2x2Ybo9EeCI9QBu69-Rcv2sBgw6TSwpOo793z6w2leHtEufKCji9uI_0OHMP8-PIfFhQIE1Z4aiDDwB1gVF2RkhRFUd3voR1wbYbaummmYewkw8ochj7mH6hIP7REASNXdNMcEC76BwVEYKl7x_eCFVcOZAhQDPFcQUFB6ZH7Z414zGK0bZETrwVC_ZfTJyEIIoaL22mUNi51U_8eYBaRvNEK"/>
+</div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 pt-20">
+<!-- SideNavBar (Hidden on Mobile) -->
+<aside class="bg-surface-container-low/80 backdrop-blur-2xl text-primary font-label-bold text-label-bold fixed left-0 top-20 h-[calc(100vh-80px)] w-64 border-r border-white/10 shadow-xl hidden md:flex flex-col p-6 gap-4 z-40">
+<div class="flex items-center gap-4 mb-6 p-2">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container-highest border border-outline-variant/50">
+<img alt="Creator Avatar" class="w-full h-full object-cover" data-alt="A stylish, abstract gradient avatar featuring blending geometric shapes in deep violet, bright coral, and stark white against a jet black background. The image is clean, highly detailed, and serves as a modern digital identity placeholder for a premium platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPRewvoihhefdMnI20n-uWrEFqQNbc9XMAF8FXZhhipjYx9uRByDkASwKFgedBnwHZLoXRQzxg9E6NCqwtmGgqJZ6HUdQAHOcqU0_Q0DEMd72qI48fbPVXQGaeSxhvKrOYENUtHQTVL-LdfIXY445w7Yg38VlsjM0zPjA6fmESgIry2NBElO8teq8PN4DIhA10q7V4OlggcGWsqDRSNizxFFdmJHH0qHBxAqECorzUs_LEBj9u1nNq"/>
+</div>
+<div>
+<h3 class="font-label-bold text-label-bold text-on-surface">Viralkaro Creator</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Pro Level</p>
+</div>
+</div>
+<nav class="flex-1 flex flex-col gap-2">
+<a class="bg-primary-container text-on-primary-container rounded-xl shadow-inner-bevel flex items-center gap-3 px-4 py-3 hover:bg-surface-container-highest/50 transition-all hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="storefront" style="font-variation-settings: 'FILL' 1;">storefront</span>
+<span>Marketplace</span>
+</a>
+<a class="text-on-surface-variant hover:text-on-surface rounded-xl flex items-center gap-3 px-4 py-3 hover:bg-surface-container-highest/50 transition-all hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="send_and_archive">send_and_archive</span>
+<span>Submissions</span>
+</a>
+<a class="text-on-surface-variant hover:text-on-surface rounded-xl flex items-center gap-3 px-4 py-3 hover:bg-surface-container-highest/50 transition-all hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span>Earnings</span>
+</a>
+<a class="text-on-surface-variant hover:text-on-surface rounded-xl flex items-center gap-3 px-4 py-3 hover:bg-surface-container-highest/50 transition-all hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+<div class="mt-auto flex flex-col gap-2 pt-4 border-t border-white/10">
+<a class="text-on-surface-variant hover:text-on-surface rounded-xl flex items-center gap-3 px-4 py-3 hover:bg-surface-container-highest/50 transition-all hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span>Support</span>
+</a>
+<a class="text-on-surface-variant hover:text-on-surface rounded-xl flex items-center gap-3 px-4 py-3 hover:bg-surface-container-highest/50 transition-all hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span>Logout</span>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 w-full max-w-container-max mx-auto md:ml-64 p-margin-mobile md:p-margin-desktop min-h-screen">
+<!-- Page Header -->
+<div class="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<h1 class="font-headline-xl text-headline-xl-mobile md:text-headline-xl text-on-surface mb-2">Campaign Marketplace</h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">Discover high-converting brand campaigns. Filter by niche, reward structure, and active budget to maximize your performance revenue.</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="relative w-full md:w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" data-icon="search">search</span>
+<input class="w-full bg-[#141415] border border-outline-variant/30 rounded-xl py-2 pl-10 pr-4 text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all outline-none" placeholder="Search brands..." type="text"/>
+</div>
+<button class="glass-btn p-2 rounded-xl text-on-surface-variant hover:text-on-surface flex-shrink-0 transition-all duration-200 active:scale-95">
+<span class="material-symbols-outlined" data-icon="filter_list">filter_list</span>
+</button>
+</div>
+</div>
+<!-- Filter Chips -->
+<div class="flex flex-wrap gap-3 mb-10">
+<button class="chip-neon px-4 py-1.5 rounded-full font-label-bold text-label-bold border border-primary-container/30 transition-all active:scale-95">All Campaigns</button>
+<button class="glass-btn px-4 py-1.5 rounded-full font-label-bold text-label-bold text-on-surface-variant hover:text-on-surface transition-all active:scale-95">Tech &amp; Gadgets</button>
+<button class="glass-btn px-4 py-1.5 rounded-full font-label-bold text-label-bold text-on-surface-variant hover:text-on-surface transition-all active:scale-95">Lifestyle</button>
+<button class="glass-btn px-4 py-1.5 rounded-full font-label-bold text-label-bold text-on-surface-variant hover:text-on-surface transition-all active:scale-95">Gaming</button>
+<button class="glass-btn px-4 py-1.5 rounded-full font-label-bold text-label-bold text-on-surface-variant hover:text-on-surface transition-all active:scale-95">Finance</button>
+</div>
+<!-- Bento Grid Layout for Campaigns -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+<!-- Trending Card (Spans 2 columns on lg) -->
+<article class="glass-plate pulse-layer trending-glow rounded-2xl overflow-hidden flex flex-col lg:col-span-2 relative group transition-transform duration-300 hover:-translate-y-1">
+<div class="absolute top-4 right-4 z-10 flex gap-2">
+<span class="chip-neon px-3 py-1 rounded-full font-label-bold text-[10px] flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="local_fire_department" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+                            TRENDING
+                        </span>
+</div>
+<div class="h-48 md:h-64 w-full relative">
+<div class="bg-cover bg-center w-full h-full absolute inset-0" data-alt="A sleek, high-end promotional banner for a next-generation tech hardware product. The image shows glowing, abstract internal circuitry in vivid cyan and deep purple hues on a pitch-black background, emphasizing speed, performance, and modern cyberpunk aesthetics. The lighting is dramatic and directional." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCJf_cQMvBSQxrNQstmu192jyq4qvZXfnkXEnrUodRUtUYTQH4AegYarbtRnyQoo1Zo1bF3HnnpSC5FMPI5xbhe2XRwyUvJ9QkioQLEXw26v0mGnokI9G-Oarhn-Qsq7d1IsatviSNiDJ0zzxH4fRt9MUMkQx1mAKINuw2meZJTd1jp2oYe999a683OEQjPksqMbyh6XbIS-2G7mOPJHdHsedWQC2_BcGAw2xOTw_oECQTcX8C3ptVE')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-[#1A1A1C] via-[#1A1A1C]/50 to-transparent"></div>
+<div class="absolute bottom-6 left-6 right-6 flex items-end justify-between">
+<div class="flex items-center gap-4">
+<div class="w-16 h-16 rounded-xl bg-surface-container-lowest border border-white/10 p-2 shadow-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl text-primary" data-icon="terminal">terminal</span>
+</div>
+<div>
+<span class="text-on-surface-variant font-label-bold text-label-bold tracking-wider uppercase mb-1 block">Tech &amp; Gadgets</span>
+<h2 class="font-headline-lg-mobile md:text-headline-lg text-on-surface">NeoTech Pro Launch</h2>
+</div>
+</div>
+</div>
+</div>
+<div class="p-6 md:p-8 flex flex-col flex-1 gap-6">
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-lowest/50 p-4 rounded-xl border border-white/5">
+<span class="text-on-surface-variant font-body-sm text-body-sm block mb-1">Reward Rate</span>
+<span class="font-headline-lg text-headline-lg-mobile metric-gradient block">₹120 <span class="font-body-sm text-body-sm text-on-surface-variant inline-block align-middle mb-1">/ 1k views</span></span>
+</div>
+<div class="bg-surface-container-lowest/50 p-4 rounded-xl border border-white/5">
+<span class="text-on-surface-variant font-body-sm text-body-sm block mb-1">Max Earning Cap</span>
+<span class="font-headline-lg text-headline-lg-mobile text-on-surface block">₹50,000</span>
+</div>
+</div>
+<div class="mt-auto">
+<div class="flex justify-between font-label-bold text-label-bold mb-2">
+<span class="text-on-surface">Campaign Budget</span>
+<span class="text-primary">85% Filled</span>
+</div>
+<div class="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full progress-bar-gradient w-[85%] rounded-full shadow-[0_0_10px_rgba(140,132,235,0.5)]"></div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2 text-right">Closes in 3 days</p>
+</div>
+<button class="gradient-btn w-full py-4 rounded-xl font-label-bold text-label-bold text-white tracking-wide hover:opacity-90 transition-opacity active:scale-[0.98]">
+                            JOIN CAMPAIGN
+                        </button>
+</div>
+</article>
+<!-- Standard Card 1 -->
+<article class="glass-plate pulse-layer rounded-2xl overflow-hidden flex flex-col relative group transition-transform duration-300 hover:-translate-y-1">
+<div class="h-40 w-full relative">
+<div class="bg-cover bg-center w-full h-full absolute inset-0" data-alt="A bright, modern flat-lay photography setup featuring premium athletic wear, a minimalist water bottle, and wireless earbuds arranged neatly on a dark matte gray surface. Soft, diffuse lighting highlights the textures of the fabric. The mood is energetic, healthy, and sophisticated, fitting a lifestyle brand." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDg0xq3trbnbH6GLjFuCO1ZQgsvSF2-ejbg0n1hTO4KzkyxJO1CtcqAq4_mz-6BaHri9rn5otB1vblRCyACrQR94Qq1EOggRCNjfype47avZtQBaAz_QILMyJbHyIQfQbr0Vb8l9tkhdnSFZbn6kf5alsqfRyFHAGJ7QR_BwPJi1i2KwRbUqhq-jLPUBe_ZFTSqV1djDX6Ay2tN0Qq4jYPfTdCODx6nOYjjtDPcumGkhOj_BYIUgmY9')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-[#1A1A1C] via-[#1A1A1C]/60 to-transparent"></div>
+<div class="absolute bottom-4 left-4 right-4 flex items-end gap-3">
+<div class="w-12 h-12 rounded-lg bg-surface-container-lowest border border-white/10 p-2 flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl text-secondary" data-icon="fitness_center">fitness_center</span>
+</div>
+<div class="pb-1">
+<span class="text-on-surface-variant font-label-bold text-[10px] tracking-wider uppercase block">Lifestyle</span>
+<h2 class="font-headline-sm text-lg font-bold text-on-surface leading-tight">Aura Athletics</h2>
+</div>
+</div>
+</div>
+<div class="p-6 flex flex-col flex-1 gap-5">
+<div class="flex justify-between items-center bg-surface-container-lowest/30 p-3 rounded-lg border border-white/5">
+<div>
+<span class="text-on-surface-variant font-body-sm text-[12px] block">Reward</span>
+<span class="font-bold text-primary">₹50 <span class="text-[12px] font-normal text-on-surface-variant">/ 1k</span></span>
+</div>
+<div class="text-right">
+<span class="text-on-surface-variant font-body-sm text-[12px] block">Cap</span>
+<span class="font-bold text-on-surface">₹15,000</span>
+</div>
+</div>
+<div class="mt-auto">
+<div class="flex justify-between font-label-bold text-[10px] mb-1.5">
+<span class="text-on-surface-variant">Budget</span>
+<span class="text-on-surface">42%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[42%] rounded-full"></div>
+</div>
+</div>
+<button class="glass-btn w-full py-3 rounded-xl font-label-bold text-label-bold text-on-surface hover:bg-white/10 transition-colors active:scale-[0.98]">
+                            View Details
+                        </button>
+</div>
+</article>
+<!-- Standard Card 2 -->
+<article class="glass-plate pulse-layer rounded-2xl overflow-hidden flex flex-col relative group transition-transform duration-300 hover:-translate-y-1">
+<div class="h-40 w-full relative">
+<div class="bg-cover bg-center w-full h-full absolute inset-0" data-alt="A clean, minimalist workspace environment showing a glowing smartphone screen displaying a stylized stock chart or finance app. The scene is shot from a top-down angle on a dark walnut wooden desk with a subtle ambient blue light spilling from the edge, communicating trust, finance, and modern technology." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBP8VpJpJtpjAFoKIdDndUtoqYeMz-s-SuV_qZ2VGMSaisFKuOsiAOSUlWreP8wMpwlbOYhSzAx73OsFkfnVQZRkyrn5NWEfFdbuQxs_DuoBjxaaB8iWrWhvRxRVF2g8cybLioU4KIKgSfu-x_ALnX5s5yuGX8rkDmy2xHtNgQv4sn3qktp60mPXUFJs12bvUWPMBpmDX3Mfugdfrub8Ggtw_6P1uJs-alQ5VnNAHAuCBtVoz9Oow_q')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-[#1A1A1C] via-[#1A1A1C]/60 to-transparent"></div>
+<div class="absolute bottom-4 left-4 right-4 flex items-end gap-3">
+<div class="w-12 h-12 rounded-lg bg-surface-container-lowest border border-white/10 p-2 flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl text-primary" data-icon="account_balance">account_balance</span>
+</div>
+<div class="pb-1">
+<span class="text-on-surface-variant font-label-bold text-[10px] tracking-wider uppercase block">Finance</span>
+<h2 class="font-headline-sm text-lg font-bold text-on-surface leading-tight">TradeSmart App</h2>
+</div>
+</div>
+</div>
+<div class="p-6 flex flex-col flex-1 gap-5">
+<div class="flex justify-between items-center bg-surface-container-lowest/30 p-3 rounded-lg border border-white/5">
+<div>
+<span class="text-on-surface-variant font-body-sm text-[12px] block">Reward (CPA)</span>
+<span class="font-bold text-primary">₹250 <span class="text-[12px] font-normal text-on-surface-variant">/ Sign up</span></span>
+</div>
+<div class="text-right">
+<span class="text-on-surface-variant font-body-sm text-[12px] block">Cap</span>
+<span class="font-bold text-on-surface">No Limit</span>
+</div>
+</div>
+<div class="mt-auto">
+<div class="flex justify-between font-label-bold text-[10px] mb-1.5">
+<span class="text-on-surface-variant">Budget</span>
+<span class="text-on-surface">15%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[15%] rounded-full"></div>
+</div>
+</div>
+<button class="glass-btn w-full py-3 rounded-xl font-label-bold text-label-bold text-on-surface hover:bg-white/10 transition-colors active:scale-[0.98]">
+                            View Details
+                        </button>
+</div>
+</article>
+</div>
+</main>
+</div>
+<!-- Footer -->
+<footer class="bg-surface-container-lowest text-tertiary font-body-sm text-body-sm w-full py-8 border-t border-outline-variant/30 mt-auto md:ml-64 relative z-10">
+<div class="flex flex-col md:flex-row justify-between items-center px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto gap-4">
+<div class="text-on-surface-variant font-bold">
+                © 2024 Viralkaro Performance Platform
+            </div>
+<nav class="flex gap-6">
+<a class="text-on-surface-variant hover:text-primary transition-colors underline-offset-4 hover:underline" href="#">Terms of Service</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors underline-offset-4 hover:underline" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors underline-offset-4 hover:underline" href="#">Contact Support</a>
+</nav>
+</div>
+</footer>
+</body></html>

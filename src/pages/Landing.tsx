@@ -60,10 +60,10 @@ const Landing = () => {
       >
         <button onClick={() => navigate('/')} className="flex items-center gap-3 text-left" type="button">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-primary shadow-[0_10px_30px_rgba(0,0,0,0.3)] ring-1 ring-white/5 backdrop-blur">
-            <span className="text-xl font-bold"><img src="/3.png" alt="GoClips Logo" className="h-full w-full object-contain" /></span>
+            <span className="text-xl font-bold"><img src="/3.png" alt="Viralkaro Logo" className="h-full w-full object-contain" /></span>
           </div>
           <div>
-            <p className="font-display text-xl font-bold tracking-tight">GoClips</p>
+            <p className="font-display text-xl font-bold tracking-tight bg-gradient-to-r from-[#c5c0ff] to-[#ffb59e] bg-clip-text text-transparent">Viralkaro</p>
             <p className="text-xs text-muted-foreground">Creator rewards, made clean</p>
           </div>
         </button>
@@ -72,7 +72,7 @@ const Landing = () => {
           <Button variant="ghost" onClick={() => navigate('/auth')} className="hidden text-muted-foreground sm:inline-flex">
             Log in
           </Button>
-          <Button onClick={() => navigate('/auth')} className="rounded-full px-5 shadow-lg shadow-primary/15">
+          <Button onClick={() => navigate('/auth')} className="rounded-full px-5 bg-gradient-to-r from-[#8c84eb] to-[#ffb59e] hover:from-[#7b72e7] hover:to-[#ffa488] text-white font-semibold transition-all duration-200 hover:scale-[1.02] border-0 shadow-lg shadow-[#8c84eb]/20">
             Get started
           </Button>
         </div>
@@ -103,7 +103,7 @@ const Landing = () => {
                 <Button
                   onClick={() => navigate('/auth')}
                   size="lg"
-                  className="h-12 px-7 text-base font-semibold"
+                  className="h-12 px-7 text-base bg-gradient-to-r from-[#8c84eb] to-[#ffb59e] hover:from-[#7b72e7] hover:to-[#ffa488] text-white font-semibold transition-all duration-200 hover:scale-[1.02] border-0 shadow-lg shadow-[#8c84eb]/20 rounded-xl"
                 >
                   Start now
                 </Button>
@@ -127,7 +127,7 @@ const Landing = () => {
                 <div className="relative mx-auto overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/[0.03] shadow-inner">
                   <img
                     src="/3.png"
-                    alt="GoClips landing artwork"
+                    alt="Viralkaro landing artwork"
                     className="h-[280px] w-full object-contain object-center sm:h-[320px]"
                     loading="eager"
                   />

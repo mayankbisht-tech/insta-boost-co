@@ -694,7 +694,7 @@ adminRouter.patch('/submissions/:id/sync-analytics', async (req, res) => {
   const refreshedEarnings = await calculateCappedSubmissionEarnings({
     submissionId: result.submission.id,
     userId: result.submission.userId,
-    campaign: result.submission.campaign,
+    campaign: result.submission.campaign!,
     views: result.submission.views,
     status: result.submission.status,
   });

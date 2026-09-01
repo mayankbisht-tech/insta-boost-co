@@ -28,9 +28,9 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         className="hidden shrink-0 flex-col border-r border-white/10 bg-gradient-to-b from-[#090909] via-[#0c0c0c] to-[#070707] lg:flex lg:w-72"
       >
         <div className="p-6 border-b border-white/10">
-          <Link to="/admin" className="font-display text-2xl font-bold gradient-text flex items-center gap-2">
-            <img src="/3.png" alt="Go Clips logo" className="h-12 w-12 rounded-2xl object-contain" />
-            Go Clips
+          <Link to="/admin" className="font-display text-2xl font-bold bg-gradient-to-r from-[#c5c0ff] to-[#ffb59e] bg-clip-text text-transparent flex items-center gap-2">
+            <img src="/3.png" alt="Viralkaro logo" className="h-12 w-12 rounded-2xl object-contain" />
+            Viralkaro
           </Link>
           <p className="text-xs text-muted-foreground mt-1">Admin Panel</p>
         </div>
@@ -106,9 +106,9 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         <header className="border-b border-white/10 bg-background/85 lg:hidden backdrop-blur-2xl">
           <div className="container space-y-3 py-4">
             <div className="flex items-center justify-between gap-3">
-              <Link to="/admin" className="flex items-center gap-2 font-display text-lg font-bold gradient-text">
-                <img src="/3.png" alt="Go Clips logo" className="h-12 w-12 rounded-2xl object-contain" />
-                Go Clips
+              <Link to="/admin" className="flex items-center gap-2 font-display text-lg font-bold bg-gradient-to-r from-[#c5c0ff] to-[#ffb59e] bg-clip-text text-transparent">
+                <img src="/3.png" alt="Viralkaro logo" className="h-12 w-12 rounded-2xl object-contain" />
+                Viralkaro
               </Link>
               <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-destructive">
                 <LogOut className="h-4 w-4" />

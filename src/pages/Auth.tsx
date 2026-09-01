@@ -381,7 +381,7 @@ const Auth = () => {
       >
         <img
           src="/3.png"
-          alt="Go Clips"
+          alt="Viralkaro"
           className="h-[200vh] w-auto object-contain opacity-90"
           loading="eager"
           onError={event => {
@@ -403,7 +403,7 @@ const Auth = () => {
           }}
           className="gradient-text text-[150px] font-display font-bold opacity-50"
         >
-          GoClips
+          Viralkaro
         </div>
       </div>
 
@@ -427,8 +427,8 @@ const Auth = () => {
         >
           <motion.div className="glass-card p-5 sm:p-8" variants={itemVariants} whileHover={{ scale: 1.02 }} transition={{ duration: 0.3 }}>
             <motion.div className="mb-4 text-center" variants={itemVariants}>
-              <h2 className="font-display text-2xl font-bold gradient-text">
-                {isForgot ? 'Reset Password' : 'Go Clips Portal'}
+              <h2 className="font-display text-2xl font-bold bg-gradient-to-r from-[#c5c0ff] to-[#ffb59e] bg-clip-text text-transparent">
+                {isForgot ? 'Reset Password' : 'Viralkaro Portal'}
               </h2>
               {isForgot && <p className="mt-2 text-sm text-muted-foreground">We will send an OTP to your registered email.</p>}
             </motion.div>
@@ -726,7 +726,7 @@ const Auth = () => {
                   disabled={submitting}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="w-full rounded-lg bg-primary px-4 py-2 font-semibold text-primary-foreground transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-[#8c84eb] to-[#ffb59e] hover:from-[#7b72e7] hover:to-[#ffa488] text-white font-bold py-3 rounded-xl shadow-lg shadow-[#8c84eb]/20 active:scale-[0.98] transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {submitting
                     ? 'Loading...'

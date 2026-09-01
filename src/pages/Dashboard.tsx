@@ -134,68 +134,112 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 mb-8 sm:grid-cols-2 xl:grid-cols-4">
         {statCards.map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="editorial-panel p-4"
+            className="rounded-2xl border border-white/10 bg-[#1a1a1c]/60 backdrop-blur-xl p-6 relative overflow-hidden transition-all duration-300 hover:border-primary/40 hover:-translate-y-0.5 shadow-[0_15px_30px_-15px_rgba(0,0,0,0.5)]"
           >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">{stat.label}</span>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{stat.label}</span>
+              <div className="w-8 h-8 rounded-full bg-white/[0.04] flex items-center justify-center">
+                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              </div>
             </div>
-            <p className="font-display text-2xl font-bold">{stat.value}</p>
+            <p className="font-display text-3xl font-extrabold text-foreground">{stat.value}</p>
           </motion.div>
         ))}
       </div>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="editorial-panel p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xl text-muted-foreground">Total Earnings</span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 relative">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="rounded-2xl border border-white/10 bg-[#1a1a1c]/60 backdrop-blur-xl p-8 flex flex-col justify-between relative z-10 transition-all duration-300 hover:border-[#c5c0ff]/40 shadow-[0_20px_40px_-20px_rgba(0,0,0,0.6)]"
+        >
+          <div className="flex justify-between items-start mb-6">
+            <span className="text-muted-foreground font-semibold uppercase tracking-wider text-xs">Total Earnings</span>
+            <div className="w-10 h-10 rounded-full bg-white/[0.04] flex items-center justify-center">
+              <Clock className="h-5 w-5 text-[#c5c0ff]" />
+            </div>
           </div>
-          <p className="font-display text-4xl font-bold text-success">
-            ₹ {paymentOverview?.total_earned?.toFixed(2) ?? '0.00'}
-          </p>
+          <div>
+            <h2 className="font-display text-4xl font-extrabold bg-gradient-to-r from-[#c5c0ff] to-[#ffb59e] bg-clip-text text-transparent mb-2">
+              ₹ {paymentOverview?.total_earned?.toFixed(2) ?? '0.00'}
+            </h2>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+              <span>All-time approved payouts</span>
+            </div>
+          </div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }} className="editorial-panel p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-xl text-muted-foreground">Estimated Earnings</span>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.24 }}
+          className="rounded-2xl border border-white/10 bg-[#1a1a1c]/60 backdrop-blur-xl p-8 flex flex-col justify-between relative z-10 transition-all duration-300 hover:border-[#ffb59e]/40 shadow-[0_20px_40px_-20px_rgba(0,0,0,0.6)]"
+        >
+          <div className="flex justify-between items-start mb-6">
+            <span className="text-muted-foreground font-semibold uppercase tracking-wider text-xs">Available Balance</span>
+            <div className="w-10 h-10 rounded-full bg-white/[0.04] flex items-center justify-center">
+              <Clock className="h-5 w-5 text-[#ffb59e]" />
+            </div>
           </div>
-          <p className="font-display text-4xl font-bold text-primary">
-            ₹ {paymentOverview?.estimated_earning?.toFixed(2) ?? '0.00'}
-          </p>
+          <div>
+            <h2 className="font-display text-4xl font-extrabold text-foreground mb-2">
+              ₹ {paymentOverview?.available_balance?.toFixed(2) ?? '0.00'}
+            </h2>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+              <span>Withdrawable instantly</span>
+            </div>
+          </div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }} className="editorial-panel p-5">
-          <h2 className="font-display text-lg font-semibold">Creator Snapshot</h2>
-          <div className="mt-4 space-y-4 text-sm text-muted-foreground">
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-              <p className="text-xs uppercase tracking-[0.18em]">Connected Instagram</p>
-              <p className="mt-2 text-base font-semibold text-foreground">
-                {user ? (overview.total_submissions > 0 ? 'Ready for reel submissions' : 'Verified and ready to start') : 'Sign in required'}
-              </p>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.28 }}
+          className="rounded-2xl border border-white/10 bg-[#1a1a1c]/60 backdrop-blur-xl p-8 flex flex-col justify-between relative z-10 transition-all duration-300 hover:border-[#c5c0ff]/40 shadow-[0_20px_40px_-20px_rgba(0,0,0,0.6)]"
+        >
+          <div className="flex justify-between items-start mb-6">
+            <span className="text-muted-foreground font-semibold uppercase tracking-wider text-xs">Total Views</span>
+            <div className="w-10 h-10 rounded-full bg-white/[0.04] flex items-center justify-center">
+              <Eye className="h-5 w-5 text-[#c5c0ff]" />
+            </div>
+          </div>
+          <div>
+            <h2 className="font-display text-4xl font-extrabold text-foreground mb-2">
+              {overview.total_views >= 1000000 
+                ? `${(overview.total_views / 1000000).toFixed(1)}M` 
+                : overview.total_views >= 1000 
+                ? `${(overview.total_views / 1000).toFixed(0)}K` 
+                : overview.total_views}
+            </h2>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+              <span>Best Reel: {overview.best_reel_views >= 1000000 ? `${(overview.best_reel_views / 1000000).toFixed(1)}M` : `${(overview.best_reel_views / 1000).toFixed(0)}K`} views</span>
             </div>
           </div>
         </motion.div>
       </div>
 
-      <h2 className="font-display text-xl font-semibold mb-4">Active Campaigns</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="font-display text-2xl font-bold bg-gradient-to-r from-white to-[#c8c6c8] bg-clip-text text-transparent">Active Campaigns</h2>
+      </div>
 
       {loading ? (
         <div className="flex justify-center py-12">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       ) : campaigns.length === 0 ? (
-        <div className="editorial-panel p-12 text-center">
+        <div className="rounded-2xl border border-white/10 bg-[#1a1a1c]/60 p-12 text-center">
           <p className="text-muted-foreground">No campaigns available.</p>
         </div>
       ) : (
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-2">
           {campaigns.map((campaign, i) => (
             <motion.div
               key={campaign.id}
@@ -214,7 +258,7 @@ const Dashboard = () => {
                     <Badge className="bg-warning/10 text-warning border border-warning/20">Top Paying</Badge>
                   )}
                 </div>
-                <Button asChild size="sm" variant="outline" className="text-xs border-primary/20 text-primary hover:bg-primary/10">
+                <Button asChild size="sm" className="text-xs bg-gradient-to-r from-[#8c84eb] to-[#ffb59e] hover:from-[#7b72e7] hover:to-[#ffa488] text-white font-semibold shadow-lg shadow-[#8c84eb]/20 active:scale-[0.98] transition-all duration-200">
                   <Link to={`/campaign/${campaign.id}`}>View Details</Link>
                 </Button>
               </div>

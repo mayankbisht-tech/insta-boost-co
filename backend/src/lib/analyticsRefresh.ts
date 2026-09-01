@@ -37,6 +37,15 @@ const getRefreshLimit = (actor: RefreshActor) => {
 };
 
 export const getRefreshQuota = (actor: RefreshActor) => {
+  const isAdminOrSuperadmin = actor.roles.some(role => role.role === 'admin' || role.role === 'superadmin');
+  if (isAdminOrSuperadmin) {
+    return {
+      refreshLimit: 999999,
+      refreshesRemaining: 999999,
+      windowResetsAt: null,
+    };
+  }
+
   const now = Date.now();
   const refreshLimit = getRefreshLimit(actor);
   const current = refreshWindows.get(actor.id);
@@ -56,6 +65,16 @@ export const getRefreshQuota = (actor: RefreshActor) => {
 };
 
 export const consumeRefreshQuota = (actor: RefreshActor) => {
+  const isAdminOrSuperadmin = actor.roles.some(role => role.role === 'admin' || role.role === 'superadmin');
+  if (isAdminOrSuperadmin) {
+    return {
+      ok: true as const,
+      refreshLimit: 999999,
+      refreshesRemaining: 999999,
+      windowResetsAt: null,
+    };
+  }
+
   const quota = getRefreshQuota(actor);
   if (quota.refreshesRemaining <= 0) {
     return {
@@ -82,6 +101,12 @@ export const syncSubmissionAnalytics = async (submission: SubmissionWithRelation
 
   if (!submission.reelUrl) {
     return { ok: false as const, status: 400, error: 'This submission is missing a reel URL, so analytics cannot be synced.' };
+  }
+
+  const isCapped = Number(submission.earnings) >= submission.campaign.maxEarningRupees;
+  if (isCapped) {
+    console.log(`Skipping Apify sync for submission ${submission.id} since it has already achieved max earnings.`);
+    return { ok: true as const, submission };
   }
 
   let analyticsResult;

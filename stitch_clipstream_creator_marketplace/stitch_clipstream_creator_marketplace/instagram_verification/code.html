@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Instagram Verification - Viralkaro</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#0e0e0f",
+                        "inverse-primary": "#5951b4",
+                        "secondary-container": "#952a00",
+                        "secondary-fixed-dim": "#ffb59e",
+                        "surface-container": "#201f20",
+                        "tertiary-fixed": "#e4e2e4",
+                        "on-error-container": "#ffdad6",
+                        "on-secondary": "#5e1700",
+                        "outline": "#928f9d",
+                        "surface-container-highest": "#353436",
+                        "surface-dim": "#131314",
+                        "on-primary-fixed": "#140067",
+                        "secondary": "#ffb59e",
+                        "outline-variant": "#474552",
+                        "on-secondary-container": "#ffaf97",
+                        "surface-container-high": "#2a2a2b",
+                        "error": "#ffb4ab",
+                        "surface-variant": "#353436",
+                        "background": "#131314",
+                        "error-container": "#93000a",
+                        "on-surface": "#e5e2e3",
+                        "tertiary": "#c8c6c8",
+                        "on-secondary-fixed-variant": "#852400",
+                        "secondary-fixed": "#ffdbd0",
+                        "on-tertiary-fixed": "#1b1b1d",
+                        "on-primary": "#2a1c84",
+                        "surface-container-low": "#1c1b1c",
+                        "on-tertiary-fixed-variant": "#474649",
+                        "surface-tint": "#c5c0ff",
+                        "inverse-on-surface": "#313031",
+                        "on-secondary-fixed": "#3a0b00",
+                        "on-surface-variant": "#c8c4d4",
+                        "tertiary-container": "#929092",
+                        "tertiary-fixed-dim": "#c8c6c8",
+                        "primary-container": "#8c84eb",
+                        "on-primary-fixed-variant": "#41379b",
+                        "on-tertiary-container": "#2a292c",
+                        "on-primary-container": "#23127d",
+                        "primary-fixed-dim": "#c5c0ff",
+                        "surface-bright": "#3a393a",
+                        "primary": "#c5c0ff",
+                        "inverse-surface": "#e5e2e3",
+                        "on-background": "#e5e2e3",
+                        "on-error": "#690005",
+                        "primary-fixed": "#e4dfff",
+                        "on-tertiary": "#303032",
+                        "surface": "#131314"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "margin-desktop": "64px",
+                        "margin-mobile": "20px",
+                        "unit": "8px",
+                        "container-max": "1440px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-xl": ["Inter"],
+                        "label-bold": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["28px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "1.5", "letterSpacing": "0.01em", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-xl": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.04em", "fontWeight": "800" }],
+                        "label-bold": ["12px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-panel {
+            background-color: rgba(26, 26, 28, 0.6);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .btn-primary-glow {
+            background: linear-gradient(135deg, #8c84eb 0%, #ffb59e 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 40px rgba(127, 119, 221, 0.15);
+        }
+        .glow-pulse {
+            animation: pulse-glow 2s infinite;
+        }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(140, 132, 235, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(140, 132, 235, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(140, 132, 235, 0); }
+        }
+    </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface min-h-screen flex flex-col font-body-md overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
+<!-- Top Navigation Shell -->
+<nav class="fixed top-0 w-full z-50 bg-surface-container/60 backdrop-blur-xl border-b border-white/10 shadow-2xl shadow-primary/5">
+<div class="flex items-center justify-between px-margin-mobile md:px-margin-desktop h-20 w-full max-w-container-max mx-auto">
+<div class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-extrabold cursor-pointer">
+                Viralkaro
+            </div>
+<!-- Desktop Nav Items -->
+<div class="hidden md:flex items-center gap-8">
+<a class="text-on-surface-variant hover:bg-white/5 transition-colors active:scale-95 duration-200 px-4 py-2 rounded-lg font-body-md text-body-md" href="#">Dashboard</a>
+<a class="text-primary font-bold hover:bg-white/5 transition-colors active:scale-95 duration-200 px-4 py-2 rounded-lg font-body-md text-body-md relative after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-1/2 after:h-0.5 after:bg-primary after:rounded-full" href="#">Settings</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-primary hover:bg-white/5 transition-colors active:scale-95 duration-200 p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-surface-container-high border border-white/10 overflow-hidden cursor-pointer hover:border-primary/50 transition-colors">
+<img alt="Creator Profile" class="w-full h-full object-cover" data-alt="A highly detailed close-up portrait of a young digital creator in a dark moody studio setting. The lighting is dramatic, featuring a soft blue fill light and a striking electric purple edge light that defines their profile. They are looking confidently at the camera, conveying professionalism and creative energy. The background is completely dark, ensuring the focus remains on the glowing accents and modern aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCODWIgaGOudlQaVtyMAdhwDUI1NtB7LFaEJy8iVNNHdGl4htOqkEPlfdXwmbovUTEtGN6WG-Lu--6kqG1QqEEcoayhB_AGAC8Zhp5kKBy3dJZH-qtpYgpgFWqJOZGQ5gZtuImOLm2UScD898YMUeH8SNkvceXjhfT-vksLTlcsZ0czJ4gUkjeanJx1qFtd7k9ifZLDOMQ4Xi2hjSBodr5l2Q_WIcefEEQu2F9M0xkMC7gMALGPlcrY"/>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-grow pt-32 pb-24 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto w-full flex flex-col md:flex-row gap-gutter">
+<!-- Left SideNav Shell -->
+<aside class="hidden md:flex fixed left-0 top-20 h-[calc(100vh-80px)] w-64 flex-col p-6 gap-4 bg-surface-container-low/80 backdrop-blur-2xl border-r border-white/10 shadow-xl z-40">
+<!-- Profile Header in Nav -->
+<div class="mb-6 flex flex-col items-start gap-2 border-b border-white/10 pb-6">
+<div class="w-12 h-12 rounded-full overflow-hidden mb-2">
+<img alt="Creator Avatar" class="w-full h-full object-cover" data-alt="A highly detailed close-up portrait of a young digital creator in a dark moody studio setting. The lighting is dramatic, featuring a soft blue fill light and a striking electric purple edge light that defines their profile. They are looking confidently at the camera, conveying professionalism and creative energy. The background is completely dark, ensuring the focus remains on the glowing accents and modern aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbiSd4spPgng1RLftUeLcX-RoJJ5Xx64_fhyabNXf5I9JQmNHdIqSsvY1u4y4jrXrxQFEnqoPi_9Fx6rDeFoAPwi_olwkLOTgrUYCI2wf8QR-rl6m5dUvaJUSsPXuI-MDR7HE6EpxLhLYVTBXzKb_2DYX5LKwjZa8pJFmZbCIrgQxfocaP99bxlzVkXua7zdMbgRkhWvO4Y9hOUsT7xvJP0AdCB4rQOsz_FDD3KbztN8SE97UW-xlM"/>
+</div>
+<h3 class="font-body-md text-body-md font-bold text-on-surface">Viralkaro Creator</h3>
+<span class="font-label-bold text-label-bold text-secondary uppercase tracking-wider">Pro Level</span>
+</div>
+<!-- Nav Links -->
+<nav class="flex flex-col gap-2 flex-grow">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50 transition-all hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 0;">storefront</span>
+<span class="font-label-bold text-label-bold">Marketplace</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50 transition-all hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 0;">send_and_archive</span>
+<span class="font-label-bold text-label-bold">Submissions</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50 transition-all hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 0;">payments</span>
+<span class="font-label-bold text-label-bold">Earnings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary-container text-on-primary-container shadow-inner-bevel font-label-bold text-label-bold" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-white/10 flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest/50 transition-all hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 0;">help</span>
+<span class="font-label-bold text-label-bold">Support</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-error hover:bg-error-container/20 transition-all hover:translate-x-1 duration-200" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 0;">logout</span>
+<span class="font-label-bold text-label-bold">Logout</span>
+</a>
+</div>
+</aside>
+<!-- Page Content Canvas -->
+<div class="flex-grow md:ml-[280px] flex justify-center items-start">
+<div class="w-full max-w-2xl flex flex-col gap-8">
+<!-- Header -->
+<div class="flex flex-col gap-2">
+<h1 class="font-headline-xl text-headline-xl text-on-surface">Instagram Verification</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Connect your main account to unlock pro campaigns and higher earning tiers.</p>
+</div>
+<!-- Bento Container -->
+<div class="flex flex-col gap-6">
+<!-- Top Row: Account Info & Badge -->
+<div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+<!-- Account Card -->
+<div class="glass-panel p-8 rounded-2xl flex flex-col items-center justify-center gap-4 relative overflow-hidden md:col-span-3">
+<!-- Ambient Glow Behind -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-primary/20 rounded-full blur-[40px] pointer-events-none"></div>
+<div class="w-20 h-20 rounded-full border-2 border-primary-container p-1 relative z-10">
+<img alt="IG Profile" class="w-full h-full rounded-full object-cover" data-alt="A highly detailed close-up portrait of a young digital creator in a dark moody studio setting. The lighting is dramatic, featuring a soft blue fill light and a striking electric purple edge light that defines their profile. They are looking confidently at the camera, conveying professionalism and creative energy. The background is completely dark, ensuring the focus remains on the glowing accents and modern aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAn5toC3K9n62g15IZikO8zywko-TsSAcRhp-d1UYdnjWRngsSGaOvvekI51mtjFpRzHi4vj3EzOP7nGSn0lW95totxk-QVaM4uiqbt9cnuZk2WJ_YC3WpOsbHP1WMrMDzRAfYcsWUmqSZi9ztfGtP52yzLlg0clpqwvdZW_0t9p-XfJCY5POWYrZ4hFhBsxsW-mDsvsaxdsukW9lVLKnVGpE5VgMj-QFzYKUw2aQUi1gI6PmjjMh8N"/>
+</div>
+<div class="text-center relative z-10 flex flex-col items-center gap-1">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface">@creator_name</h2>
+<div class="flex items-center gap-2 text-on-surface-variant font-body-sm text-body-sm bg-surface-container-highest/50 px-3 py-1 rounded-full border border-white/5">
+<span class="material-symbols-outlined text-[16px]">group</span>
+<span>245K Followers</span>
+</div>
+</div>
+</div>
+<!-- Status Badge Card -->
+<div class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-between md:col-span-2 relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+<div class="w-24 h-24 mb-4 relative z-10">
+<img alt="Verification Badge" class="w-full h-full object-contain drop-shadow-2xl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCF7a7LItg5dppIx2ZNioUCthErRtZC4YoV6ROffCJwAeIkGX0QVGRxJjLcLKFkK60005bEjwDKF8A7JedX1EYREOVsgmS5p1XqpCn17X38lkQBLHzI-S6ycSgUWgWpN3-9RgMokaGQe4H7Sdtgg9iOECnrv1epurflGwlnQsvzIdUzmrCULdWE-uihNGHjgH7q7MZ06tFyv5aHk8CakddCJho2u_Xh_vIUH4U8IprcXtfeo_LjhmVw"/>
+</div>
+<div class="flex flex-col items-center gap-2 relative z-10 w-full">
+<span class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-widest text-[10px]">Status</span>
+<div class="flex items-center gap-2 bg-surface-dim/80 border border-white/5 px-4 py-2 rounded-full w-full justify-center">
+<div class="w-2 h-2 rounded-full bg-secondary glow-pulse"></div>
+<span class="font-body-sm text-body-sm font-semibold text-secondary">Pending</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Steps Card -->
+<div class="glass-panel p-8 rounded-2xl flex flex-col gap-8 relative">
+<!-- Decorative line -->
+<div class="absolute left-12 top-12 bottom-12 w-px bg-gradient-to-b from-primary/30 via-primary/10 to-transparent hidden md:block"></div>
+<!-- Step 1 -->
+<div class="flex items-start gap-4 md:gap-6 relative z-10">
+<div class="w-8 h-8 rounded-full bg-surface-container border border-primary/30 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(140,132,235,0.2)]">
+<span class="font-label-bold text-label-bold text-primary">1</span>
+</div>
+<div class="flex flex-col gap-3 flex-grow">
+<h3 class="font-body-md text-body-md font-semibold text-on-surface">Copy your unique token</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">We need to verify you own this account. Copy the code below.</p>
+<div class="flex items-center gap-2 mt-2">
+<div class="bg-surface-dim border border-white/10 rounded-lg px-4 py-3 flex-grow font-mono text-body-sm text-on-surface tracking-wider">
+                                        vrl_8f92a3b1c
+                                    </div>
+<button class="bg-surface-container-highest hover:bg-surface-bright border border-white/10 text-on-surface px-4 py-3 rounded-lg transition-colors flex items-center justify-center active:scale-95">
+<span class="material-symbols-outlined text-[20px]">content_copy</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Step 2 -->
+<div class="flex items-start gap-4 md:gap-6 relative z-10">
+<div class="w-8 h-8 rounded-full bg-surface-container border border-white/10 flex items-center justify-center shrink-0">
+<span class="font-label-bold text-label-bold text-on-surface-variant">2</span>
+</div>
+<div class="flex flex-col gap-1 flex-grow">
+<h3 class="font-body-md text-body-md font-semibold text-on-surface">Paste into Instagram Bio</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Temporarily add this token to your Instagram profile bio. You can remove it after verification is complete.</p>
+<a class="font-body-sm text-body-sm text-primary flex items-center gap-1 mt-2 hover:underline underline-offset-4 w-fit" href="#">
+                                    Open Instagram Profile <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+</a>
+</div>
+</div>
+<!-- Step 3 -->
+<div class="flex items-start gap-4 md:gap-6 relative z-10">
+<div class="w-8 h-8 rounded-full bg-surface-container border border-white/10 flex items-center justify-center shrink-0">
+<span class="font-label-bold text-label-bold text-on-surface-variant">3</span>
+</div>
+<div class="flex flex-col gap-1 flex-grow">
+<h3 class="font-body-md text-body-md font-semibold text-on-surface">Verify Connection</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Once the token is in your bio, click the button below to initiate the scan.</p>
+</div>
+</div>
+</div>
+<!-- Action Button -->
+<div class="mt-4 w-full relative group">
+<!-- Glow behind button -->
+<div class="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+<button class="relative w-full btn-primary-glow text-white font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg py-4 md:py-6 rounded-xl flex justify-center items-center gap-3 transition-transform active:scale-[0.98]">
+<span class="material-symbols-outlined text-[28px] md:text-[32px]">shield_person</span>
+                            Check Verification
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer Shell -->
+<footer class="w-full py-8 bg-surface-container-lowest border-t border-outline-variant/30 z-10 relative">
+<div class="flex flex-col md:flex-row justify-between items-center px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto gap-4">
+<div class="text-on-surface-variant font-bold font-body-sm text-body-sm">
+                © 2024 Viralkaro Performance Platform
+            </div>
+<div class="flex flex-wrap justify-center gap-6">
+<a class="text-on-surface-variant font-body-sm text-body-sm hover:text-primary transition-colors underline-offset-4 hover:underline" href="#">Terms of Service</a>
+<a class="text-on-surface-variant font-body-sm text-body-sm hover:text-primary transition-colors underline-offset-4 hover:underline" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant font-body-sm text-body-sm hover:text-primary transition-colors underline-offset-4 hover:underline" href="#">Contact Support</a>
+</div>
+</div>
+</footer>
+</body></html>
